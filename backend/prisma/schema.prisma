@@ -1,0 +1,271 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "mysql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id              String      @id @default(uuid())
+  name            String
+  email           String      @unique
+  password_hash   String
+  role               String      @default("PACIENTE")
+  failed_attempts    Int         @default(0)
+  locked_until       DateTime?
+  two_factor_enabled Boolean     @default(false)
+  two_factor_secret  String?     // Para TOTP ou backup
+  created_at         DateTime    @default(now())
+  updated_at         DateTime    @updatedAt
+
+  tutor           Tutor?
+  doctor          Doctor?
+  audit_logs      AuditLog[]
+  password_resets PasswordReset[]
+  two_factor_codes TwoFactorCode[]
+
+  @@map("users")
+}
+
+model PasswordReset {
+  id         String   @id @default(uuid())
+  userId     String   @map("user_id")
+  token      String   @unique
+  expires_at DateTime
+  created_at DateTime @default(now())
+
+  user       User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("password_resets")
+}
+
+model TwoFactorCode {
+  id         String   @id @default(uuid())
+  userId     String   @map("user_id")
+  code       String
+  expires_at DateTime
+  created_at DateTime @default(now())
+
+  user       User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("two_factor_codes")
+}
+
+model Tutor {
+  id         String @id @default(uuid())
+  userId     String @unique @map("user_id")
+  phone      String
+  cep        String?
+  address    String
+  number     String?
+  complement String?
+
+  user     User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+  animals  Animal[]
+
+  @@map("tutors")
+}
+
+model Doctor {
+  id              String            @id @default(uuid())
+  userId          String            @unique @map("user_id")
+  specialty       String
+  crm             String            @unique
+  schedule_config String? @db.Text          // Configuração de horário de trabalho em JSON
+
+  user            User              @relation(fields: [userId], references: [id], onDelete: Cascade)
+  doctor_rooms    DoctorRoom[]
+  appointments    Appointment[]
+  requested_exams RequestedExam[]
+  prescriptions   Prescription[]
+
+  @@map("doctors")
+}
+
+model Animal {
+  id           String      @id @default(uuid())
+  tutorId      String      @map("tutor_id")
+  name         String
+  species      String
+  breed        String
+  birth_date   DateTime
+  weight       Float
+  allergies    String? @db.Text
+  photo_url    String?     // Caminho local para o upload (ou S3 se alterado)
+
+  tutor           Tutor           @relation(fields: [tutorId], references: [id], onDelete: Cascade)
+  appointments    Appointment[]
+  requested_exams RequestedExam[]
+  prescriptions   Prescription[]
+  vaccines        Vaccine[]
+  queue_numbers   QueueNumber[]
+
+  @@map("animals")
+}
+
+model Room {
+  id           String      @id @default(uuid())
+  name         String
+  sector       String
+
+  doctor_rooms DoctorRoom[]
+  appointments Appointment[]
+
+  @@map("rooms")
+}
+
+model DoctorRoom {
+  id        String @id @default(uuid())
+  doctorId  String @map("doctor_id")
+  roomId    String @map("room_id")
+
+  doctor    Doctor @relation(fields: [doctorId], references: [id], onDelete: Cascade)
+  room      Room   @relation(fields: [roomId], references: [id], onDelete: Cascade)
+
+  @@unique([doctorId, roomId])
+  @@map("doctor_rooms")
+}
+
+model Appointment {
+  id                   String            @id @default(uuid())
+  animalId             String            @map("animal_id")
+  doctorId             String            @map("doctor_id")
+  roomId               String            @map("room_id")
+  appointment_datetime DateTime
+  status               String            @default("AGENDADA")
+  observation          String? @db.Text
+
+  animal               Animal            @relation(fields: [animalId], references: [id])
+  doctor               Doctor            @relation(fields: [doctorId], references: [id])
+  room                 Room              @relation(fields: [roomId], references: [id])
+  prescriptions        Prescription[]
+  queue_numbers        QueueNumber[]
+
+  @@map("appointments")
+}
+
+model ExamType {
+  id          String @id @default(uuid())
+  name        String @unique
+  description String? @db.Text
+
+  requested_exams RequestedExam[]
+
+  @@map("exam_types")
+}
+
+model RequestedExam {
+  id             String     @id @default(uuid())
+  animalId       String     @map("animal_id")
+  doctorId       String     @map("doctor_id")
+  examTypeId     String     @map("exam_type_id")
+  request_date   DateTime   @default(now())
+  execution_date DateTime?
+  file_path      String?    // Local PDF file
+  result_text    String? @db.Text
+  status         String     @default("SOLICITADO")
+
+  animal         Animal     @relation(fields: [animalId], references: [id])
+  doctor         Doctor     @relation(fields: [doctorId], references: [id])
+  exam_type      ExamType   @relation(fields: [examTypeId], references: [id])
+
+  @@map("requested_exams")
+}
+
+model Prescription {
+  id                String                   @id @default(uuid())
+  appointmentId     String?                  @map("appointment_id")
+  animalId          String                   @map("animal_id")
+  doctorId          String                   @map("doctor_id")
+  prescription_date DateTime                 @default(now())
+  notes             String? @db.Text
+  file_path         String?                  // Local PDF da receita gerada
+
+  appointment       Appointment?             @relation(fields: [appointmentId], references: [id])
+  animal            Animal                   @relation(fields: [animalId], references: [id])
+  doctor            Doctor                   @relation(fields: [doctorId], references: [id])
+  medications       PrescriptionMedication[]
+
+  @@map("prescriptions")
+}
+
+model PrescriptionMedication {
+  id              String       @id @default(uuid())
+  prescriptionId  String       @map("prescription_id")
+  medication_name String
+  dosage          String
+  frequency       String
+  duration        String?
+
+  prescription    Prescription @relation(fields: [prescriptionId], references: [id], onDelete: Cascade)
+
+  @@map("prescription_medications")
+}
+
+model VaccineType {
+  id              String   @id @default(uuid())
+  name            String   @unique
+  description     String? @db.Text
+  default_dosage  String?  // Ex: 1ml, 2ml
+  stock           Int      @default(0) // Quantidade em estoque
+  created_at      DateTime @default(now())
+
+  vaccines        Vaccine[]
+
+  @@map("vaccine_types")
+}
+
+model Vaccine {
+  id               String   @id @default(uuid())
+  animalId         String   @map("animal_id")
+  vaccineTypeId    String?  @map("vaccine_type_id")
+  name             String
+  dosage           String?  // Quantidade aplicada
+  application_date DateTime @default(now())
+  next_dose_date   DateTime?
+  batch            String?
+
+  animal           Animal       @relation(fields: [animalId], references: [id], onDelete: Cascade)
+  vaccine_type     VaccineType? @relation(fields: [vaccineTypeId], references: [id], onDelete: SetNull)
+
+  @@map("vaccines")
+}
+
+model QueueNumber {
+  id                  String      @id @default(uuid())
+  code                String      // Formato: AB0564 - [classificacao]
+  classification      String      @default("GERAL")
+  generation_datetime DateTime    @default(now())
+  status              String      @default("AGUARDANDO")
+  animalId            String?     @map("animal_id")
+  appointmentId       String?     @map("appointment_id")
+
+  animal              Animal?      @relation(fields: [animalId], references: [id])
+  appointment         Appointment? @relation(fields: [appointmentId], references: [id])
+
+  @@map("queue_numbers")
+}
+
+model AuditLog {
+  id          String   @id @default(uuid())
+  userId      String   @map("user_id")
+  action      String
+  table_name  String
+  record_id   String
+  created_at  DateTime @default(now())
+
+  user        User     @relation(fields: [userId], references: [id])
+
+  @@map("audit_logs")
+}
+model ClinicConfig {
+  id                    String @id @default("global")
+  consultation_interval Int    @default(30) // em minutos
+
+  @@map("clinic_configs")
+}

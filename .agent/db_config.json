@@ -1,0 +1,7 @@
+{
+  "host": "srv722.hstgr.io",
+  "port": 3306,
+  "user": "u966758071_PROD",
+  "database": "u966758071_PROD",
+  "ssl": false
+}

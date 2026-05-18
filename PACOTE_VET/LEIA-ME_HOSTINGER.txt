@@ -1,0 +1,52 @@
+===========================================================
+🚀 INSTRUÇÕES DE DEPLOY - VET CRM (HOSTINGER)
+===========================================================
+
+Este pacote contém os arquivos prontos para produção do seu sistema veterinário.
+
+📁 ESTRUTURA DO PACOTE:
+----------------------
+/vet  --> Conteúdo para o Subdomínio (Frontend)
+/api  --> Conteúdo para o Servidor Node.js (Backend)
+
+PASSO 1: FRONTEND (O Site/Interface)
+------------------------------------
+1. No Gerenciador de Arquivos da Hostinger, vá para a pasta do seu subdomínio (ex: public_html/vet).
+2. Suba todos os arquivos que estão DENTRO da pasta /vet deste pacote para lá.
+3. Se houver um arquivo .htaccess, verifique se ele redireciona as rotas para o index.html (essencial para React Router).
+
+PASSO 2: BACKEND (A API/Banco de Dados)
+---------------------------------------
+1. Crie uma pasta fora da public_html chamada 'api-vet' (para segurança).
+2. Suba o conteúdo da pasta /api deste pacote para essa nova pasta.
+3. No Painel da Hostinger, procure por "Configurar Aplicativo Node.js" (Node.js Selector).
+4. Configure assim:
+   - Versão do Node: 18 ou superior.
+   - Modo de Aplicativo: Production
+   - Raiz do Aplicativo: api-vet
+   - URL do Aplicativo: vet.bnbr.online (ou a URL da sua API)
+   - Arquivo de Inicialização: dist/server.js
+5. Clique em "Salvar" e depois em "Executar Instalação NPM" (Run NPM Install).
+
+PASSO 3: BANCO DE DADOS (MySQL)
+-------------------------------
+O arquivo .env já está configurado com as credenciais que encontrei no seu outro sistema.
+Para criar as tabelas no banco de dados:
+1. Se você tiver acesso SSH, entre na pasta 'api-vet' e execute:
+   npx prisma db push
+2. Se não tiver SSH, você pode adicionar um script temporário no package.json para rodar o "db push" via painel.
+
+DICA: Se precisar de ajuda com o .htaccess para o React, use este modelo:
+-----------------------------------------------------------------------
+<IfModule mod_rewrite.c>
+  RewriteEngine On
+  RewriteBase /
+  RewriteRule ^index\.html$ - [L]
+  RewriteCond %{REQUEST_FILENAME} !-f
+  RewriteCond %{REQUEST_FILENAME} !-d
+  RewriteCond %{REQUEST_FILENAME} !-l
+  RewriteRule . /index.html [L]
+</IfModule>
+-----------------------------------------------------------------------
+
+Sistema preparado com sucesso por Antigravity. 🐾

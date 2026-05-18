@@ -1,0 +1,73 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Tecmaster OS — Simulador de Manutenção Industrial</title>
+  <link rel="stylesheet" href="css/style.css">
+  <link rel="stylesheet" href="css/screens.css">
+  <link rel="stylesheet" href="css/modals.css">
+  <link rel="stylesheet" href="css/animations.css">
+</head>
+<body>
+  <div id="app" class="app-container">
+    <!-- Screens Container -->
+    <div id="screen-container" class="screen-container"></div>
+
+    <!-- Modals Container -->
+    <div id="modals-container" class="modals-container">
+      <div id="quiz-modal" class="modal hidden"></div>
+      <div id="rating-modal" class="modal hidden"></div>
+      <div id="stats-modal" class="modal hidden"></div>
+      <div id="shop-modal" class="modal hidden"></div>
+      <div id="profile-modal" class="modal hidden"></div>
+      <div id="nr12-modal" class="modal hidden"></div>
+      <div id="review-modal" class="modal hidden"></div>
+    </div>
+
+    <!-- Feedback Animations -->
+    <div id="feedback-container" class="feedback-container">
+      <div id="level-up-feedback" class="feedback hidden"></div>
+      <div id="accident-feedback" class="feedback hidden"></div>
+      <div id="quiz-feedback" class="feedback hidden"></div>
+    </div>
+
+    <!-- Bottom Navigation -->
+    <nav id="bottom-nav" class="bottom-nav hidden">
+      <button class="nav-btn" data-screen="map">
+        <span class="nav-icon">🗺️</span>
+        <span class="nav-label">MAPA</span>
+      </button>
+      <button class="nav-btn" data-screen="status">
+        <span class="nav-icon">📊</span>
+        <span class="nav-label">STATUS</span>
+      </button>
+      <button class="nav-btn" data-screen="profile">
+        <span class="nav-icon">👤</span>
+        <span class="nav-label">PERFIL</span>
+      </button>
+      <button class="nav-btn" data-screen="shop">
+        <span class="nav-icon">🛒</span>
+        <span class="nav-label">LOJA</span>
+      </button>
+      <button class="nav-btn" data-screen="nr12">
+        <span class="nav-icon">⚠️</span>
+        <span class="nav-label">NR-12</span>
+      </button>
+      <button class="nav-btn" data-screen="review">
+        <span class="nav-icon">📝</span>
+        <span class="nav-label">REVISAR</span>
+      </button>
+    </nav>
+  </div>
+
+  <!-- Scripts -->
+  <script src="js/data.js"></script>
+  <script src="js/formulas.js"></script>
+  <script src="js/game-state.js"></script>
+  <script src="js/screens.js"></script>
+  <script src="js/modals.js"></script>
+  <script src="js/animations.js"></script>
+  <script src="js/app.js"></script>
+</body>
+</html>

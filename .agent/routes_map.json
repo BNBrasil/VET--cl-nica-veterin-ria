@@ -1,0 +1,15 @@
+{
+  "auth": {
+    "login": "/api/auth/login",
+    "register": "/api/auth/register",
+    "logout": "/api/auth/logout",
+    "me": "/api/auth/me"
+  },
+  "protected": [
+    "/api/perfis",
+    "/api/holerites",
+    "/api/lancamentos",
+    "/api/pontos",
+    "/api/ai"
+  ]
+}
