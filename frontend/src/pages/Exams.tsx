@@ -3,6 +3,14 @@ import api from '../api/axios';
 import { RequestedExam, ExamType } from '../types';
 import { motion } from 'framer-motion';
 import { TestTube, Plus, Loader, X, Download } from 'lucide-react';
+import AnimalSearchPicker from '../components/AnimalSearchPicker';
+
+const formatAssetPath = (path: string | null) => {
+  if (!path) return '';
+  if (path.startsWith('http://') || path.startsWith('https://')) return path;
+  const normalized = path.replace(/\\/g, '/');
+  return normalized.startsWith('/') ? normalized : `/${normalized}`;
+};
 
 export default function Exams() {
   const [exams, setExams] = useState<RequestedExam[]>([]);
@@ -93,12 +101,12 @@ export default function Exams() {
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between">
-        <div>
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+        <div className="min-w-0">
           <h1 className="text-2xl font-bold text-gray-800">Exames</h1>
           <p className="text-gray-500 mt-1">Gerencie solicitações e resultados</p>
         </div>
-        <button onClick={() => setShowForm(true)} className="btn-primary flex items-center gap-2">
+        <button onClick={() => setShowForm(true)} className="btn-primary flex w-full items-center justify-center gap-2 sm:w-auto">
           <Plus className="w-5 h-5" />
           Solicitar Exame
         </button>
@@ -108,68 +116,71 @@ export default function Exams() {
         <motion.div
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
-          className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4"
+          className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm flex items-center justify-center z-50 p-4"
         >
           <motion.div
-            initial={{ scale: 0.9 }}
-            animate={{ scale: 1 }}
-            className="bg-white rounded-2xl p-6 w-full max-w-lg"
+            initial={{ scale: 0.95, y: 15 }}
+            animate={{ scale: 1, y: 0 }}
+            className="max-h-[90vh] w-full max-w-md overflow-y-auto rounded-lg border border-slate-100 bg-white p-5 shadow-2xl sm:p-8"
           >
-            <div className="flex items-center justify-between mb-6">
-              <h2 className="text-xl font-bold text-gray-800">Solicitar Exame</h2>
-              <button onClick={() => setShowForm(false)} className="p-2 hover:bg-gray-100 rounded-lg">
+            <div className="mb-8 flex items-center justify-between gap-3 border-b border-slate-100 pb-4">
+              <div>
+                <h2 className="text-2xl font-black text-slate-800 tracking-tight">Solicitar Exame</h2>
+                <p className="text-[10px] text-slate-400 mt-1 uppercase tracking-widest font-extrabold">Nova requisição de exame clínico</p>
+              </div>
+              <button onClick={() => setShowForm(false)} className="p-2 hover:bg-slate-100 hover:text-slate-700 text-slate-400 rounded-full transition-all duration-300 hover:rotate-90">
                 <X className="w-5 h-5" />
               </button>
             </div>
 
-            <form onSubmit={handleSubmit} className="space-y-4">
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Animal *</label>
-                <select
-                  value={formData.animalId}
-                  onChange={(e) => setFormData({ ...formData, animalId: e.target.value })}
-                  className="input-field"
-                  required
-                >
-                  <option value="">Selecione</option>
-                  {animals.map((animal) => (
-                    <option key={animal.id} value={animal.id}>{animal.name}</option>
-                  ))}
-                </select>
-              </div>
+            <form onSubmit={handleSubmit} className="space-y-5">
+              <AnimalSearchPicker
+                animals={animals}
+                value={formData.animalId}
+                onChange={(animalId) => setFormData({ ...formData, animalId })}
+                label="Animal"
+                required
+              />
 
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Tipo de Exame *</label>
+              <div className="flex flex-col gap-1.5">
+                <label className="text-xs font-bold text-slate-400 uppercase tracking-wider">Tipo de Exame *</label>
                 <select
                   value={formData.examTypeId}
                   onChange={(e) => setFormData({ ...formData, examTypeId: e.target.value })}
-                  className="input-field"
+                  className="w-full px-4 py-3 rounded-xl bg-slate-50 border border-slate-200 text-slate-700 font-medium focus:bg-white focus:border-emerald-500 focus:ring-4 focus:ring-emerald-500/10 transition-all duration-300 outline-none text-sm cursor-pointer"
                   required
                 >
-                  <option value="">Selecione</option>
+                  <option value="">Selecione o tipo de exame...</option>
                   {examTypes.map((type) => (
                     <option key={type.id} value={type.id}>{type.name}</option>
                   ))}
                 </select>
               </div>
 
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Médico Solicitante *</label>
+              <div className="flex flex-col gap-1.5">
+                <label className="text-xs font-bold text-slate-400 uppercase tracking-wider">Médico Solicitante *</label>
                 <select
                   value={formData.doctorId}
                   onChange={(e) => setFormData({ ...formData, doctorId: e.target.value })}
-                  className="input-field"
+                  className="w-full px-4 py-3 rounded-xl bg-slate-50 border border-slate-200 text-slate-700 font-medium focus:bg-white focus:border-emerald-500 focus:ring-4 focus:ring-emerald-500/10 transition-all duration-300 outline-none text-sm cursor-pointer"
                   required
                 >
-                  <option value="">Selecione</option>
+                  <option value="">Selecione o médico...</option>
                   {doctors.map((doc) => (
                     <option key={doc.id} value={doc.id}>{doc.user.name}</option>
                   ))}
                 </select>
               </div>
 
-              <button type="submit" disabled={submitting} className="btn-primary w-full py-3">
-                {submitting ? 'Solicitando...' : 'Solicitar Exame'}
+              <button type="submit" disabled={submitting} className="w-full mt-4 py-4 rounded-xl bg-gradient-to-r from-emerald-600 to-teal-500 hover:from-emerald-500 hover:to-teal-400 text-white font-bold text-xs uppercase tracking-wider shadow-lg shadow-emerald-500/20 active:scale-[0.98] transition-all duration-300 disabled:opacity-50 disabled:pointer-events-none flex items-center justify-center gap-2 cursor-pointer">
+                {submitting ? (
+                  <>
+                    <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                    Solicitando...
+                  </>
+                ) : (
+                  'Solicitar Exame'
+                )}
               </button>
             </form>
           </motion.div>
@@ -184,8 +195,8 @@ export default function Exams() {
             animate={{ opacity: 1, y: 0 }}
             className="bg-white rounded-xl shadow-sm border border-gray-100 p-6"
           >
-            <div className="flex items-start justify-between">
-              <div className="flex items-start gap-4">
+            <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
+              <div className="flex min-w-0 items-start gap-4">
                 <div className="w-12 h-12 bg-purple-100 rounded-xl flex items-center justify-center">
                   <TestTube className="w-6 h-6 text-purple-600" />
                 </div>
@@ -207,10 +218,10 @@ export default function Exams() {
               </div>
               {exam.file_path && (
                 <a
-                  href={exam.file_path}
+                  href={formatAssetPath(exam.file_path)}
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="flex items-center gap-2 px-4 py-2 bg-primary-100 text-primary-700 rounded-lg hover:bg-primary-200"
+                className="flex w-full items-center justify-center gap-2 rounded-lg bg-primary-100 px-4 py-2 text-primary-700 hover:bg-primary-200 sm:w-auto"
                 >
                   <Download className="w-4 h-4" />
                   Baixar

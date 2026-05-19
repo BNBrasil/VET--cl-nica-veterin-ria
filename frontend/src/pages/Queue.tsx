@@ -8,30 +8,116 @@ export default function Queue() {
   const [queue, setQueue] = useState<QueueNumber[]>([]);
   const [loading, setLoading] = useState(true);
   const [showForm, setShowForm] = useState(false);
-  const [formData, setFormData] = useState({ classification: 'GERAL' });
+  const [formData, setFormData] = useState({ 
+    classification: 'GERAL',
+    targetType: '',
+    targetName: '',
+    roomId: '',
+    examTypeId: '',
+    animalName: '',
+    animalId: ''
+  });
   const [submitting, setSubmitting] = useState(false);
-  const [lastGenerated, setLastGenerated] = useState<QueueNumber | null>(null);
+  const [lastGenerated, setLastGenerated] = useState<any | null>(null);
   const [lastCalledId, setLastCalledId] = useState<string | null>(null);
   const [showUserForm, setShowUserForm] = useState(false);
   const [userForm, setUserForm] = useState({ name: '', email: '', password: '', phone: '' });
   const [userSubmitting, setUserSubmitting] = useState(false);
+  const [allAnimals, setAllAnimals] = useState<any[]>([]);
+  const [showAnimalForm, setShowAnimalForm] = useState(false);
+  const [showInlineTutor, setShowInlineTutor] = useState(false);
+  const [animalFormData, setAnimalFormData] = useState({
+    name: '',
+    species: '',
+    breed: '',
+    birth_date: '',
+    weight: '',
+    tutorId: '',
+    allergies: '',
+  });
+  const [tutors, setTutors] = useState<any[]>([]);
+  const [animalSubmitting, setAnimalSubmitting] = useState(false);
 
-  const playNotification = () => {
-    const audio = new Audio('https://assets.mixkit.co/active_storage/sfx/2869/2869-preview.mp3');
+  // Destinos para Senha
+  const [specialties, setSpecialties] = useState<string[]>([]);
+  const [rooms, setRooms] = useState<any[]>([]);
+  const [exams, setExams] = useState<any[]>([]);
+  const [doctors, setDoctors] = useState<any[]>([]);
+
+  const playNotification = (species?: string) => {
+    let soundUrl = 'https://assets.mixkit.co/active_storage/sfx/2869/2869-preview.mp3'; // Generic chime
+    
+    if (species) {
+      const lowerSpecies = species.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '');
+      if (lowerSpecies.includes('cão') || lowerSpecies.includes('cao') || lowerSpecies.includes('cachorro') || lowerSpecies.includes('dog')) {
+        soundUrl = 'https://www.myinstants.com/media/sounds/dog-barking-sound-effect_1.mp3'; // Dog bark
+      } else if (lowerSpecies.includes('gato') || lowerSpecies.includes('cat')) {
+        soundUrl = 'https://www.myinstants.com/media/sounds/meow_4.mp3'; // Cat meow
+      } else if (lowerSpecies.includes('passaro') || lowerSpecies.includes('ave') || lowerSpecies.includes('bird')) {
+        soundUrl = 'https://www.myinstants.com/media/sounds/canary-bird-singing-sound-effect.mp3';
+      }
+    }
+    
+    const audio = new Audio(soundUrl);
+    audio.volume = 0.85;
     audio.play().catch(e => console.log('Audio play failed:', e));
+  };
+
+  const playTicketSound = (ticket?: any) => {
+    if (!ticket || ticket.id === lastCalledId) return;
+    setLastCalledId(ticket.id);
+    playNotification(ticket.animal?.species);
   };
 
   useEffect(() => {
     fetchQueue();
+    fetchDestinations();
+    fetchAnimals();
+    fetchTutors();
     const interval = setInterval(fetchQueue, 5000);
     return () => clearInterval(interval);
   }, []);
+
+  const fetchAnimals = async () => {
+    try {
+      const response = await api.get('/animals');
+      setAllAnimals(response.data.animals || []);
+    } catch (error) {
+      console.error('Error fetching animals:', error);
+    }
+  };
+
+  const fetchTutors = async () => {
+    try {
+      const response = await api.get('/tutors');
+      setTutors(response.data.tutors || []);
+    } catch (error) {
+      console.error('Error fetching tutors:', error);
+    }
+  };
+
+  const fetchDestinations = async () => {
+    try {
+      const [specRes, roomRes, examRes, docRes] = await Promise.all([
+        api.get('/appointments/specialties'),
+        api.get('/clinic/rooms'),
+        api.get('/exams/types'),
+        api.get('/clinic/doctors')
+      ]);
+      setSpecialties(specRes.data.specialties || []);
+      setRooms(roomRes.data.rooms || []);
+      setExams(examRes.data.examTypes || []);
+      setDoctors(docRes.data.doctors || []);
+    } catch (error) {
+      console.error('Erro ao buscar destinos:', error);
+    }
+  };
 
   useEffect(() => {
     const called = queue.find(t => t.status === 'CHAMADA');
     if (called && called.id !== lastCalledId) {
       setLastCalledId(called.id);
-      playNotification();
+      playNotification((called as any).animal?.species);
     }
   }, [queue, lastCalledId]);
 
@@ -49,11 +135,33 @@ export default function Queue() {
   const generateTicket = async (e: React.FormEvent) => {
     e.preventDefault();
     setSubmitting(true);
+    if (!formData.animalId) {
+      alert('Por favor, selecione um pet cadastrado ou cadastre um novo pet.');
+      setSubmitting(false);
+      return;
+    }
     try {
-      const response = await api.post('/queue', formData);
-      setLastGenerated(response.data.ticket);
+      const payload = {
+        classification: formData.classification,
+        targetType: formData.targetType || null,
+        targetName: formData.targetName || null,
+        roomId: formData.roomId || null,
+        examTypeId: formData.examTypeId || null,
+        animalName: formData.animalName || null,
+        animalId: formData.animalId || null
+      };
+      const response = await api.post('/queue', payload);
+      setLastGenerated({ ...response.data.ticket, _localAnimalName: formData.animalName });
       setShowForm(false);
-      setFormData({ classification: 'GERAL' });
+      setFormData({ 
+        classification: 'GERAL',
+        targetType: '',
+        targetName: '',
+        roomId: '',
+        examTypeId: '',
+        animalName: '',
+        animalId: ''
+      });
       fetchQueue();
     } catch (error) {
       console.error('Error generating ticket:', error);
@@ -68,7 +176,8 @@ export default function Queue() {
 
   const callNext = async () => {
     try {
-      await api.post('/queue/call-next');
+      const response = await api.post('/queue/call-next');
+      playTicketSound(response.data.ticket);
       fetchQueue();
     } catch (error) {
       console.error('Error calling next:', error);
@@ -77,7 +186,10 @@ export default function Queue() {
 
   const updateStatus = async (id: string, status: string) => {
     try {
-      await api.patch(`/queue/${id}`, { status });
+      const response = await api.patch(`/queue/${id}`, { status });
+      if (status === 'CHAMADA') {
+        playTicketSound(response.data.ticket);
+      }
       fetchQueue();
     } catch (error) {
       console.error('Error updating status:', error);
@@ -91,10 +203,56 @@ export default function Queue() {
       await api.post('/auth/register-staff', { ...userForm, role: 'PACIENTE' });
       setShowUserForm(false);
       setUserForm({ name: '', email: '', password: '', phone: '' });
-      alert('Paciente criado com sucesso! Agora você pode gerar a senha ou cadastrar o animal.');
+      alert('Paciente criado com sucesso! Agora você pode cadastrar o animal.');
+      fetchTutors();
     } catch (error: any) {
       alert(error.response?.data?.error || 'Erro ao criar paciente');
     } finally {
+      setUserSubmitting(false);
+    }
+  };
+
+  const handleCreateAnimal = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setAnimalSubmitting(true);
+    try {
+      let finalTutorId = animalFormData.tutorId;
+
+      // Se estiver no modo "Novo Tutor" (inline), cadastra o tutor primeiro
+      if (showInlineTutor) {
+        setUserSubmitting(true);
+        await api.post('/auth/register-staff', { 
+          ...userForm, 
+          role: 'PACIENTE',
+          password: userForm.password || '123456' // Senha padrão
+        });
+        
+        const tutorsRes = await api.get('/tutors');
+        const newTutor = tutorsRes.data.tutors.find((t: any) => t.user.email === userForm.email);
+        
+        if (!newTutor) throw new Error('Falha ao localizar o novo tutor cadastrado.');
+        finalTutorId = newTutor.id;
+        
+        setShowInlineTutor(false);
+        setUserForm({ name: '', email: '', password: '', phone: '' });
+        fetchTutors();
+      }
+
+      const res = await api.post('/animals', { ...animalFormData, tutorId: finalTutorId });
+      setShowAnimalForm(false);
+      setAnimalFormData({ name: '', species: '', breed: '', birth_date: '', weight: '', tutorId: '', allergies: '' });
+      alert('Cadastro realizado com sucesso!');
+      fetchAnimals();
+      
+      // Auto-seleciona o novo animal no formulário de senha
+      if (res.data.animal) {
+        setFormData(prev => ({ ...prev, animalId: res.data.animal.id, animalName: res.data.animal.name }));
+      }
+    } catch (error: any) {
+      console.error('Erro no cadastro:', error);
+      alert(error.response?.data?.error || error.message || 'Erro ao realizar cadastro');
+    } finally {
+      setAnimalSubmitting(false);
       setUserSubmitting(false);
     }
   };
@@ -112,6 +270,14 @@ export default function Queue() {
     CANCELADA: 'bg-red-100 text-red-700',
   };
 
+  const targetLabels: any = {
+    ESPECIALIDADE: 'Especialidade',
+    SALA: 'Consultório',
+    EXAME: 'Exame',
+    TRIAGEM: 'Triagem',
+    MEDICO: 'Médico'
+  };
+
   if (loading) {
     return <div className="flex items-center justify-center h-64">Carregando...</div>;
   }
@@ -120,21 +286,21 @@ export default function Queue() {
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between">
-        <div>
+      <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
+        <div className="min-w-0">
           <h1 className="text-2xl font-bold text-gray-800">Fila de Atendimento</h1>
           <p className="text-gray-500 mt-1">Gerencie a fila de senhas</p>
         </div>
-        <div className="flex gap-3">
-          <button onClick={() => setShowUserForm(true)} className="btn-secondary border-primary-200 text-primary-700 flex items-center gap-2">
+        <div className="grid grid-cols-1 gap-2 sm:grid-cols-2 lg:flex lg:gap-3">
+          <button onClick={() => setShowUserForm(true)} className="btn-secondary border-primary-200 text-primary-700 flex min-w-0 items-center justify-center gap-2">
             <User className="w-5 h-5" />
             Novo Cliente
           </button>
-          <button onClick={callNext} className="btn-primary flex items-center gap-2">
+          <button onClick={callNext} className="btn-primary flex min-w-0 items-center justify-center gap-2">
             <Play className="w-5 h-5" />
             Chamar Próxima
           </button>
-          <button onClick={() => setShowForm(true)} className="btn-secondary flex items-center gap-2">
+          <button onClick={() => setShowForm(true)} className="btn-secondary flex min-w-0 items-center justify-center gap-2">
             <Plus className="w-5 h-5" />
             Nova Senha
           </button>
@@ -145,48 +311,253 @@ export default function Queue() {
         <motion.div
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
-          className="fixed inset-0 bg-black/60 flex items-center justify-center z-50 p-4 backdrop-blur-sm"
+          className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm flex items-center justify-center z-50 p-4"
         >
           <motion.div
-            initial={{ scale: 0.9 }}
-            animate={{ scale: 1 }}
-            className="bg-white rounded-3xl p-8 w-full max-w-sm shadow-2xl"
+            initial={{ scale: 0.95, y: 15 }}
+            animate={{ scale: 1, y: 0 }}
+            className="bg-white rounded-3xl p-8 w-full max-w-md shadow-2xl border border-slate-100 max-h-[90vh] overflow-y-auto"
           >
-            <div className="flex items-center justify-between mb-6">
-              <h2 className="text-xl font-bold text-gray-800">Gerar Senha</h2>
-              <button onClick={() => setShowForm(false)} className="p-2 hover:bg-gray-100 rounded-xl">
-                <X className="w-5 h-5 text-gray-400" />
+            <div className="flex items-center justify-between mb-8 pb-4 border-b border-slate-100">
+              <div>
+                <h2 className="text-2xl font-black text-slate-800 tracking-tight">Gerar Senha</h2>
+                <p className="text-[10px] text-slate-400 mt-1 uppercase tracking-widest font-extrabold">Gerar nova senha de atendimento</p>
+              </div>
+              <button onClick={() => setShowForm(false)} className="p-2 hover:bg-slate-100 hover:text-slate-700 text-slate-400 rounded-full transition-all duration-300 hover:rotate-90">
+                <X className="w-5 h-5" />
               </button>
             </div>
 
-            <form onSubmit={generateTicket} className="space-y-4">
+            <form onSubmit={generateTicket} className="space-y-5">
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-3">Classificação do Atendimento</label>
-                <div className="space-y-2">
-                  {['GERAL', 'PREFERENCIAL', 'URGENTE'].map((type) => (
-                    <label key={type} className={`flex items-center gap-3 p-4 border-2 rounded-2xl cursor-pointer transition-all ${
-                      formData.classification === type ? 'border-primary-600 bg-primary-50/50' : 'border-gray-100 hover:border-gray-200'
-                    }`}>
-                      <input
-                        type="radio"
-                        name="classification"
-                        value={type}
-                        checked={formData.classification === type}
-                        onChange={(e) => setFormData({ ...formData, classification: e.target.value })}
-                        className="w-5 h-5 text-primary-600 focus:ring-primary-500 border-gray-300"
-                      />
-                      <div className="flex flex-col">
-                        <span className="font-bold text-gray-800 text-sm">{type}</span>
-                        <span className="text-[10px] text-gray-400 uppercase tracking-widest">
-                          {type === 'URGENTE' ? 'Risco Imediato' : type === 'PREFERENCIAL' ? 'Prioridade por Lei' : 'Atendimento Comum'}
-                        </span>
-                      </div>
-                    </label>
-                  ))}
+                <label className="block text-xs font-bold text-slate-400 uppercase tracking-wider mb-3">Classificação do Atendimento</label>
+                <div className="space-y-2.5">
+                  {['GERAL', 'PREFERENCIAL', 'URGENTE'].map((type) => {
+                    const isSelected = formData.classification === type;
+                    let styleClass = 'border-slate-100 hover:border-slate-200';
+                    let radioColor = 'text-slate-600 focus:ring-slate-500';
+                    
+                    if (isSelected) {
+                      if (type === 'URGENTE') {
+                        styleClass = 'border-rose-500 bg-rose-50/20 ring-4 ring-rose-500/5';
+                        radioColor = 'text-rose-600 focus:ring-rose-500';
+                      } else if (type === 'PREFERENCIAL') {
+                        styleClass = 'border-amber-500 bg-amber-50/20 ring-4 ring-amber-500/5';
+                        radioColor = 'text-amber-600 focus:ring-amber-500';
+                      } else {
+                        styleClass = 'border-emerald-500 bg-emerald-50/20 ring-4 ring-emerald-500/5';
+                        radioColor = 'text-emerald-600 focus:ring-emerald-500';
+                      }
+                    }
+
+                    return (
+                      <label key={type} className={`flex items-center gap-3.5 p-4 border-2 rounded-2xl cursor-pointer transition-all duration-300 ${styleClass}`}>
+                        <input
+                          type="radio"
+                          name="classification"
+                          value={type}
+                          checked={formData.classification === type}
+                          onChange={(e) => setFormData({ ...formData, classification: e.target.value })}
+                          className={`w-5 h-5 border-slate-300 transition-colors cursor-pointer ${radioColor}`}
+                        />
+                        <div className="flex flex-col">
+                          <span className="font-extrabold text-slate-800 text-sm tracking-tight">{type}</span>
+                          <span className="text-[9px] text-slate-400 font-bold uppercase tracking-wider mt-0.5">
+                            {type === 'URGENTE' ? 'Risco Imediato' : type === 'PREFERENCIAL' ? 'Prioridade por Lei' : 'Atendimento Comum'}
+                          </span>
+                        </div>
+                      </label>
+                    );
+                  })}
                 </div>
               </div>
 
-              <button type="submit" disabled={submitting} className="btn-primary w-full py-4 text-base shadow-lg shadow-primary-200 mt-4">
+              <hr className="border-slate-100" />
+              
+              <div>
+                <div className="flex items-center justify-between mb-2">
+                  <label className="text-xs font-bold text-slate-400 uppercase tracking-wider">Identificação do Pet *</label>
+                  <button 
+                    type="button"
+                    onClick={() => setShowAnimalForm(true)}
+                    className="text-[10px] font-extrabold text-emerald-700 bg-emerald-50 hover:bg-emerald-100 px-2.5 py-1.5 rounded-lg border border-emerald-100 shadow-sm transition-all duration-300 cursor-pointer"
+                  >
+                    + Novo Pet
+                  </button>
+                </div>
+                <div className="relative">
+                  <input 
+                    type="text"
+                    placeholder="Busque pelo nome do pet..."
+                    className="w-full px-4 py-3 rounded-xl bg-slate-50 border border-slate-200 text-slate-700 font-medium focus:bg-white focus:border-emerald-500 focus:ring-4 focus:ring-emerald-500/10 transition-all duration-300 outline-none text-sm"
+                    value={formData.animalName}
+                    onChange={(e) => {
+                      const val = e.target.value;
+                      setFormData({ ...formData, animalName: val, animalId: '' });
+                    }}
+                    required
+                  />
+                  {formData.animalName && !formData.animalId && (
+                    <div className="absolute left-0 right-0 top-full mt-1.5 bg-white border border-slate-100 rounded-xl shadow-xl z-[60] max-h-48 overflow-y-auto divide-y divide-slate-50">
+                      {allAnimals
+                        .filter(a => a.name.toLowerCase().includes(formData.animalName.toLowerCase()))
+                        .map(a => (
+                          <button
+                            key={a.id}
+                            type="button"
+                            className="w-full text-left px-4 py-3 hover:bg-emerald-50/50 transition-colors flex flex-col cursor-pointer"
+                            onClick={() => {
+                              setFormData({ ...formData, animalName: a.name, animalId: a.id });
+                            }}
+                          >
+                            <span className="font-bold text-slate-800 text-sm">{a.name}</span>
+                            <span className="text-[9px] text-slate-400 font-bold uppercase tracking-wider mt-0.5">
+                              {a.species} • {a.breed} • Tutor: {a.tutor?.user?.name || 'N/A'}
+                            </span>
+                          </button>
+                        ))
+                      }
+                      {allAnimals.filter(a => a.name.toLowerCase().includes(formData.animalName.toLowerCase())).length === 0 && (
+                        <div className="px-4 py-3 text-xs text-slate-400 italic">
+                          Nenhum pet encontrado. Clique em "+ Novo Pet" para cadastrar.
+                        </div>
+                      )}
+                    </div>
+                  )}
+                  {formData.animalId && (
+                    <div className="absolute right-3 top-1/2 -translate-y-1/2 flex items-center gap-2">
+                      <span className="bg-emerald-100 text-emerald-700 text-[9px] font-extrabold px-2 py-1 rounded-lg uppercase tracking-wider">
+                        Selecionado
+                      </span>
+                      <button 
+                        type="button"
+                        onClick={() => setFormData({ ...formData, animalName: '', animalId: '' })}
+                        className="p-1 hover:bg-slate-100 rounded-full transition-colors"
+                      >
+                        <X className="w-4 h-4 text-slate-400 hover:text-slate-600" />
+                      </button>
+                    </div>
+                  )}
+                </div>
+              </div>
+
+              <hr className="border-slate-100" />
+
+              <div className="space-y-4">
+                <div>
+                  <label className="block text-xs font-bold text-slate-400 uppercase tracking-wider mb-2">Destino do Atendimento (Opcional)</label>
+                  <select
+                    className="w-full px-4 py-3 rounded-xl bg-slate-50 border border-slate-200 text-slate-700 font-medium focus:bg-white focus:border-emerald-500 focus:ring-4 focus:ring-emerald-500/10 transition-all duration-300 outline-none text-sm cursor-pointer"
+                    value={formData.targetType}
+                    onChange={(e) => {
+                      const val = e.target.value;
+                      setFormData({ 
+                        ...formData, 
+                        targetType: val, 
+                        targetName: val === 'TRIAGEM' ? 'Triagem' : '', 
+                        roomId: '', 
+                        examTypeId: '' 
+                      });
+                    }}
+                  >
+                    <option value="">Nenhum destino específico</option>
+                    <option value="TRIAGEM">Triagem</option>
+                    <option value="ESPECIALIDADE">Especialidade Médica</option>
+                    <option value="MEDICO">Médico Específico</option>
+                    <option value="SALA">Consultório</option>
+                    <option value="EXAME">Exame</option>
+                  </select>
+                </div>
+
+                {formData.targetType === 'ESPECIALIDADE' && (
+                  <motion.div initial={{ opacity: 0, y: -5 }} animate={{ opacity: 1, y: 0 }} className="flex flex-col gap-1.5">
+                    <label className="text-xs font-bold text-slate-400 uppercase tracking-wider">Selecione a Especialidade</label>
+                    <select
+                      className="w-full px-4 py-3 rounded-xl bg-slate-50 border border-slate-200 text-slate-700 font-medium focus:bg-white focus:border-emerald-500 focus:ring-4 focus:ring-emerald-500/10 transition-all duration-300 outline-none text-sm cursor-pointer"
+                      value={formData.targetName}
+                      onChange={(e) => setFormData({ ...formData, targetName: e.target.value })}
+                      required
+                    >
+                      <option value="">Selecione...</option>
+                      {specialties.map(s => (
+                        <option key={s} value={s}>{s}</option>
+                      ))}
+                    </select>
+                  </motion.div>
+                )}
+
+                {formData.targetType === 'MEDICO' && (
+                  <motion.div initial={{ opacity: 0, y: -5 }} animate={{ opacity: 1, y: 0 }} className="flex flex-col gap-1.5">
+                    <label className="text-xs font-bold text-slate-400 uppercase tracking-wider">Selecione o Médico</label>
+                    <select
+                      className="w-full px-4 py-3 rounded-xl bg-slate-50 border border-slate-200 text-slate-700 font-medium focus:bg-white focus:border-emerald-500 focus:ring-4 focus:ring-emerald-500/10 transition-all duration-300 outline-none text-sm cursor-pointer"
+                      value={formData.targetName}
+                      onChange={(e) => {
+                        const doc = doctors.find(d => d.user.name === e.target.value);
+                        const firstRoom = doc?.doctor_rooms?.[0]?.room;
+                        setFormData({ 
+                          ...formData, 
+                          targetName: e.target.value, 
+                          roomId: firstRoom?.id || '' 
+                        });
+                      }}
+                      required
+                    >
+                      <option value="">Selecione...</option>
+                      {doctors.map(d => (
+                        <option key={d.id} value={d.user.name}>{d.user.name} ({d.specialty})</option>
+                      ))}
+                    </select>
+                    {formData.roomId && (
+                      <p className="text-[10px] text-emerald-600 font-bold mt-1.5 animate-pulse flex items-center gap-1">
+                        📍 Vinculado ao: {rooms.find(r => r.id === formData.roomId)?.name || 'Consultório'}
+                      </p>
+                    )}
+                  </motion.div>
+                )}
+
+                {formData.targetType === 'SALA' && (
+                  <motion.div initial={{ opacity: 0, y: -5 }} animate={{ opacity: 1, y: 0 }} className="flex flex-col gap-1.5">
+                    <label className="text-xs font-bold text-slate-400 uppercase tracking-wider">Selecione o Consultório</label>
+                    <select
+                      className="w-full px-4 py-3 rounded-xl bg-slate-50 border border-slate-200 text-slate-700 font-medium focus:bg-white focus:border-emerald-500 focus:ring-4 focus:ring-emerald-500/10 transition-all duration-300 outline-none text-sm cursor-pointer"
+                      value={formData.roomId}
+                      onChange={(e) => {
+                        const room = rooms.find(r => r.id === e.target.value);
+                        setFormData({ ...formData, roomId: e.target.value, targetName: room ? room.name : '' });
+                      }}
+                      required
+                    >
+                      <option value="">Selecione...</option>
+                      {rooms.map(r => (
+                        <option key={r.id} value={r.id}>{r.name} ({r.sector})</option>
+                      ))}
+                    </select>
+                  </motion.div>
+                )}
+
+                {formData.targetType === 'EXAME' && (
+                  <motion.div initial={{ opacity: 0, y: -5 }} animate={{ opacity: 1, y: 0 }} className="flex flex-col gap-1.5">
+                    <label className="text-xs font-bold text-slate-400 uppercase tracking-wider">Selecione o Exame</label>
+                    <select
+                      className="w-full px-4 py-3 rounded-xl bg-slate-50 border border-slate-200 text-slate-700 font-medium focus:bg-white focus:border-emerald-500 focus:ring-4 focus:ring-emerald-500/10 transition-all duration-300 outline-none text-sm cursor-pointer"
+                      value={formData.examTypeId}
+                      onChange={(e) => {
+                        const exam = exams.find(ex => ex.id === e.target.value);
+                        setFormData({ ...formData, examTypeId: e.target.value, targetName: exam ? exam.name : '' });
+                      }}
+                      required
+                    >
+                      <option value="">Selecione...</option>
+                      {exams.map(ex => (
+                        <option key={ex.id} value={ex.id}>{ex.name}</option>
+                      ))}
+                    </select>
+                  </motion.div>
+                )}
+              </div>
+
+              <button type="submit" disabled={submitting} className="w-full mt-4 py-4 rounded-xl bg-gradient-to-r from-emerald-600 to-teal-500 hover:from-emerald-500 hover:to-teal-400 text-white font-bold text-xs uppercase tracking-wider shadow-lg shadow-emerald-500/20 active:scale-[0.98] transition-all duration-300 disabled:opacity-50 disabled:pointer-events-none flex items-center justify-center gap-2 cursor-pointer">
                 {submitting ? 'Gerando...' : 'Gerar Senha'}
               </button>
             </form>
@@ -198,67 +569,270 @@ export default function Queue() {
         <motion.div
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
-          className="fixed inset-0 bg-black/60 flex items-center justify-center z-50 p-4 backdrop-blur-sm"
+          className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm flex items-center justify-center z-50 p-4"
         >
           <motion.div
-            initial={{ scale: 0.9 }}
-            animate={{ scale: 1 }}
-            className="bg-white rounded-3xl p-8 w-full max-w-md shadow-2xl"
+            initial={{ scale: 0.95, y: 15 }}
+            animate={{ scale: 1, y: 0 }}
+            className="bg-white rounded-3xl p-8 w-full max-w-md shadow-2xl border border-slate-100"
           >
-            <div className="flex items-center justify-between mb-6">
-              <h2 className="text-xl font-bold text-gray-800">Novo Cliente/Paciente</h2>
-              <button onClick={() => setShowUserForm(false)} className="p-2 hover:bg-gray-100 rounded-xl">
-                <X className="w-5 h-5 text-gray-400" />
+            <div className="flex items-center justify-between mb-8 pb-4 border-b border-slate-100">
+              <div>
+                <h2 className="text-2xl font-black text-slate-800 tracking-tight">Novo Cliente</h2>
+                <p className="text-[10px] text-slate-400 mt-1 uppercase tracking-widest font-extrabold">Registrar tutor responsável no sistema</p>
+              </div>
+              <button onClick={() => setShowUserForm(false)} className="p-2 hover:bg-slate-100 hover:text-slate-700 text-slate-400 rounded-full transition-all duration-300 hover:rotate-90">
+                <X className="w-5 h-5" />
               </button>
             </div>
 
-            <form onSubmit={handleCreatePatient} className="space-y-4">
-              <div>
-                <label className="block text-xs font-bold text-gray-400 uppercase mb-1">Nome do Tutor</label>
+            <form onSubmit={handleCreatePatient} className="space-y-5">
+              <div className="flex flex-col gap-1.5">
+                <label className="text-xs font-bold text-slate-400 uppercase tracking-wider">Nome do Tutor *</label>
                 <input 
                   type="text" 
                   value={userForm.name} 
                   onChange={e => setUserForm({...userForm, name: e.target.value})} 
-                  placeholder="Nome completo" 
-                  className="input-field" 
+                  placeholder="Ex: Nicolas BDS" 
+                  className="w-full px-4 py-3 rounded-xl bg-slate-50 border border-slate-200 text-slate-700 font-medium focus:bg-white focus:border-emerald-500 focus:ring-4 focus:ring-emerald-500/10 transition-all duration-300 outline-none text-sm" 
                   required 
                 />
               </div>
-              <div>
-                <label className="block text-xs font-bold text-gray-400 uppercase mb-1">Email</label>
+              
+              <div className="flex flex-col gap-1.5">
+                <label className="text-xs font-bold text-slate-400 uppercase tracking-wider">Email *</label>
                 <input 
                   type="email" 
                   value={userForm.email} 
                   onChange={e => setUserForm({...userForm, email: e.target.value})} 
-                  placeholder="email@exemplo.com" 
-                  className="input-field" 
+                  placeholder="nicolas@exemplo.com" 
+                  className="w-full px-4 py-3 rounded-xl bg-slate-50 border border-slate-200 text-slate-700 font-medium focus:bg-white focus:border-emerald-500 focus:ring-4 focus:ring-emerald-500/10 transition-all duration-300 outline-none text-sm" 
                   required 
-                />
-              </div>
-              <div>
-                <label className="block text-xs font-bold text-gray-400 uppercase mb-1">Senha Inicial</label>
-                <input 
-                  type="password" 
-                  value={userForm.password} 
-                  onChange={e => setUserForm({...userForm, password: e.target.value})} 
-                  placeholder="Mínimo 6 caracteres" 
-                  className="input-field" 
-                  required 
-                />
-              </div>
-              <div>
-                <label className="block text-xs font-bold text-gray-400 uppercase mb-1">Telefone</label>
-                <input 
-                  type="text" 
-                  value={userForm.phone} 
-                  onChange={e => setUserForm({...userForm, phone: e.target.value})} 
-                  placeholder="(00) 00000-0000" 
-                  className="input-field" 
                 />
               </div>
 
-              <button type="submit" disabled={userSubmitting} className="btn-primary w-full py-4 text-base shadow-lg mt-4">
-                {userSubmitting ? 'Cadastrando...' : 'Cadastrar Cliente'}
+              <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+                <div className="flex flex-col gap-1.5">
+                  <label className="text-xs font-bold text-slate-400 uppercase tracking-wider">Senha Inicial *</label>
+                  <input 
+                    type="password" 
+                    value={userForm.password} 
+                    onChange={e => setUserForm({...userForm, password: e.target.value})} 
+                    placeholder="Mínimo 6 dígitos" 
+                    className="w-full px-4 py-3 rounded-xl bg-slate-50 border border-slate-200 text-slate-700 font-medium focus:bg-white focus:border-emerald-500 focus:ring-4 focus:ring-emerald-500/10 transition-all duration-300 outline-none text-sm" 
+                    required 
+                  />
+                </div>
+                <div className="flex flex-col gap-1.5">
+                  <label className="text-xs font-bold text-slate-400 uppercase tracking-wider">Telefone</label>
+                  <input 
+                    type="text" 
+                    value={userForm.phone} 
+                    onChange={e => setUserForm({...userForm, phone: e.target.value})} 
+                    placeholder="(00) 00000-0000" 
+                    className="w-full px-4 py-3 rounded-xl bg-slate-50 border border-slate-200 text-slate-700 font-medium focus:bg-white focus:border-emerald-500 focus:ring-4 focus:ring-emerald-500/10 transition-all duration-300 outline-none text-sm" 
+                  />
+                </div>
+              </div>
+
+              <button type="submit" disabled={userSubmitting} className="w-full mt-4 py-4 rounded-xl bg-gradient-to-r from-emerald-600 to-teal-500 hover:from-emerald-500 hover:to-teal-400 text-white font-bold text-xs uppercase tracking-wider shadow-lg shadow-emerald-500/20 active:scale-[0.98] transition-all duration-300 disabled:opacity-50 disabled:pointer-events-none flex items-center justify-center gap-2 cursor-pointer">
+                {userSubmitting ? (
+                  <>
+                    <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                    Cadastrando...
+                  </>
+                ) : (
+                  'Cadastrar Cliente'
+                )}
+              </button>
+            </form>
+          </motion.div>
+        </motion.div>
+      )}
+
+      {showAnimalForm && (
+        <motion.div
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm flex items-center justify-center z-50 p-4"
+        >
+          <motion.div
+            initial={{ scale: 0.95, y: 15 }}
+            animate={{ scale: 1, y: 0 }}
+            className="bg-white rounded-3xl p-8 w-full max-w-lg shadow-2xl border border-slate-100 max-h-[90vh] overflow-y-auto"
+          >
+            <div className="flex items-center justify-between mb-8 pb-4 border-b border-slate-100">
+              <div>
+                <h2 className="text-2xl font-black text-slate-800 tracking-tight">Novo Pet</h2>
+                <p className="text-[10px] text-slate-400 mt-1 uppercase tracking-widest font-extrabold">Registrar animal e associar tutor</p>
+              </div>
+              <button onClick={() => setShowAnimalForm(false)} className="p-2 hover:bg-slate-100 hover:text-slate-700 text-slate-400 rounded-full transition-all duration-300 hover:rotate-90">
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            <form onSubmit={handleCreateAnimal} className="space-y-6">
+              <div className="bg-slate-50/50 p-5 rounded-2xl border border-slate-100 shadow-inner">
+                <div className="flex items-center justify-between mb-4">
+                  <label className="text-xs font-bold text-slate-500 uppercase tracking-wider">Tutor Responsável</label>
+                  <button 
+                    type="button" 
+                    onClick={() => setShowInlineTutor(!showInlineTutor)}
+                    className="text-[10px] font-extrabold text-emerald-700 bg-white px-2.5 py-1.5 rounded-lg shadow-sm border border-slate-100 hover:bg-emerald-50 hover:border-emerald-100 transition-all duration-300"
+                  >
+                    {showInlineTutor ? 'Selecionar Existente' : '+ Novo Tutor'}
+                  </button>
+                </div>
+
+                {!showInlineTutor ? (
+                  <>
+                    <select
+                      value={animalFormData.tutorId}
+                      onChange={(e) => setAnimalFormData({ ...animalFormData, tutorId: e.target.value })}
+                      className="w-full px-4 py-3 rounded-xl bg-white border border-slate-200 text-slate-700 font-medium focus:border-emerald-500 focus:ring-4 focus:ring-emerald-500/10 transition-all duration-300 outline-none text-sm"
+                      required
+                    >
+                      <option value="">Selecione o Tutor...</option>
+                      {tutors.map((t) => (
+                        <option key={t.id} value={t.id}>
+                          {t.user.name} ({t.user.email})
+                        </option>
+                      ))}
+                    </select>
+                    {tutors.length === 0 && (
+                      <p className="text-[10px] text-rose-500 font-bold mt-2 italic">
+                        ⚠️ Nenhum tutor cadastrado no sistema.
+                      </p>
+                    )}
+                  </>
+                ) : (
+                  <div className="space-y-4 animate-in fade-in slide-in-from-top-2 duration-300">
+                    <input 
+                      type="text" 
+                      placeholder="Nome do Tutor" 
+                      className="w-full px-4 py-3 rounded-xl bg-white border border-slate-200 text-slate-700 font-medium focus:border-emerald-500 focus:ring-4 focus:ring-emerald-500/10 transition-all duration-300 outline-none text-sm"
+                      value={userForm.name}
+                      onChange={e => setUserForm({...userForm, name: e.target.value})}
+                      required
+                    />
+                    <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+                      <input 
+                        type="email" 
+                        placeholder="Email" 
+                        className="w-full px-4 py-3 rounded-xl bg-white border border-slate-200 text-slate-700 font-medium focus:border-emerald-500 focus:ring-4 focus:ring-emerald-500/10 transition-all duration-300 outline-none text-sm"
+                        value={userForm.email}
+                        onChange={e => setUserForm({...userForm, email: e.target.value})}
+                        required
+                      />
+                      <input 
+                        type="text" 
+                        placeholder="Telefone" 
+                        className="w-full px-4 py-3 rounded-xl bg-white border border-slate-200 text-slate-700 font-medium focus:border-emerald-500 focus:ring-4 focus:ring-emerald-500/10 transition-all duration-300 outline-none text-sm"
+                        value={userForm.phone}
+                        onChange={e => setUserForm({...userForm, phone: e.target.value})}
+                      />
+                    </div>
+                    <p className="text-[9px] text-slate-400 font-bold italic">
+                      * O tutor será cadastrado automaticamente com a senha padrão '123456'.
+                    </p>
+                  </div>
+                )}
+              </div>
+
+              <div className="space-y-5">
+                <h3 className="text-[10px] font-extrabold text-slate-400 uppercase tracking-widest border-b border-slate-100 pb-2">Informações do Pet</h3>
+                
+                <div className="flex flex-col gap-1.5">
+                  <label className="text-xs font-bold text-slate-400 uppercase tracking-wider">Nome do Pet *</label>
+                  <input
+                    type="text"
+                    placeholder="Ex: Rex, Mel, Bilu..."
+                    value={animalFormData.name}
+                    onChange={(e) => setAnimalFormData({ ...animalFormData, name: e.target.value })}
+                    className="w-full px-4 py-3 rounded-xl bg-slate-50 border border-slate-200 text-slate-700 font-medium focus:bg-white focus:border-emerald-500 focus:ring-4 focus:ring-emerald-500/10 transition-all duration-300 outline-none text-sm"
+                    required
+                  />
+                </div>
+
+                <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+                  <div className="flex flex-col gap-1.5">
+                    <label className="text-xs font-bold text-slate-400 uppercase tracking-wider">Espécie *</label>
+                    <select
+                      value={animalFormData.species}
+                      onChange={(e) => setAnimalFormData({ ...animalFormData, species: e.target.value })}
+                      className="w-full px-4 py-3 rounded-xl bg-slate-50 border border-slate-200 text-slate-700 font-medium focus:bg-white focus:border-emerald-500 focus:ring-4 focus:ring-emerald-500/10 transition-all duration-300 outline-none text-sm"
+                      required
+                    >
+                      <option value="">Selecione</option>
+                      <option value="Cachorro">Cachorro</option>
+                      <option value="Gato">Gato</option>
+                      <option value="Pássaro">Pássaro</option>
+                      <option value="Roedor">Roedor</option>
+                      <option value="Outro">Outro</option>
+                    </select>
+                  </div>
+                  <div className="flex flex-col gap-1.5">
+                    <label className="text-xs font-bold text-slate-400 uppercase tracking-wider">Raça *</label>
+                    <input
+                      type="text"
+                      placeholder="Ex: Poodle, Persa..."
+                      value={animalFormData.breed}
+                      onChange={(e) => setAnimalFormData({ ...animalFormData, breed: e.target.value })}
+                      className="w-full px-4 py-3 rounded-xl bg-slate-50 border border-slate-200 text-slate-700 font-medium focus:bg-white focus:border-emerald-500 focus:ring-4 focus:ring-emerald-500/10 transition-all duration-300 outline-none text-sm"
+                      required
+                    />
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+                  <div className="flex flex-col gap-1.5">
+                    <label className="text-xs font-bold text-slate-400 uppercase tracking-wider">Nascimento *</label>
+                    <input
+                      type="date"
+                      value={animalFormData.birth_date}
+                      onChange={(e) => setAnimalFormData({ ...animalFormData, birth_date: e.target.value })}
+                      className="w-full px-4 py-3 rounded-xl bg-slate-50 border border-slate-200 text-slate-700 font-medium focus:bg-white focus:border-emerald-500 focus:ring-4 focus:ring-emerald-500/10 transition-all duration-300 outline-none text-sm"
+                      required
+                    />
+                  </div>
+                  <div className="flex flex-col gap-1.5">
+                    <label className="text-xs font-bold text-slate-400 uppercase tracking-wider">Peso (kg) *</label>
+                    <input
+                      type="number"
+                      step="0.1"
+                      placeholder="Ex: 5.5"
+                      value={animalFormData.weight}
+                      onChange={(e) => setAnimalFormData({ ...animalFormData, weight: e.target.value })}
+                      className="w-full px-4 py-3 rounded-xl bg-slate-50 border border-slate-200 text-slate-700 font-medium focus:bg-white focus:border-emerald-500 focus:ring-4 focus:ring-emerald-500/10 transition-all duration-300 outline-none text-sm"
+                      required
+                    />
+                  </div>
+                </div>
+
+                <div className="flex flex-col gap-1.5">
+                  <label className="text-xs font-bold text-slate-400 uppercase tracking-wider">Observações / Alergias</label>
+                  <textarea
+                    value={animalFormData.allergies}
+                    onChange={(e) => setAnimalFormData({ ...animalFormData, allergies: e.target.value })}
+                    className="w-full px-4 py-3 rounded-xl bg-slate-50 border border-slate-200 text-slate-700 font-medium focus:bg-white focus:border-emerald-500 focus:ring-4 focus:ring-emerald-500/10 transition-all duration-300 outline-none resize-none text-sm"
+                    rows={2}
+                    placeholder="Alergias, condições especiais ou observações..."
+                  />
+                </div>
+              </div>
+
+              <button type="submit" disabled={animalSubmitting || userSubmitting} className="w-full mt-4 py-4 rounded-xl bg-gradient-to-r from-emerald-600 to-teal-500 hover:from-emerald-500 hover:to-teal-400 text-white font-bold text-xs uppercase tracking-wider shadow-lg shadow-emerald-500/20 active:scale-[0.98] transition-all duration-300 disabled:opacity-50 disabled:pointer-events-none flex items-center justify-center gap-2 cursor-pointer">
+                {(animalSubmitting || userSubmitting) ? (
+                  <>
+                    <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                    Processando...
+                  </>
+                ) : (
+                  <>
+                    <Play className="w-4 h-4" />
+                    Salvar e Gerar Senha
+                  </>
+                )}
               </button>
             </form>
           </motion.div>
@@ -285,7 +859,17 @@ export default function Queue() {
             <div id="ticket-to-print" className="p-4 border-2 border-dashed border-gray-200 rounded-2xl mb-6 bg-white print:border-none print:p-0 print:w-[80mm] mx-auto">
               <div className="text-center space-y-1">
                 <h1 className="text-sm font-black text-gray-900 uppercase tracking-tighter print:text-lg">VET- CLÍNICA VETERINÁRIA</h1>
-                <p className="text-[10px] font-bold text-gray-600 uppercase print:text-xs">Atendimento Geral</p>
+                <p className="text-[10px] font-bold text-gray-600 uppercase print:text-xs leading-tight">
+                  {lastGenerated.targetType ? `${targetLabels[lastGenerated.targetType] || lastGenerated.targetType}: ${lastGenerated.targetName}` : 'Atendimento Geral'}
+                </p>
+                <p className="text-[10px] font-bold text-primary-600 uppercase print:text-sm">
+                  PET: {lastGenerated.animal?.name || lastGenerated._localAnimalName || lastGenerated.animalName || 'Não identificado'}
+                </p>
+                {lastGenerated.animal?.tutor?.user?.name && (
+                  <p className="text-[8px] font-medium text-gray-500 uppercase print:text-[10px]">
+                    Tutor: {lastGenerated.animal.tutor.user.name}
+                  </p>
+                )}
                 
                 <div className="py-4 my-2 border-y border-gray-100 border-dashed print:border-black">
                   <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-1 print:text-black">SENHA</p>
@@ -356,22 +940,93 @@ export default function Queue() {
             border: none !important;
           }
         }
+        @keyframes bounce-subtle {
+          0%, 100% { transform: translateY(0); }
+          50% { transform: translateY(-5px); }
+        }
+        .animate-bounce-subtle {
+          animation: bounce-subtle 2s infinite ease-in-out;
+        }
       `}} />
 
       {calledTicket && (
         <motion.div
-          initial={{ scale: 0.9 }}
-          animate={{ scale: 1 }}
-          className="bg-gradient-to-r from-green-500 to-green-600 rounded-2xl p-8 text-white text-center"
+          initial={{ scale: 0.95, opacity: 0 }}
+          animate={{ scale: 1, opacity: 1 }}
+          className="bg-gradient-to-br from-green-500 via-green-600 to-emerald-700 rounded-[2.5rem] p-10 text-white text-center shadow-2xl shadow-green-200/50 relative overflow-hidden"
         >
-          <h2 className="text-sm font-medium opacity-80 mb-2">ATUALMENTE CHAMANDO</h2>
-          <p className="text-6xl font-bold mb-4">{calledTicket.code}</p>
-          <button
-            onClick={() => updateStatus(calledTicket.id, 'ATENDIDA')}
-            className="bg-white text-green-600 px-6 py-2 rounded-lg font-medium hover:bg-green-50"
-          >
-            Finalizar
-          </button>
+          {/* Elementos decorativos de fundo */}
+          <div className="absolute top-0 right-0 w-64 h-64 bg-white/5 rounded-full -mr-20 -mt-20 blur-3xl" />
+          <div className="absolute bottom-0 left-0 w-48 h-48 bg-black/5 rounded-full -ml-10 -mb-10 blur-2xl" />
+
+          <div className="relative z-10">
+            <span className="inline-block px-4 py-1.5 bg-white/20 backdrop-blur-md rounded-full text-[10px] font-black uppercase tracking-[0.3em] mb-6 border border-white/20">
+              Atendimento em Destaque
+            </span>
+            
+            <div className="mb-8">
+              <h2 className="text-sm font-bold opacity-70 uppercase tracking-widest mb-1">Senha Atual</h2>
+              <p className="text-7xl md:text-8xl font-black tracking-tighter leading-none drop-shadow-lg">
+                {calledTicket.code.split(' - ')[0]}
+              </p>
+              <div className="inline-flex items-center gap-2 mt-2 px-3 py-1 bg-white/10 rounded-lg">
+                <span className={`w-2 h-2 rounded-full ${priorityColors[calledTicket.classification]}`} />
+                <span className="text-xs font-bold uppercase tracking-wider opacity-90">{calledTicket.classification}</span>
+              </div>
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6 max-w-4xl mx-auto">
+              {/* Card do Pet */}
+              <div className="bg-white/15 backdrop-blur-xl rounded-[2rem] p-6 border border-white/20 flex flex-col items-center justify-center transition-transform hover:scale-[1.02]">
+                <div className="w-12 h-12 bg-white/20 rounded-2xl flex items-center justify-center mb-3 shadow-inner">
+                  <span className="text-2xl">🐾</span>
+                </div>
+                <h3 className="text-xs font-bold opacity-60 uppercase tracking-widest mb-1">Paciente</h3>
+                <p className="text-2xl font-black truncate max-w-full px-2">
+                  {calledTicket.animal?.name || (calledTicket as any)._localAnimalName || (calledTicket as any).animalName || 'Não identificado'}
+                </p>
+                {calledTicket.animal?.tutor?.user?.name && (
+                  <p className="text-sm font-medium opacity-70 mt-1 flex items-center gap-1.5">
+                    <User className="w-3 h-3" />
+                    {calledTicket.animal.tutor.user.name}
+                  </p>
+                )}
+              </div>
+
+              {/* Card do Local */}
+              <div className="bg-white rounded-[2rem] p-6 flex flex-col items-center justify-center shadow-xl transition-transform hover:scale-[1.02]">
+                <div className="w-12 h-12 bg-green-50 rounded-2xl flex items-center justify-center mb-3 text-green-600 shadow-inner">
+                  <span className="text-2xl">
+                    {(calledTicket as any).targetType === 'TRIAGEM' ? '📋' : 
+                     (calledTicket as any).targetType === 'ESPECIALIDADE' || (calledTicket as any).targetType === 'MEDICO' ? '🩺' : '🚪'}
+                  </span>
+                </div>
+                <h3 className="text-xs font-bold text-green-800/40 uppercase tracking-widest mb-1">Local de Atendimento</h3>
+                <p className="text-2xl font-black text-green-900 truncate max-w-full px-2 leading-tight">
+                  {rooms.find(r => r.id === (calledTicket as any).roomId)?.name || (calledTicket as any).targetName || 'Aguarde Instruções'}
+                </p>
+                {rooms.find(r => r.id === (calledTicket as any).roomId)?.name && (calledTicket as any).targetName && (calledTicket as any).targetType === 'MEDICO' ? (
+                  <p className="text-[10px] font-bold text-green-600/80 uppercase mt-0.5">
+                    Dr(a). {(calledTicket as any).targetName}
+                  </p>
+                ) : (
+                  <p className="text-sm font-bold text-green-600/60 uppercase tracking-wider mt-1">
+                    {(calledTicket as any).room?.sector || targetLabels[(calledTicket as any).targetType] || 'Verifique o Painel'}
+                  </p>
+                )}
+              </div>
+            </div>
+
+            <div className="mt-10">
+              <button
+                onClick={() => updateStatus(calledTicket.id, 'ATENDIDA')}
+                className="bg-white text-green-700 px-10 py-4 rounded-2xl font-black text-lg hover:bg-green-50 shadow-2xl shadow-green-900/20 transition-all active:scale-95 flex items-center gap-3 mx-auto"
+              >
+                <CheckCircle className="w-6 h-6" />
+                Finalizar Atendimento
+              </button>
+            </div>
+          </div>
         </motion.div>
       )}
 
@@ -391,10 +1046,36 @@ export default function Queue() {
                 {ticket.status}
               </span>
             </div>
-            <p className="text-2xl font-bold text-gray-800 mb-2">{ticket.code}</p>
-            {ticket.animal && (
-              <p className="text-sm text-gray-500">{ticket.animal.name} - {ticket.animal.tutor?.user?.name}</p>
+            <p className="text-2xl font-bold text-gray-800 mb-1">{ticket.code}</p>
+            
+            {ticket.animal ? (
+              <div className="mb-1">
+                <p className="text-sm font-bold text-gray-700">{ticket.animal.name}</p>
+                {ticket.animal.tutor?.user?.name && (
+                  <p className="text-[10px] text-gray-400 font-medium uppercase">Tutor: {ticket.animal.tutor.user.name}</p>
+                )}
+              </div>
+            ) : (ticket as any).animalName ? (
+              <p className="text-sm font-bold text-gray-700 mb-1">{(ticket as any).animalName}</p>
+            ) : (
+              <p className="text-xs text-gray-400 italic mb-1">Sem identificação do pet</p>
             )}
+
+            {(ticket as any).targetName || (ticket as any).room ? (
+              <div className="inline-flex flex-col gap-0.5 mt-2">
+                <div className="inline-flex items-center gap-1.5 text-xs font-bold text-primary-700 bg-primary-50 px-2.5 py-1 rounded-lg">
+                  {(ticket as any).targetType === 'ESPECIALIDADE' || (ticket as any).targetType === 'MEDICO' ? '🩺' : 
+                   (ticket as any).targetType === 'SALA' || (ticket as any).room ? '🚪' : 
+                   (ticket as any).targetType === 'TRIAGEM' ? '📋' : '🧪'} 
+                  {(ticket as any).room?.name || (ticket as any).targetName}
+                </div>
+                {((ticket as any).room?.sector || (ticket as any).targetType) && (
+                  <span className="text-[9px] text-gray-400 uppercase font-bold tracking-wider ml-1">
+                    {(ticket as any).room?.sector || targetLabels[(ticket as any).targetType]}
+                  </span>
+                )}
+              </div>
+            ) : null}
             <div className="mt-4 flex gap-2">
               <button
                 onClick={() => updateStatus(ticket.id, 'CHAMADA')}

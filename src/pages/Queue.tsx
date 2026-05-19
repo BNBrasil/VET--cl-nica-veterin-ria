@@ -48,16 +48,25 @@ export default function Queue() {
     let soundUrl = 'https://assets.mixkit.co/active_storage/sfx/2869/2869-preview.mp3'; // Generic chime
     
     if (species) {
-      const lowerSpecies = species.toLowerCase();
+      const lowerSpecies = species.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '');
       if (lowerSpecies.includes('cão') || lowerSpecies.includes('cao') || lowerSpecies.includes('cachorro') || lowerSpecies.includes('dog')) {
         soundUrl = 'https://www.myinstants.com/media/sounds/dog-barking-sound-effect_1.mp3'; // Dog bark
       } else if (lowerSpecies.includes('gato') || lowerSpecies.includes('cat')) {
         soundUrl = 'https://www.myinstants.com/media/sounds/meow_4.mp3'; // Cat meow
+      } else if (lowerSpecies.includes('passaro') || lowerSpecies.includes('ave') || lowerSpecies.includes('bird')) {
+        soundUrl = 'https://www.myinstants.com/media/sounds/canary-bird-singing-sound-effect.mp3';
       }
     }
     
     const audio = new Audio(soundUrl);
+    audio.volume = 0.85;
     audio.play().catch(e => console.log('Audio play failed:', e));
+  };
+
+  const playTicketSound = (ticket?: any) => {
+    if (!ticket || ticket.id === lastCalledId) return;
+    setLastCalledId(ticket.id);
+    playNotification(ticket.animal?.species);
   };
 
   useEffect(() => {
@@ -167,7 +176,8 @@ export default function Queue() {
 
   const callNext = async () => {
     try {
-      await api.post('/queue/call-next');
+      const response = await api.post('/queue/call-next');
+      playTicketSound(response.data.ticket);
       fetchQueue();
     } catch (error) {
       console.error('Error calling next:', error);
@@ -176,7 +186,10 @@ export default function Queue() {
 
   const updateStatus = async (id: string, status: string) => {
     try {
-      await api.patch(`/queue/${id}`, { status });
+      const response = await api.patch(`/queue/${id}`, { status });
+      if (status === 'CHAMADA') {
+        playTicketSound(response.data.ticket);
+      }
       fetchQueue();
     } catch (error) {
       console.error('Error updating status:', error);
@@ -273,21 +286,21 @@ export default function Queue() {
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between">
-        <div>
+      <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
+        <div className="min-w-0">
           <h1 className="text-2xl font-bold text-gray-800">Fila de Atendimento</h1>
           <p className="text-gray-500 mt-1">Gerencie a fila de senhas</p>
         </div>
-        <div className="flex gap-3">
-          <button onClick={() => setShowUserForm(true)} className="btn-secondary border-primary-200 text-primary-700 flex items-center gap-2">
+        <div className="grid grid-cols-1 gap-2 sm:grid-cols-2 lg:flex lg:gap-3">
+          <button onClick={() => setShowUserForm(true)} className="btn-secondary border-primary-200 text-primary-700 flex min-w-0 items-center justify-center gap-2">
             <User className="w-5 h-5" />
             Novo Cliente
           </button>
-          <button onClick={callNext} className="btn-primary flex items-center gap-2">
+          <button onClick={callNext} className="btn-primary flex min-w-0 items-center justify-center gap-2">
             <Play className="w-5 h-5" />
             Chamar Próxima
           </button>
-          <button onClick={() => setShowForm(true)} className="btn-secondary flex items-center gap-2">
+          <button onClick={() => setShowForm(true)} className="btn-secondary flex min-w-0 items-center justify-center gap-2">
             <Plus className="w-5 h-5" />
             Nova Senha
           </button>
@@ -298,66 +311,85 @@ export default function Queue() {
         <motion.div
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
-          className="fixed inset-0 bg-black/60 flex items-center justify-center z-50 p-4 backdrop-blur-sm"
+          className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm flex items-center justify-center z-50 p-4"
         >
           <motion.div
-            initial={{ scale: 0.9 }}
-            animate={{ scale: 1 }}
-            className="bg-white rounded-3xl p-8 w-full max-w-md shadow-2xl max-h-[90vh] overflow-y-auto"
+            initial={{ scale: 0.95, y: 15 }}
+            animate={{ scale: 1, y: 0 }}
+            className="bg-white rounded-3xl p-8 w-full max-w-md shadow-2xl border border-slate-100 max-h-[90vh] overflow-y-auto"
           >
-            <div className="flex items-center justify-between mb-6">
-              <h2 className="text-xl font-bold text-gray-800">Gerar Senha</h2>
-              <button onClick={() => setShowForm(false)} className="p-2 hover:bg-gray-100 rounded-xl">
-                <X className="w-5 h-5 text-gray-400" />
+            <div className="flex items-center justify-between mb-8 pb-4 border-b border-slate-100">
+              <div>
+                <h2 className="text-2xl font-black text-slate-800 tracking-tight">Gerar Senha</h2>
+                <p className="text-[10px] text-slate-400 mt-1 uppercase tracking-widest font-extrabold">Gerar nova senha de atendimento</p>
+              </div>
+              <button onClick={() => setShowForm(false)} className="p-2 hover:bg-slate-100 hover:text-slate-700 text-slate-400 rounded-full transition-all duration-300 hover:rotate-90">
+                <X className="w-5 h-5" />
               </button>
             </div>
 
             <form onSubmit={generateTicket} className="space-y-5">
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-3">Classificação do Atendimento</label>
-                <div className="space-y-2">
-                  {['GERAL', 'PREFERENCIAL', 'URGENTE'].map((type) => (
-                    <label key={type} className={`flex items-center gap-3 p-4 border-2 rounded-2xl cursor-pointer transition-all ${
-                      formData.classification === type ? 'border-primary-600 bg-primary-50/50' : 'border-gray-100 hover:border-gray-200'
-                    }`}>
-                      <input
-                        type="radio"
-                        name="classification"
-                        value={type}
-                        checked={formData.classification === type}
-                        onChange={(e) => setFormData({ ...formData, classification: e.target.value })}
-                        className="w-5 h-5 text-primary-600 focus:ring-primary-500 border-gray-300"
-                      />
-                      <div className="flex flex-col">
-                        <span className="font-bold text-gray-800 text-sm">{type}</span>
-                        <span className="text-[10px] text-gray-400 uppercase tracking-widest">
-                          {type === 'URGENTE' ? 'Risco Imediato' : type === 'PREFERENCIAL' ? 'Prioridade por Lei' : 'Atendimento Comum'}
-                        </span>
-                      </div>
-                    </label>
-                  ))}
+                <label className="block text-xs font-bold text-slate-400 uppercase tracking-wider mb-3">Classificação do Atendimento</label>
+                <div className="space-y-2.5">
+                  {['GERAL', 'PREFERENCIAL', 'URGENTE'].map((type) => {
+                    const isSelected = formData.classification === type;
+                    let styleClass = 'border-slate-100 hover:border-slate-200';
+                    let radioColor = 'text-slate-600 focus:ring-slate-500';
+                    
+                    if (isSelected) {
+                      if (type === 'URGENTE') {
+                        styleClass = 'border-rose-500 bg-rose-50/20 ring-4 ring-rose-500/5';
+                        radioColor = 'text-rose-600 focus:ring-rose-500';
+                      } else if (type === 'PREFERENCIAL') {
+                        styleClass = 'border-amber-500 bg-amber-50/20 ring-4 ring-amber-500/5';
+                        radioColor = 'text-amber-600 focus:ring-amber-500';
+                      } else {
+                        styleClass = 'border-emerald-500 bg-emerald-50/20 ring-4 ring-emerald-500/5';
+                        radioColor = 'text-emerald-600 focus:ring-emerald-500';
+                      }
+                    }
+
+                    return (
+                      <label key={type} className={`flex items-center gap-3.5 p-4 border-2 rounded-2xl cursor-pointer transition-all duration-300 ${styleClass}`}>
+                        <input
+                          type="radio"
+                          name="classification"
+                          value={type}
+                          checked={formData.classification === type}
+                          onChange={(e) => setFormData({ ...formData, classification: e.target.value })}
+                          className={`w-5 h-5 border-slate-300 transition-colors cursor-pointer ${radioColor}`}
+                        />
+                        <div className="flex flex-col">
+                          <span className="font-extrabold text-slate-800 text-sm tracking-tight">{type}</span>
+                          <span className="text-[9px] text-slate-400 font-bold uppercase tracking-wider mt-0.5">
+                            {type === 'URGENTE' ? 'Risco Imediato' : type === 'PREFERENCIAL' ? 'Prioridade por Lei' : 'Atendimento Comum'}
+                          </span>
+                        </div>
+                      </label>
+                    );
+                  })}
                 </div>
               </div>
 
-              <hr className="border-gray-100" />
+              <hr className="border-slate-100" />
               
               <div>
-                <div className="flex items-center justify-between mb-1.5">
-                  <label className="block text-sm font-medium text-gray-700">Identificação do Pet</label>
+                <div className="flex items-center justify-between mb-2">
+                  <label className="text-xs font-bold text-slate-400 uppercase tracking-wider">Identificação do Pet *</label>
                   <button 
                     type="button"
                     onClick={() => setShowAnimalForm(true)}
-                    className="text-xs font-bold text-primary-600 hover:text-primary-700 flex items-center gap-1 bg-primary-50 px-2 py-1 rounded-lg"
+                    className="text-[10px] font-extrabold text-emerald-700 bg-emerald-50 hover:bg-emerald-100 px-2.5 py-1.5 rounded-lg border border-emerald-100 shadow-sm transition-all duration-300 cursor-pointer"
                   >
-                    <Plus className="w-3 h-3" />
-                    Novo Pet
+                    + Novo Pet
                   </button>
                 </div>
                 <div className="relative">
                   <input 
                     type="text"
                     placeholder="Busque pelo nome do pet..."
-                    className="input-field"
+                    className="w-full px-4 py-3 rounded-xl bg-slate-50 border border-slate-200 text-slate-700 font-medium focus:bg-white focus:border-emerald-500 focus:ring-4 focus:ring-emerald-500/10 transition-all duration-300 outline-none text-sm"
                     value={formData.animalName}
                     onChange={(e) => {
                       const val = e.target.value;
@@ -366,56 +398,56 @@ export default function Queue() {
                     required
                   />
                   {formData.animalName && !formData.animalId && (
-                    <div className="absolute left-0 right-0 top-full mt-1 bg-white border border-gray-100 rounded-xl shadow-xl z-[60] max-h-48 overflow-y-auto">
+                    <div className="absolute left-0 right-0 top-full mt-1.5 bg-white border border-slate-100 rounded-xl shadow-xl z-[60] max-h-48 overflow-y-auto divide-y divide-slate-50">
                       {allAnimals
                         .filter(a => a.name.toLowerCase().includes(formData.animalName.toLowerCase()))
                         .map(a => (
                           <button
                             key={a.id}
                             type="button"
-                            className="w-full text-left px-4 py-3 hover:bg-primary-50 border-b border-gray-50 last:border-0 transition-colors flex flex-col"
+                            className="w-full text-left px-4 py-3 hover:bg-emerald-50/50 transition-colors flex flex-col cursor-pointer"
                             onClick={() => {
                               setFormData({ ...formData, animalName: a.name, animalId: a.id });
                             }}
                           >
-                            <span className="font-bold text-gray-800 text-sm">{a.name}</span>
-                            <span className="text-[10px] text-gray-400 uppercase tracking-widest">
+                            <span className="font-bold text-slate-800 text-sm">{a.name}</span>
+                            <span className="text-[9px] text-slate-400 font-bold uppercase tracking-wider mt-0.5">
                               {a.species} • {a.breed} • Tutor: {a.tutor?.user?.name || 'N/A'}
                             </span>
                           </button>
                         ))
                       }
                       {allAnimals.filter(a => a.name.toLowerCase().includes(formData.animalName.toLowerCase())).length === 0 && (
-                        <div className="px-4 py-3 text-sm text-gray-500 italic">
-                          Nenhum pet encontrado. Clique em "Novo Pet" para cadastrar.
+                        <div className="px-4 py-3 text-xs text-slate-400 italic">
+                          Nenhum pet encontrado. Clique em "+ Novo Pet" para cadastrar.
                         </div>
                       )}
                     </div>
                   )}
                   {formData.animalId && (
                     <div className="absolute right-3 top-1/2 -translate-y-1/2 flex items-center gap-2">
-                      <span className="bg-green-100 text-green-700 text-[10px] font-bold px-2 py-0.5 rounded-full uppercase">
+                      <span className="bg-emerald-100 text-emerald-700 text-[9px] font-extrabold px-2 py-1 rounded-lg uppercase tracking-wider">
                         Selecionado
                       </span>
                       <button 
                         type="button"
                         onClick={() => setFormData({ ...formData, animalName: '', animalId: '' })}
-                        className="p-1 hover:bg-gray-100 rounded-full"
+                        className="p-1 hover:bg-slate-100 rounded-full transition-colors"
                       >
-                        <X className="w-4 h-4 text-gray-400" />
+                        <X className="w-4 h-4 text-slate-400 hover:text-slate-600" />
                       </button>
                     </div>
                   )}
                 </div>
               </div>
 
-              <hr className="border-gray-100" />
+              <hr className="border-slate-100" />
 
-              <div className="space-y-3">
+              <div className="space-y-4">
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1.5">Destino do Atendimento (Opcional)</label>
+                  <label className="block text-xs font-bold text-slate-400 uppercase tracking-wider mb-2">Destino do Atendimento (Opcional)</label>
                   <select
-                    className="input-field py-2.5"
+                    className="w-full px-4 py-3 rounded-xl bg-slate-50 border border-slate-200 text-slate-700 font-medium focus:bg-white focus:border-emerald-500 focus:ring-4 focus:ring-emerald-500/10 transition-all duration-300 outline-none text-sm cursor-pointer"
                     value={formData.targetType}
                     onChange={(e) => {
                       const val = e.target.value;
@@ -438,10 +470,10 @@ export default function Queue() {
                 </div>
 
                 {formData.targetType === 'ESPECIALIDADE' && (
-                  <motion.div initial={{ opacity: 0, y: -5 }} animate={{ opacity: 1, y: 0 }} className="space-y-1">
-                    <label className="block text-xs font-bold text-gray-400 uppercase">Selecione a Especialidade</label>
+                  <motion.div initial={{ opacity: 0, y: -5 }} animate={{ opacity: 1, y: 0 }} className="flex flex-col gap-1.5">
+                    <label className="text-xs font-bold text-slate-400 uppercase tracking-wider">Selecione a Especialidade</label>
                     <select
-                      className="input-field"
+                      className="w-full px-4 py-3 rounded-xl bg-slate-50 border border-slate-200 text-slate-700 font-medium focus:bg-white focus:border-emerald-500 focus:ring-4 focus:ring-emerald-500/10 transition-all duration-300 outline-none text-sm cursor-pointer"
                       value={formData.targetName}
                       onChange={(e) => setFormData({ ...formData, targetName: e.target.value })}
                       required
@@ -455,10 +487,10 @@ export default function Queue() {
                 )}
 
                 {formData.targetType === 'MEDICO' && (
-                  <motion.div initial={{ opacity: 0, y: -5 }} animate={{ opacity: 1, y: 0 }} className="space-y-1">
-                    <label className="block text-xs font-bold text-gray-400 uppercase">Selecione o Médico</label>
+                  <motion.div initial={{ opacity: 0, y: -5 }} animate={{ opacity: 1, y: 0 }} className="flex flex-col gap-1.5">
+                    <label className="text-xs font-bold text-slate-400 uppercase tracking-wider">Selecione o Médico</label>
                     <select
-                      className="input-field"
+                      className="w-full px-4 py-3 rounded-xl bg-slate-50 border border-slate-200 text-slate-700 font-medium focus:bg-white focus:border-emerald-500 focus:ring-4 focus:ring-emerald-500/10 transition-all duration-300 outline-none text-sm cursor-pointer"
                       value={formData.targetName}
                       onChange={(e) => {
                         const doc = doctors.find(d => d.user.name === e.target.value);
@@ -477,7 +509,7 @@ export default function Queue() {
                       ))}
                     </select>
                     {formData.roomId && (
-                      <p className="text-xs text-primary-600 font-bold mt-1 animate-pulse">
+                      <p className="text-[10px] text-emerald-600 font-bold mt-1.5 animate-pulse flex items-center gap-1">
                         📍 Vinculado ao: {rooms.find(r => r.id === formData.roomId)?.name || 'Consultório'}
                       </p>
                     )}
@@ -485,10 +517,10 @@ export default function Queue() {
                 )}
 
                 {formData.targetType === 'SALA' && (
-                  <motion.div initial={{ opacity: 0, y: -5 }} animate={{ opacity: 1, y: 0 }} className="space-y-1">
-                    <label className="block text-xs font-bold text-gray-400 uppercase">Selecione o Consultório</label>
+                  <motion.div initial={{ opacity: 0, y: -5 }} animate={{ opacity: 1, y: 0 }} className="flex flex-col gap-1.5">
+                    <label className="text-xs font-bold text-slate-400 uppercase tracking-wider">Selecione o Consultório</label>
                     <select
-                      className="input-field"
+                      className="w-full px-4 py-3 rounded-xl bg-slate-50 border border-slate-200 text-slate-700 font-medium focus:bg-white focus:border-emerald-500 focus:ring-4 focus:ring-emerald-500/10 transition-all duration-300 outline-none text-sm cursor-pointer"
                       value={formData.roomId}
                       onChange={(e) => {
                         const room = rooms.find(r => r.id === e.target.value);
@@ -505,10 +537,10 @@ export default function Queue() {
                 )}
 
                 {formData.targetType === 'EXAME' && (
-                  <motion.div initial={{ opacity: 0, y: -5 }} animate={{ opacity: 1, y: 0 }} className="space-y-1">
-                    <label className="block text-xs font-bold text-gray-400 uppercase">Selecione o Exame</label>
+                  <motion.div initial={{ opacity: 0, y: -5 }} animate={{ opacity: 1, y: 0 }} className="flex flex-col gap-1.5">
+                    <label className="text-xs font-bold text-slate-400 uppercase tracking-wider">Selecione o Exame</label>
                     <select
-                      className="input-field"
+                      className="w-full px-4 py-3 rounded-xl bg-slate-50 border border-slate-200 text-slate-700 font-medium focus:bg-white focus:border-emerald-500 focus:ring-4 focus:ring-emerald-500/10 transition-all duration-300 outline-none text-sm cursor-pointer"
                       value={formData.examTypeId}
                       onChange={(e) => {
                         const exam = exams.find(ex => ex.id === e.target.value);
@@ -525,7 +557,7 @@ export default function Queue() {
                 )}
               </div>
 
-              <button type="submit" disabled={submitting} className="btn-primary w-full py-4 text-base shadow-lg shadow-primary-200 mt-4">
+              <button type="submit" disabled={submitting} className="w-full mt-4 py-4 rounded-xl bg-gradient-to-r from-emerald-600 to-teal-500 hover:from-emerald-500 hover:to-teal-400 text-white font-bold text-xs uppercase tracking-wider shadow-lg shadow-emerald-500/20 active:scale-[0.98] transition-all duration-300 disabled:opacity-50 disabled:pointer-events-none flex items-center justify-center gap-2 cursor-pointer">
                 {submitting ? 'Gerando...' : 'Gerar Senha'}
               </button>
             </form>
@@ -537,67 +569,81 @@ export default function Queue() {
         <motion.div
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
-          className="fixed inset-0 bg-black/60 flex items-center justify-center z-50 p-4 backdrop-blur-sm"
+          className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm flex items-center justify-center z-50 p-4"
         >
           <motion.div
-            initial={{ scale: 0.9 }}
-            animate={{ scale: 1 }}
-            className="bg-white rounded-3xl p-8 w-full max-w-md shadow-2xl"
+            initial={{ scale: 0.95, y: 15 }}
+            animate={{ scale: 1, y: 0 }}
+            className="bg-white rounded-3xl p-8 w-full max-w-md shadow-2xl border border-slate-100"
           >
-            <div className="flex items-center justify-between mb-6">
-              <h2 className="text-xl font-bold text-gray-800">Novo Cliente/Paciente</h2>
-              <button onClick={() => setShowUserForm(false)} className="p-2 hover:bg-gray-100 rounded-xl">
-                <X className="w-5 h-5 text-gray-400" />
+            <div className="flex items-center justify-between mb-8 pb-4 border-b border-slate-100">
+              <div>
+                <h2 className="text-2xl font-black text-slate-800 tracking-tight">Novo Cliente</h2>
+                <p className="text-[10px] text-slate-400 mt-1 uppercase tracking-widest font-extrabold">Registrar tutor responsável no sistema</p>
+              </div>
+              <button onClick={() => setShowUserForm(false)} className="p-2 hover:bg-slate-100 hover:text-slate-700 text-slate-400 rounded-full transition-all duration-300 hover:rotate-90">
+                <X className="w-5 h-5" />
               </button>
             </div>
 
-            <form onSubmit={handleCreatePatient} className="space-y-4">
-              <div>
-                <label className="block text-xs font-bold text-gray-400 uppercase mb-1">Nome do Tutor</label>
+            <form onSubmit={handleCreatePatient} className="space-y-5">
+              <div className="flex flex-col gap-1.5">
+                <label className="text-xs font-bold text-slate-400 uppercase tracking-wider">Nome do Tutor *</label>
                 <input 
                   type="text" 
                   value={userForm.name} 
                   onChange={e => setUserForm({...userForm, name: e.target.value})} 
-                  placeholder="Nome completo" 
-                  className="input-field" 
+                  placeholder="Ex: Nicolas BDS" 
+                  className="w-full px-4 py-3 rounded-xl bg-slate-50 border border-slate-200 text-slate-700 font-medium focus:bg-white focus:border-emerald-500 focus:ring-4 focus:ring-emerald-500/10 transition-all duration-300 outline-none text-sm" 
                   required 
                 />
               </div>
-              <div>
-                <label className="block text-xs font-bold text-gray-400 uppercase mb-1">Email</label>
+              
+              <div className="flex flex-col gap-1.5">
+                <label className="text-xs font-bold text-slate-400 uppercase tracking-wider">Email *</label>
                 <input 
                   type="email" 
                   value={userForm.email} 
                   onChange={e => setUserForm({...userForm, email: e.target.value})} 
-                  placeholder="email@exemplo.com" 
-                  className="input-field" 
+                  placeholder="nicolas@exemplo.com" 
+                  className="w-full px-4 py-3 rounded-xl bg-slate-50 border border-slate-200 text-slate-700 font-medium focus:bg-white focus:border-emerald-500 focus:ring-4 focus:ring-emerald-500/10 transition-all duration-300 outline-none text-sm" 
                   required 
-                />
-              </div>
-              <div>
-                <label className="block text-xs font-bold text-gray-400 uppercase mb-1">Senha Inicial</label>
-                <input 
-                  type="password" 
-                  value={userForm.password} 
-                  onChange={e => setUserForm({...userForm, password: e.target.value})} 
-                  placeholder="Mínimo 6 caracteres" 
-                  className="input-field" 
-                  required 
-                />
-              </div>
-              <div>
-                <label className="block text-xs font-bold text-gray-400 uppercase mb-1">Telefone</label>
-                <input 
-                  type="text" 
-                  value={userForm.phone} 
-                  onChange={e => setUserForm({...userForm, phone: e.target.value})} 
-                  placeholder="(00) 00000-0000" 
-                  className="input-field" 
                 />
               </div>
 
-              <button type="submit" disabled={userSubmitting} className="btn-primary w-full py-4 text-base shadow-lg mt-4">
-                {userSubmitting ? 'Cadastrando...' : 'Cadastrar Cliente'}
+              <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+                <div className="flex flex-col gap-1.5">
+                  <label className="text-xs font-bold text-slate-400 uppercase tracking-wider">Senha Inicial *</label>
+                  <input 
+                    type="password" 
+                    value={userForm.password} 
+                    onChange={e => setUserForm({...userForm, password: e.target.value})} 
+                    placeholder="Mínimo 6 dígitos" 
+                    className="w-full px-4 py-3 rounded-xl bg-slate-50 border border-slate-200 text-slate-700 font-medium focus:bg-white focus:border-emerald-500 focus:ring-4 focus:ring-emerald-500/10 transition-all duration-300 outline-none text-sm" 
+                    required 
+                  />
+                </div>
+                <div className="flex flex-col gap-1.5">
+                  <label className="text-xs font-bold text-slate-400 uppercase tracking-wider">Telefone</label>
+                  <input 
+                    type="text" 
+                    value={userForm.phone} 
+                    onChange={e => setUserForm({...userForm, phone: e.target.value})} 
+                    placeholder="(00) 00000-0000" 
+                    className="w-full px-4 py-3 rounded-xl bg-slate-50 border border-slate-200 text-slate-700 font-medium focus:bg-white focus:border-emerald-500 focus:ring-4 focus:ring-emerald-500/10 transition-all duration-300 outline-none text-sm" 
+                  />
+                </div>
+              </div>
+
+              <button type="submit" disabled={userSubmitting} className="w-full mt-4 py-4 rounded-xl bg-gradient-to-r from-emerald-600 to-teal-500 hover:from-emerald-500 hover:to-teal-400 text-white font-bold text-xs uppercase tracking-wider shadow-lg shadow-emerald-500/20 active:scale-[0.98] transition-all duration-300 disabled:opacity-50 disabled:pointer-events-none flex items-center justify-center gap-2 cursor-pointer">
+                {userSubmitting ? (
+                  <>
+                    <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                    Cadastrando...
+                  </>
+                ) : (
+                  'Cadastrar Cliente'
+                )}
               </button>
             </form>
           </motion.div>
@@ -608,28 +654,31 @@ export default function Queue() {
         <motion.div
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
-          className="fixed inset-0 bg-black/60 flex items-center justify-center z-50 p-4 backdrop-blur-sm"
+          className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm flex items-center justify-center z-50 p-4"
         >
           <motion.div
-            initial={{ scale: 0.9 }}
-            animate={{ scale: 1 }}
-            className="bg-white rounded-3xl p-8 w-full max-w-md shadow-2xl max-h-[90vh] overflow-y-auto"
+            initial={{ scale: 0.95, y: 15 }}
+            animate={{ scale: 1, y: 0 }}
+            className="bg-white rounded-3xl p-8 w-full max-w-lg shadow-2xl border border-slate-100 max-h-[90vh] overflow-y-auto"
           >
-            <div className="flex items-center justify-between mb-6">
-              <h2 className="text-xl font-bold text-gray-800">Novo Pet</h2>
-              <button onClick={() => setShowAnimalForm(false)} className="p-2 hover:bg-gray-100 rounded-xl">
-                <X className="w-5 h-5 text-gray-400" />
+            <div className="flex items-center justify-between mb-8 pb-4 border-b border-slate-100">
+              <div>
+                <h2 className="text-2xl font-black text-slate-800 tracking-tight">Novo Pet</h2>
+                <p className="text-[10px] text-slate-400 mt-1 uppercase tracking-widest font-extrabold">Registrar animal e associar tutor</p>
+              </div>
+              <button onClick={() => setShowAnimalForm(false)} className="p-2 hover:bg-slate-100 hover:text-slate-700 text-slate-400 rounded-full transition-all duration-300 hover:rotate-90">
+                <X className="w-5 h-5" />
               </button>
             </div>
 
-            <form onSubmit={handleCreateAnimal} className="space-y-4">
-              <div className="bg-primary-50/30 p-4 rounded-2xl border border-primary-100">
-                <div className="flex items-center justify-between mb-3">
-                  <label className="block text-xs font-bold text-gray-500 uppercase tracking-wider">Tutor Responsável</label>
+            <form onSubmit={handleCreateAnimal} className="space-y-6">
+              <div className="bg-slate-50/50 p-5 rounded-2xl border border-slate-100 shadow-inner">
+                <div className="flex items-center justify-between mb-4">
+                  <label className="text-xs font-bold text-slate-500 uppercase tracking-wider">Tutor Responsável</label>
                   <button 
                     type="button" 
                     onClick={() => setShowInlineTutor(!showInlineTutor)}
-                    className="text-[10px] font-black text-primary-700 bg-white px-2 py-1 rounded-md shadow-sm border border-primary-100 hover:bg-primary-50 transition-colors"
+                    className="text-[10px] font-extrabold text-emerald-700 bg-white px-2.5 py-1.5 rounded-lg shadow-sm border border-slate-100 hover:bg-emerald-50 hover:border-emerald-100 transition-all duration-300"
                   >
                     {showInlineTutor ? 'Selecionar Existente' : '+ Novo Tutor'}
                   </button>
@@ -640,7 +689,7 @@ export default function Queue() {
                     <select
                       value={animalFormData.tutorId}
                       onChange={(e) => setAnimalFormData({ ...animalFormData, tutorId: e.target.value })}
-                      className="input-field bg-white"
+                      className="w-full px-4 py-3 rounded-xl bg-white border border-slate-200 text-slate-700 font-medium focus:border-emerald-500 focus:ring-4 focus:ring-emerald-500/10 transition-all duration-300 outline-none text-sm"
                       required
                     >
                       <option value="">Selecione o Tutor...</option>
@@ -651,26 +700,26 @@ export default function Queue() {
                       ))}
                     </select>
                     {tutors.length === 0 && (
-                      <p className="text-[10px] text-red-400 mt-2 italic">
+                      <p className="text-[10px] text-rose-500 font-bold mt-2 italic">
                         ⚠️ Nenhum tutor cadastrado no sistema.
                       </p>
                     )}
                   </>
                 ) : (
-                  <div className="space-y-3 animate-in fade-in slide-in-from-top-2">
+                  <div className="space-y-4 animate-in fade-in slide-in-from-top-2 duration-300">
                     <input 
                       type="text" 
                       placeholder="Nome do Tutor" 
-                      className="input-field bg-white"
+                      className="w-full px-4 py-3 rounded-xl bg-white border border-slate-200 text-slate-700 font-medium focus:border-emerald-500 focus:ring-4 focus:ring-emerald-500/10 transition-all duration-300 outline-none text-sm"
                       value={userForm.name}
                       onChange={e => setUserForm({...userForm, name: e.target.value})}
                       required
                     />
-                    <div className="grid grid-cols-2 gap-2">
+                    <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
                       <input 
                         type="email" 
                         placeholder="Email" 
-                        className="input-field bg-white"
+                        className="w-full px-4 py-3 rounded-xl bg-white border border-slate-200 text-slate-700 font-medium focus:border-emerald-500 focus:ring-4 focus:ring-emerald-500/10 transition-all duration-300 outline-none text-sm"
                         value={userForm.email}
                         onChange={e => setUserForm({...userForm, email: e.target.value})}
                         required
@@ -678,39 +727,40 @@ export default function Queue() {
                       <input 
                         type="text" 
                         placeholder="Telefone" 
-                        className="input-field bg-white"
+                        className="w-full px-4 py-3 rounded-xl bg-white border border-slate-200 text-slate-700 font-medium focus:border-emerald-500 focus:ring-4 focus:ring-emerald-500/10 transition-all duration-300 outline-none text-sm"
                         value={userForm.phone}
                         onChange={e => setUserForm({...userForm, phone: e.target.value})}
                       />
                     </div>
-                    <p className="text-[10px] text-gray-400 italic">
+                    <p className="text-[9px] text-slate-400 font-bold italic">
                       * O tutor será cadastrado automaticamente com a senha padrão '123456'.
                     </p>
                   </div>
                 )}
               </div>
 
-              <div className="space-y-4">
-                <h3 className="text-xs font-bold text-gray-400 uppercase tracking-widest border-b border-gray-100 pb-2">Informações do Pet</h3>
+              <div className="space-y-5">
+                <h3 className="text-[10px] font-extrabold text-slate-400 uppercase tracking-widest border-b border-slate-100 pb-2">Informações do Pet</h3>
                 
-                <div>
-                  <label className="block text-xs font-bold text-gray-500 uppercase mb-1">Nome do Pet *</label>
+                <div className="flex flex-col gap-1.5">
+                  <label className="text-xs font-bold text-slate-400 uppercase tracking-wider">Nome do Pet *</label>
                   <input
                     type="text"
+                    placeholder="Ex: Rex, Mel, Bilu..."
                     value={animalFormData.name}
                     onChange={(e) => setAnimalFormData({ ...animalFormData, name: e.target.value })}
-                    className="input-field"
+                    className="w-full px-4 py-3 rounded-xl bg-slate-50 border border-slate-200 text-slate-700 font-medium focus:bg-white focus:border-emerald-500 focus:ring-4 focus:ring-emerald-500/10 transition-all duration-300 outline-none text-sm"
                     required
                   />
                 </div>
 
-                <div className="grid grid-cols-2 gap-4">
-                  <div>
-                    <label className="block text-xs font-bold text-gray-500 uppercase mb-1">Espécie *</label>
+                <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+                  <div className="flex flex-col gap-1.5">
+                    <label className="text-xs font-bold text-slate-400 uppercase tracking-wider">Espécie *</label>
                     <select
                       value={animalFormData.species}
                       onChange={(e) => setAnimalFormData({ ...animalFormData, species: e.target.value })}
-                      className="input-field"
+                      className="w-full px-4 py-3 rounded-xl bg-slate-50 border border-slate-200 text-slate-700 font-medium focus:bg-white focus:border-emerald-500 focus:ring-4 focus:ring-emerald-500/10 transition-all duration-300 outline-none text-sm"
                       required
                     >
                       <option value="">Selecione</option>
@@ -721,63 +771,65 @@ export default function Queue() {
                       <option value="Outro">Outro</option>
                     </select>
                   </div>
-                  <div>
-                    <label className="block text-xs font-bold text-gray-500 uppercase mb-1">Raça *</label>
+                  <div className="flex flex-col gap-1.5">
+                    <label className="text-xs font-bold text-slate-400 uppercase tracking-wider">Raça *</label>
                     <input
                       type="text"
+                      placeholder="Ex: Poodle, Persa..."
                       value={animalFormData.breed}
                       onChange={(e) => setAnimalFormData({ ...animalFormData, breed: e.target.value })}
-                      className="input-field"
+                      className="w-full px-4 py-3 rounded-xl bg-slate-50 border border-slate-200 text-slate-700 font-medium focus:bg-white focus:border-emerald-500 focus:ring-4 focus:ring-emerald-500/10 transition-all duration-300 outline-none text-sm"
                       required
                     />
                   </div>
                 </div>
 
-                <div className="grid grid-cols-2 gap-4">
-                  <div>
-                    <label className="block text-xs font-bold text-gray-500 uppercase mb-1">Nascimento *</label>
+                <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+                  <div className="flex flex-col gap-1.5">
+                    <label className="text-xs font-bold text-slate-400 uppercase tracking-wider">Nascimento *</label>
                     <input
                       type="date"
                       value={animalFormData.birth_date}
                       onChange={(e) => setAnimalFormData({ ...animalFormData, birth_date: e.target.value })}
-                      className="input-field"
+                      className="w-full px-4 py-3 rounded-xl bg-slate-50 border border-slate-200 text-slate-700 font-medium focus:bg-white focus:border-emerald-500 focus:ring-4 focus:ring-emerald-500/10 transition-all duration-300 outline-none text-sm"
                       required
                     />
                   </div>
-                  <div>
-                    <label className="block text-xs font-bold text-gray-500 uppercase mb-1">Peso (kg) *</label>
+                  <div className="flex flex-col gap-1.5">
+                    <label className="text-xs font-bold text-slate-400 uppercase tracking-wider">Peso (kg) *</label>
                     <input
                       type="number"
                       step="0.1"
+                      placeholder="Ex: 5.5"
                       value={animalFormData.weight}
                       onChange={(e) => setAnimalFormData({ ...animalFormData, weight: e.target.value })}
-                      className="input-field"
+                      className="w-full px-4 py-3 rounded-xl bg-slate-50 border border-slate-200 text-slate-700 font-medium focus:bg-white focus:border-emerald-500 focus:ring-4 focus:ring-emerald-500/10 transition-all duration-300 outline-none text-sm"
                       required
                     />
                   </div>
                 </div>
 
-                <div>
-                  <label className="block text-xs font-bold text-gray-500 uppercase mb-1">Observações / Alergias</label>
+                <div className="flex flex-col gap-1.5">
+                  <label className="text-xs font-bold text-slate-400 uppercase tracking-wider">Observações / Alergias</label>
                   <textarea
                     value={animalFormData.allergies}
                     onChange={(e) => setAnimalFormData({ ...animalFormData, allergies: e.target.value })}
-                    className="input-field"
+                    className="w-full px-4 py-3 rounded-xl bg-slate-50 border border-slate-200 text-slate-700 font-medium focus:bg-white focus:border-emerald-500 focus:ring-4 focus:ring-emerald-500/10 transition-all duration-300 outline-none resize-none text-sm"
                     rows={2}
-                    placeholder="Alergias, condições especiais..."
+                    placeholder="Alergias, condições especiais ou observações..."
                   />
                 </div>
               </div>
 
-              <button type="submit" disabled={animalSubmitting || userSubmitting} className="btn-primary w-full py-4 text-base shadow-lg mt-4 flex items-center justify-center gap-2">
+              <button type="submit" disabled={animalSubmitting || userSubmitting} className="w-full mt-4 py-4 rounded-xl bg-gradient-to-r from-emerald-600 to-teal-500 hover:from-emerald-500 hover:to-teal-400 text-white font-bold text-xs uppercase tracking-wider shadow-lg shadow-emerald-500/20 active:scale-[0.98] transition-all duration-300 disabled:opacity-50 disabled:pointer-events-none flex items-center justify-center gap-2 cursor-pointer">
                 {(animalSubmitting || userSubmitting) ? (
                   <>
-                    <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                    <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
                     Processando...
                   </>
                 ) : (
                   <>
-                    <Play className="w-5 h-5" />
+                    <Play className="w-4 h-4" />
                     Salvar e Gerar Senha
                   </>
                 )}
@@ -931,7 +983,7 @@ export default function Queue() {
                 </div>
                 <h3 className="text-xs font-bold opacity-60 uppercase tracking-widest mb-1">Paciente</h3>
                 <p className="text-2xl font-black truncate max-w-full px-2">
-                  {calledTicket.animal?.name || (calledTicket as any)._localAnimalName || calledTicket.animalName || 'Não identificado'}
+                  {calledTicket.animal?.name || (calledTicket as any)._localAnimalName || (calledTicket as any).animalName || 'Não identificado'}
                 </p>
                 {calledTicket.animal?.tutor?.user?.name && (
                   <p className="text-sm font-medium opacity-70 mt-1 flex items-center gap-1.5">
@@ -1003,8 +1055,8 @@ export default function Queue() {
                   <p className="text-[10px] text-gray-400 font-medium uppercase">Tutor: {ticket.animal.tutor.user.name}</p>
                 )}
               </div>
-            ) : ticket.animalName ? (
-              <p className="text-sm font-bold text-gray-700 mb-1">{ticket.animalName}</p>
+            ) : (ticket as any).animalName ? (
+              <p className="text-sm font-bold text-gray-700 mb-1">{(ticket as any).animalName}</p>
             ) : (
               <p className="text-xs text-gray-400 italic mb-1">Sem identificação do pet</p>
             )}
