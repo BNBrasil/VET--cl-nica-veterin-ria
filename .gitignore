@@ -12,6 +12,7 @@ coverage/
 .DS_Store
 .env
 .env.*
+!.env.example
 backend/.env
 frontend/.env
 uploads/
