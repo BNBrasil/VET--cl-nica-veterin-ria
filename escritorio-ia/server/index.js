@@ -6,6 +6,8 @@ import { fileURLToPath } from 'node:url';
 import { WebSocketServer, WebSocket } from 'ws';
 import { createState, DEFAULT_ROOMS_PATH } from './state.js';
 import { ClaudeBridge } from './claude.js';
+import { RemoteAccess, originOk, networkAddresses, tailscaleInfo } from './remote.js';
+import qrcode from 'qrcode-generator';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const ROOT = path.join(__dirname, '..');
@@ -104,19 +106,104 @@ export function createServer(opts = {}) {
   const bridge = opts.chat ? (opts.bridge || new ClaudeBridge({ rooms: state.config.rooms, dataDir: opts.dataDir })) : null;
   let onShutdown = opts.onShutdown || (() => {});
 
-  // Só aceita chamadas da própria página (protege contra outros sites mandando comandos para o localhost).
+  const remote = bridge ? (opts.remote || new RemoteAccess({ dataDir: bridge.dataDir })) : null;
+  let current = { port: 0, host: '127.0.0.1' };
+
+  // Quem está pedindo? Local (o próprio computador) ou um aparelho pareado. Sem o chat ligado, tudo é local.
+  function access(req) {
+    if (!remote) return { local: true, allowed: true };
+    return remote.check(req);
+  }
+  // Só aceita chamadas da própria página (protege contra outros sites mandando comandos).
   function sameOrigin(req) {
-    const host = String(req.headers.host || '').toLowerCase();
-    const hostname = host.replace(/:\d+$/, '').replace(/^\[|\]$/g, '');
-    if (!['127.0.0.1', 'localhost', '::1'].includes(hostname)) return false;
-    const origin = req.headers.origin;
-    if (origin && origin !== 'http://' + host) return false;
-    return true;
+    const a = access(req);
+    return a.allowed && originOk(req);
+  }
+
+  const LOCAL_ONLY = new Set(['/api/verificar', '/api/instalar', '/api/login', '/api/login/codigo', '/api/login/cancelar',
+    '/api/chave', '/api/desligar', '/api/remoto/ativar', '/api/remoto/codigo', '/api/remoto/revogar']);
+
+  async function handleRemoteApi(req, res, p, a) {
+    if (p === '/api/acesso') {
+      return sendJson(res, 200, { local: a.local, pareado: a.local || !!a.device, remoto: remote.enabled, aparelho: a.device ? remote.publicDevice(a.device) : null });
+    }
+    if (p === '/api/parear' && req.method === 'POST') {
+      if (!remote.enabled) return sendJson(res, 403, { ok: false, erro: 'O acesso pelo celular está desligado no computador.' });
+      let body = {};
+      try { body = JSON.parse((await readBody(req)) || '{}') || {}; } catch { return send(res, 400, 'invalid json'); }
+      const r = remote.pair(body.codigo, req.headers['user-agent']);
+      if (!r.ok) return sendJson(res, 403, r);
+      const secure = String(req.headers['x-forwarded-proto'] || '').includes('https') || !!req.socket.encrypted;
+      res.writeHead(200, { 'Content-Type': 'application/json; charset=utf-8', 'Cache-Control': 'no-store', 'Set-Cookie': remote.cookieFor(r.token, secure) });
+      return res.end(JSON.stringify({ ok: true, aparelho: r.aparelho }));
+    }
+    if (p === '/api/remoto/sair' && req.method === 'POST') {
+      if (a.device) remote.revoke(a.device.id);
+      res.writeHead(200, { 'Content-Type': 'application/json', 'Set-Cookie': 'esc_token=; Path=/; Max-Age=0; HttpOnly; SameSite=Strict' });
+      return res.end('{"ok":true}');
+    }
+    if (!a.local) return send(res, 403, 'só no computador');
+    if (p === '/api/remoto' && req.method === 'GET') {
+      return sendJson(res, 200, {
+        ativo: remote.enabled, porta: current.port, ouvindo: current.host,
+        enderecos: networkAddresses(current.port), tailscale: await tailscaleInfo(), aparelhos: remote.list(),
+      });
+    }
+    if (p === '/api/remoto/qr.svg' && req.method === 'GET') {
+      const url = new URL(req.url, 'http://x').searchParams.get('url') || '';
+      if (!/^https?:\/\/[\w.\-:\[\]]+\/\?parear=\d{6}$/.test(url)) return send(res, 400, 'url inválida');
+      const qr = qrcode(0, 'M');
+      qr.addData(url);
+      qr.make();
+      return send(res, 200, qr.createSvgTag({ cellSize: 6, margin: 3, scalable: true }), 'image/svg+xml');
+    }
+    return null;
+  }
+
+  async function relisten() {
+    const port = current.port;
+    for (const c of wss.clients) c.terminate();
+    await new Promise((r) => { server.close(() => r()); server.closeAllConnections?.(); });
+    await listenRaw(port, current.baseHost);
   }
 
   async function handleApi(req, res, p) {
     if (!bridge) return send(res, 404, 'chat desativado');
-    if (!sameOrigin(req)) return send(res, 403, 'forbidden');
+    const a = access(req);
+    if (!originOk(req)) return send(res, 403, 'forbidden');
+    if (req.method === 'POST' && !/^application\/json/i.test(req.headers['content-type'] || '')) return send(res, 415, 'use application/json');
+    if (p === '/api/acesso' || p === '/api/parear' || p === '/api/remoto/sair' || p.startsWith('/api/remoto')) {
+      if (!a.allowed && p !== '/api/acesso' && p !== '/api/parear') return send(res, 401, 'aparelho não pareado');
+      if (p === '/api/remoto/ativar' && req.method === 'POST') {
+        if (!a.local) return send(res, 403, 'só no computador');
+        let body = {};
+        try { body = JSON.parse((await readBody(req)) || '{}') || {}; } catch { return send(res, 400, 'invalid json'); }
+        remote.setEnabled(!!body.ativo);
+        sendJson(res, 200, { ok: true, ativo: remote.enabled });
+        setTimeout(() => relisten().catch((e) => log(`[escritorio] erro ao reabrir: ${e.message}`)), 300);
+        return;
+      }
+      if (p === '/api/remoto/codigo' && req.method === 'POST') {
+        if (!a.local) return send(res, 403, 'só no computador');
+        if (!remote.enabled) return sendJson(res, 400, { erro: 'Ligue o acesso pelo celular primeiro.' });
+        const c = remote.newCode();
+        const ts = await tailscaleInfo();
+        const bases = [...(ts.https ? [{ tipo: 'tailscale-https', url: ts.https }] : []),
+          ...networkAddresses(current.port).map((x) => ({ tipo: x.tipo, url: x.url }))];
+        return sendJson(res, 200, { ...c, links: bases.map((b) => ({ ...b, url: b.url + '?parear=' + c.codigo })) });
+      }
+      if (p === '/api/remoto/revogar' && req.method === 'POST') {
+        if (!a.local) return send(res, 403, 'só no computador');
+        let body = {};
+        try { body = JSON.parse((await readBody(req)) || '{}') || {}; } catch { return send(res, 400, 'invalid json'); }
+        return sendJson(res, 200, { ok: remote.revoke(String(body.id || '')), aparelhos: remote.list() });
+      }
+      const r = await handleRemoteApi(req, res, p, a);
+      if (r !== null) return;
+      return send(res, 404, 'not found');
+    }
+    if (!a.allowed) return send(res, 401, 'aparelho não pareado');
+    if (LOCAL_ONLY.has(p) && !a.local) return send(res, 403, 'só no computador');
     if (req.method === 'GET') {
       if (p === '/api/claude') return sendJson(res, 200, bridge.status());
       if (p === '/api/nomes') return sendJson(res, 200, bridge.nomes);
@@ -152,6 +239,7 @@ export function createServer(opts = {}) {
       const p = url.pathname;
 
       if (p === '/event') {
+        if (remote && !access(req).local) return send(res, 403, 'forbidden');
         if (req.method !== 'POST') return send(res, 405, 'method not allowed', undefined, { Allow: 'POST' });
         let body;
         try {
@@ -178,6 +266,7 @@ export function createServer(opts = {}) {
       }
 
       if (p === '/state') {
+        if (!access(req).allowed) return send(res, 401, 'aparelho não pareado');
         return sendJson(res, 200, { agents: state.snapshot(), rooms: state.config, serverTime: state.now() });
       }
       if (p === '/shared/rooms.json') {
@@ -241,22 +330,28 @@ export function createServer(opts = {}) {
   }
 
   let timer = null;
-  function listen(port = 4317, host = '127.0.0.1') {
+  function listenRaw(port, baseHost) {
+    const host = remote?.enabled && ['127.0.0.1', 'localhost', '::1'].includes(baseHost) ? '0.0.0.0' : baseHost;
     return new Promise((resolve, reject) => {
       server.once('error', reject);
       server.listen(port, host, () => {
         server.off('error', reject);
-        if (tickMs > 0) {
-          timer = setInterval(tick, tickMs);
-          timer.unref();
-        }
         const addr = server.address();
-        const shownHost = addr.address.includes(':') ? `[${addr.address}]` : addr.address;
+        current = { port: addr.port, host: addr.address, baseHost };
+        const shownHost = addr.address === '0.0.0.0' ? '127.0.0.1' : addr.address.includes(':') ? `[${addr.address}]` : addr.address;
         const url = `http://${shownHost}:${addr.port}`;
-        log(`[escritorio] ${url}  (WebSocket ${url.replace('http', 'ws')}/ws)`);
+        log(`[escritorio] ${url}  (WebSocket ${url.replace('http', 'ws')}/ws)${addr.address === '0.0.0.0' ? '  · acesso pelo celular LIGADO' : ''}`);
         resolve({ port: addr.port, url });
       });
     });
+  }
+  async function listen(port = 4317, host = '127.0.0.1') {
+    const r = await listenRaw(port, host);
+    if (tickMs > 0 && !timer) {
+      timer = setInterval(tick, tickMs);
+      timer.unref();
+    }
+    return r;
   }
 
   function close() {
@@ -270,7 +365,7 @@ export function createServer(opts = {}) {
     });
   }
 
-  return { server, wss, state, bridge, listen, close, tick, ingest, set onShutdown(fn) { onShutdown = fn; } };
+  return { server, wss, state, bridge, remote, listen, close, tick, ingest, set onShutdown(fn) { onShutdown = fn; } };
 }
 
 const isMain = process.argv[1] && path.resolve(process.argv[1]) === fileURLToPath(import.meta.url);
