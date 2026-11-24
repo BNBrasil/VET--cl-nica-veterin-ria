@@ -14,7 +14,7 @@ export async function loadRooms() {
  *  onEvent(event)
  * Retorna { close() }.
  */
-export function connect({ onStatus, onSnapshot, onAgent, onEvent }) {
+export function connect({ onStatus, onSnapshot, onAgent, onEvent, onOther }) {
   const proto = location.protocol === 'https:' ? 'wss:' : 'ws:';
   const url = `${proto}//${location.host}/ws`;
   let ws = null;
@@ -47,6 +47,7 @@ export function connect({ onStatus, onSnapshot, onAgent, onEvent }) {
       if (msg.type === 'snapshot') onSnapshot?.(msg.agents || [], msg.serverTime);
       else if (msg.type === 'agent' && msg.agent) onAgent?.(msg.agent);
       else if (msg.type === 'event' && msg.event) onEvent?.(msg.event);
+      else onOther?.(msg);
     };
     ws.onclose = () => { ws = null; schedule(); };
     ws.onerror = () => { /* onclose vem em seguida */ };

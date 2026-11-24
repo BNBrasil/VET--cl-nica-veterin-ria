@@ -16,25 +16,54 @@ O personagem anima conforme o que o agente está fazendo:
 
 Toda a arte é própria (gerada por código em `art/`), então não há restrição de licença de pacotes de terceiros.
 
-## Como rodar
+## Como usar (Windows): um clique
+
+Dê dois cliques em **`INICIAR.bat`**. Ele:
+
+1. verifica e, se faltar, instala o **Node.js**, o **Git** (o Claude Code usa o Git Bash) e o **Claude Code**;
+2. instala as dependências do escritório;
+3. liga o servidor **escondido** (sem janela de CMD aberta) e abre **http://127.0.0.1:4317**.
+
+Tudo o mais é feito na página:
+
+- **Chat (à direita):** escreva o que precisa e aperte Enter. O orquestrador divide o trabalho e cada
+  resposta aparece com o **nome e o cargo** de quem respondeu, junto com as ações (ferramentas usadas,
+  "Otto passou para Rita..."). Enquanto isso os personagens animam no mapa. **Parar** interrompe o
+  trabalho; **Nova** começa uma conversa do zero (a conversa continua entre mensagens até lá).
+- **⚙ Configurar:**
+  - **Login:** "Entrar com conta Claude (Pro/Max)" ou "Console (API)" abre a página de login; se ela
+    mostrar um código, cole na própria janela. Também dá para salvar uma **chave de API** (fica só neste
+    computador, em `data/`).
+  - **Instalar:** se o Claude Code não estiver instalado, há um botão para instalar.
+  - **Nomes dos agentes:** já vêm com nomes (Otto, Rita, Edu, Ana, Paulo, Davi, Duda, Vera) e você pode
+    trocar. Os nomes valem no chat, na lista da equipe e no próprio pedido ("Rita, escreve um roteiro...").
+  - **Permissões:** *Seguro* (edita arquivos, mas comandos como ffmpeg/npm são bloqueados e o agente avisa),
+    *Autônomo* (roda comandos sem perguntar) ou *Só planejar*.
+  - **Desligar escritório.**
+
+Para ver o log do servidor numa janela: `INICIAR.bat --visivel`. No macOS/Linux: `./iniciar.sh`.
+
+![Chat com os agentes](docs/chat.png)
+
+## Para desenvolvedores
 
 ```bash
 cd escritorio-ia
 npm install          # instala só o "ws"
-npm run sprites      # (opcional) regenera os sprites em public/assets/
-npm start            # servidor em http://127.0.0.1:4317
+npm start            # servidor + chat em http://127.0.0.1:4317
+npm run demo         # simula eventos (sem gastar Claude): roteiro → animação → edição → revisão
+npm run sprites      # regenera os sprites em public/assets/
+npm test             # 51 testes
 ```
 
-Abra **http://127.0.0.1:4317** no navegador.
-
-- **Ver sem o Claude Code:** com o servidor ligado, rode `npm run demo` (ou `npm run demo -- --loop --fast`)
-  em outro terminal: ele simula o fluxo roteiro → animação → edição → revisão.
-- **Ver sem servidor nenhum:** abra `public/index.html` servido por qualquer servidor estático com `?demo=1`.
-- **Usar de verdade:** abra o Claude Code **dentro da pasta `escritorio-ia/`** (é onde estão
-  `.claude/settings.json`, os agentes e as skills). Os hooks mandam cada evento para o servidor.
-  Para a sessão principal agir como orquestrador: `claude --agent orquestrador`.
-- Testes: `npm test`.
-- Porta: variável `ESCRITORIO_PORT` (padrão 4317) — use a mesma no servidor e no Claude Code.
+- `?demo=1` na URL anima o escritório sem servidor (chat desligado).
+- Variáveis: `ESCRITORIO_PORT` (padrão 4317), `ESCRITORIO_MODELO` (força um modelo, ex.: `sonnet`),
+  `CLAUDE_BIN` (caminho do executável), `ESCRITORIO_CHAT=0` (desliga o chat).
+- Também dá para usar pelo terminal: `claude --agent orquestrador` dentro de `escritorio-ia/` — os hooks
+  animam o escritório do mesmo jeito.
+- Segurança: o servidor só escuta em `127.0.0.1`, e as rotas `/api` recusam chamadas de outros sites
+  (checagem de Host/Origin e JSON obrigatório). O texto do chat vai ao Claude Code pelo stdin, nunca
+  como argumento de comando.
 
 ## Arquitetura
 
@@ -45,7 +74,10 @@ Subagentes (Claude Code) ──evento──▶ Hooks (.claude/settings.json → 
 
 - `hooks/send-event.js` — recebe o JSON do hook no stdin e faz POST para o servidor; nunca trava o Claude Code.
 - `server/state.js` — máquina de estados de cada personagem (eventos + timers 20 s / 60 s / 2 min).
-- `server/index.js` — HTTP (estático + `/event` + `/state`) e WebSocket.
+- `server/index.js` — HTTP (estático + `/event` + `/state` + `/api/*`) e WebSocket.
+- `server/claude.js` — ponte do chat: roda `claude -p --agent orquestrador --output-format stream-json`
+  escondido, identifica qual agente escreveu cada mensagem e guarda nomes/config/histórico em `data/`.
+- `INICIAR.bat` / `iniciar.sh` — inicialização em um clique.
 - `public/` — tela do escritório em Canvas 2D, sem build; funciona também com quadrados coloridos se faltar sprite.
 - `art/` — gerador de sprites em Node puro: paleta fechada, PNG + JSON no formato Aseprite (que Phaser e PixiJS também leem).
 - `.claude/agents/` — os 8 agentes; `.claude/skills/` — as skills de cada cargo.

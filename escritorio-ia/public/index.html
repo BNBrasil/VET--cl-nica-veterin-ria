@@ -14,11 +14,13 @@
     <div class="badges">
       <span id="demo-badge" class="badge badge-demo" hidden>modo demo</span>
       <span id="ph-badge" class="badge badge-ph" hidden title="">sem sprites · placeholder</span>
+      <button id="btn-settings" class="btn-top" type="button">⚙ Configurar</button>
       <span id="conn" class="conn" data-status="connecting"><i></i><span id="conn-text">Conectando…</span></span>
     </div>
   </header>
 
   <main class="layout">
+    <div class="left">
     <section class="stage" aria-label="Mapa do escritório">
       <div class="canvas-wrap" id="canvas-wrap">
         <canvas id="office" width="680" height="368" role="img" aria-label="Escritório animado com as salas dos agentes"></canvas>
@@ -36,7 +38,38 @@
         <ol id="log" class="log"><li class="empty">Nenhum evento ainda.</li></ol>
       </section>
     </aside>
+    </div>
+
+    <section id="chat" class="chat card" aria-label="Chat com os agentes">
+      <div class="chat-top">
+        <h2>Chat</h2>
+        <span id="claude-status" class="claude-status" data-s="checking">Verificando Claude Code…</span>
+        <button id="chat-new" class="ghost small" type="button" title="Começar uma conversa nova">Nova</button>
+      </div>
+      <ol id="chat-list" class="chat-list" aria-live="polite"></ol>
+      <div id="chat-busy" class="chat-busy" hidden><i></i><i></i><i></i> os agentes estão trabalhando
+        <button id="chat-stop" class="ghost small" type="button" hidden>Parar</button></div>
+      <form id="chat-form" class="chat-form">
+        <textarea id="chat-input" rows="2" placeholder="Escreva o que você precisa… (Enter envia, Shift+Enter quebra linha)" aria-label="Mensagem para os agentes"></textarea>
+        <button id="chat-send" type="submit">Enviar</button>
+      </form>
+    </section>
   </main>
+
+  <dialog id="settings" class="settings">
+    <div class="settings-head"><h2>Configurar</h2><button id="settings-close" class="ghost small" type="button" aria-label="Fechar">✕</button></div>
+    <section><h3>Claude Code</h3><div id="cfg-claude"><p class="dim">Verificando…</p></div></section>
+    <section><h3>Permissões dos agentes</h3>
+      <select id="cfg-modo" aria-label="Modo de permissão"></select>
+      <p class="dim">No modo Seguro, comandos como ffmpeg ou npm são bloqueados e o agente avisa no chat.</p></section>
+    <section><h3>Nomes dos agentes</h3>
+      <div id="cfg-nomes" class="names"></div>
+      <div class="row"><button id="cfg-salvar-nomes" type="button">Salvar nomes</button>
+        <button id="cfg-restaurar-nomes" class="ghost" type="button">Nomes padrão</button>
+        <span id="cfg-nomes-ok" class="ok" hidden>✓ salvo</span></div></section>
+    <section><h3>Escritório</h3><button id="cfg-desligar" class="danger" type="button">Desligar escritório</button>
+      <p class="dim">Fecha o servidor e os agentes. Para abrir de novo, rode o INICIAR.bat.</p></section>
+  </dialog>
 
   <div id="tooltip" class="tooltip" role="tooltip" hidden></div>
   <div id="fatal" class="fatal" hidden></div>

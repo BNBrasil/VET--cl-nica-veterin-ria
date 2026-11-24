@@ -5,6 +5,7 @@ import { loadAssets } from './assets.js';
 import { Office } from './office.js';
 import { startDemo } from './demo.js';
 import { colorFor, stateText, STATE_PT } from './labels.js';
+import { initChat, onChatMessage, nomeDe, chatDisabled } from './chat.js';
 
 const $ = (s) => document.querySelector(s);
 const canvas = $('#office');
@@ -104,7 +105,7 @@ function renderAgents() {
 
 function agentRow(a, room) {
   const st = a?.state || 'absent';
-  const cargo = room ? room.cargo : cargoOf(a);
+  const cargo = room ? `${nomeDe(room.id)} · ${room.cargo}` : cargoOf(a);
   const where = room ? room.nome : 'Lounge';
   const tool = a?.tool ? ` · <span class="tool">${esc(a.tool)}</span>` : '';
   const when = a?.since ? ` · ${ago(a.since)}` : '';
@@ -149,7 +150,8 @@ function tipHTML(r) {
   }
   if (!r.work) return `<h3>${esc(r.nome)}</h3><dl><dt>Área</dt><dd>comum</dd></dl>`;
   const a = office.agentForRoom(r.id);
-  return `<h3>${esc(r.nome)} · ${esc(r.cargo)}</h3><dl>
+  return `<h3>${esc(nomeDe(r.id))} · ${esc(r.cargo)}</h3><dl>
+    <dt>Sala</dt><dd>${esc(r.nome)}</dd>
     <dt>Estado</dt><dd>${esc(a ? stateText(a) : STATE_PT.absent)}${a?.since ? ' (' + ago(a.since) + ')' : ''}</dd>
     <dt>Ferramenta</dt><dd>${esc(a?.tool || '—')}</dd>
     <dt>Tarefas</dt><dd>${a?.tasksDone ?? 0}</dd>
@@ -241,8 +243,11 @@ async function boot() {
     setConn('demo', 'Offline (demo)');
     document.title = 'Escritório de IA · demo';
     startDemo(rooms, { onSnapshot, onAgent, onEvent });
+    initChat({ rooms, onNamesChanged: () => (dirty = true) });
+    chatDisabled('O chat precisa do servidor ligado (INICIAR.bat ou npm start). No modo demo ele fica desligado.');
   } else {
-    connect({ onStatus, onSnapshot, onAgent, onEvent });
+    initChat({ rooms, onNamesChanged: () => (dirty = true) });
+    connect({ onStatus, onSnapshot, onAgent, onEvent, onOther: onChatMessage });
   }
 
   setInterval(() => {

@@ -5,6 +5,7 @@ import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { WebSocketServer, WebSocket } from 'ws';
 import { createState, DEFAULT_ROOMS_PATH } from './state.js';
+import { ClaudeBridge } from './claude.js';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const ROOT = path.join(__dirname, '..');
@@ -100,6 +101,50 @@ export function createServer(opts = {}) {
   const log = opts.log === undefined ? console.log : opts.log || (() => {});
   const state = createState({ now: opts.now, roomsPath, rooms: opts.rooms, timers: opts.timers });
   const tickMs = opts.tickMs ?? 1000;
+  const bridge = opts.chat ? (opts.bridge || new ClaudeBridge({ rooms: state.config.rooms, dataDir: opts.dataDir })) : null;
+  let onShutdown = opts.onShutdown || (() => {});
+
+  // Só aceita chamadas da própria página (protege contra outros sites mandando comandos para o localhost).
+  function sameOrigin(req) {
+    const host = String(req.headers.host || '').toLowerCase();
+    const hostname = host.replace(/:\d+$/, '').replace(/^\[|\]$/g, '');
+    if (!['127.0.0.1', 'localhost', '::1'].includes(hostname)) return false;
+    const origin = req.headers.origin;
+    if (origin && origin !== 'http://' + host) return false;
+    return true;
+  }
+
+  async function handleApi(req, res, p) {
+    if (!bridge) return send(res, 404, 'chat desativado');
+    if (!sameOrigin(req)) return send(res, 403, 'forbidden');
+    if (req.method === 'GET') {
+      if (p === '/api/claude') return sendJson(res, 200, bridge.status());
+      if (p === '/api/nomes') return sendJson(res, 200, bridge.nomes);
+      return send(res, 404, 'not found');
+    }
+    if (req.method !== 'POST') return send(res, 405, 'method not allowed');
+    if (!/^application\/json/i.test(req.headers['content-type'] || '')) return send(res, 415, 'use application/json');
+    let body = {};
+    try { body = JSON.parse((await readBody(req)) || '{}') || {}; } catch { return send(res, 400, 'invalid json'); }
+    switch (p) {
+      case '/api/chat': return sendJson(res, 200, bridge.send(body.texto));
+      case '/api/parar': return sendJson(res, 200, { ok: bridge.stop() });
+      case '/api/nova-conversa': bridge.newConversation(); return sendJson(res, 200, { ok: true });
+      case '/api/verificar': return sendJson(res, 200, await bridge.refresh());
+      case '/api/instalar': return sendJson(res, 200, { ok: bridge.install() });
+      case '/api/login': return sendJson(res, 200, bridge.startLogin(body.metodo));
+      case '/api/login/codigo': return sendJson(res, 200, { ok: bridge.sendLoginCode(body.codigo) });
+      case '/api/login/cancelar': bridge.cancelLogin(); await bridge.refresh(); return sendJson(res, 200, { ok: true });
+      case '/api/chave': return sendJson(res, 200, await bridge.setApiKey(body.chave || ''));
+      case '/api/nomes': return sendJson(res, 200, bridge.setNames(body.nomes));
+      case '/api/permissao': return sendJson(res, 200, { ok: bridge.setPermissionMode(body.modo) });
+      case '/api/desligar':
+        sendJson(res, 200, { ok: true });
+        setTimeout(() => onShutdown(), 200);
+        return;
+      default: return send(res, 404, 'not found');
+    }
+  }
 
   const server = http.createServer(async (req, res) => {
     try {
@@ -125,6 +170,8 @@ export function createServer(opts = {}) {
         res.writeHead(204);
         return res.end();
       }
+
+      if (p.startsWith('/api/')) return await handleApi(req, res, p);
 
       if (req.method !== 'GET' && req.method !== 'HEAD') {
         return send(res, 405, 'method not allowed', undefined, { Allow: 'GET, HEAD, POST' });
@@ -155,7 +202,7 @@ export function createServer(opts = {}) {
     try {
       pathname = new URL(req.url, 'http://localhost').pathname;
     } catch {}
-    if (pathname !== '/ws') {
+    if (pathname !== '/ws' || (bridge && !sameOrigin(req))) {
       socket.write('HTTP/1.1 404 Not Found\r\nConnection: close\r\n\r\n');
       socket.destroy();
       return;
@@ -165,7 +212,18 @@ export function createServer(opts = {}) {
   wss.on('connection', (ws) => {
     ws.on('error', () => {});
     ws.send(JSON.stringify({ type: 'snapshot', agents: state.snapshot(), serverTime: state.now() }));
+    if (bridge) {
+      ws.send(JSON.stringify({ type: 'chat_snapshot', mensagens: bridge.history, nomes: bridge.nomes, claude: bridge.status() }));
+    }
   });
+
+  if (bridge) {
+    bridge.on('chat', (m) => broadcast({ type: 'chat', mensagem: m }));
+    bridge.on('status', (st) => broadcast({ type: 'claude', claude: st }));
+    bridge.on('nomes', (n) => broadcast({ type: 'nomes', nomes: n }));
+    bridge.on('reset', () => broadcast({ type: 'chat_snapshot', mensagens: bridge.history, nomes: bridge.nomes, claude: bridge.status() }));
+    bridge.refresh().catch(() => {});
+  }
 
   function broadcast(msg) {
     const data = JSON.stringify(msg);
@@ -203,6 +261,7 @@ export function createServer(opts = {}) {
 
   function close() {
     if (timer) clearInterval(timer);
+    bridge?.shutdown();
     for (const c of wss.clients) c.terminate();
     wss.close();
     return new Promise((resolve) => {
@@ -211,19 +270,20 @@ export function createServer(opts = {}) {
     });
   }
 
-  return { server, wss, state, listen, close, tick, ingest };
+  return { server, wss, state, bridge, listen, close, tick, ingest, set onShutdown(fn) { onShutdown = fn; } };
 }
 
 const isMain = process.argv[1] && path.resolve(process.argv[1]) === fileURLToPath(import.meta.url);
 if (isMain) {
   const port = Number(process.env.ESCRITORIO_PORT) || 4317;
   const host = process.env.ESCRITORIO_HOST || '127.0.0.1';
-  const app = createServer();
+  const app = createServer({ chat: process.env.ESCRITORIO_CHAT !== '0' });
   app.listen(port, host).catch((e) => {
     console.error(`[escritorio] não foi possível abrir ${host}:${port}: ${e.message}`);
     process.exit(1);
   });
   const stop = () => app.close().then(() => process.exit(0));
+  app.onShutdown = () => { console.log('[escritorio] desligado pela página.'); stop(); };
   process.on('SIGINT', stop);
   process.on('SIGTERM', stop);
 }
