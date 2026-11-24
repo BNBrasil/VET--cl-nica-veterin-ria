@@ -114,7 +114,9 @@ export class OfficeIso {
     const add = (r, work) => {
       const mr = this.m.rooms?.[r.id] || {};
       const ar = assets.rooms?.[r.id] || {};
-      const room = { ...r, work, poly: Array.isArray(mr.poly) && mr.poly.length >= 3 ? mr.poly : null,
+      // aceita [[x,y],…] ou [{x,y},…]
+      const poly = Array.isArray(mr.poly) ? mr.poly.map((p) => (Array.isArray(p) ? p : [p.x, p.y])) : [];
+      const room = { ...r, work, poly: poly.length >= 3 ? poly : null,
         label: mr.label || null, seat: mr.seat || null, door: mr.door || null, object: ar.object || null };
       if (!room.seat && room.poly) {
         const cx = room.poly.reduce((s, p) => s + p[0], 0) / room.poly.length;
@@ -170,7 +172,8 @@ export class OfficeIso {
   upsert(agent, instant = false) {
     let v = this.agents.get(agent.id);
     if (!v) {
-      const sheet = agent.visitor ? (this.assets.visitor || null) : (this.assets.chars[agent.room] || null);
+      const any = Object.values(this.assets.chars)[0] || null;
+      const sheet = agent.visitor ? (this.assets.visitor || any) : (this.assets.chars[agent.room] || this.assets.visitor || any);
       v = {
         id: agent.id, agent, sheet,
         char: new AnimPlayer(sheet, this.animMeta),
@@ -389,6 +392,7 @@ export class OfficeIso {
     }
     for (const v of vis) {
       const st = this._charState(v);
+      v.st = st;
       items.push({ y: v.pos.y, draw: () => this._drawChar(ctx, v, st, now) });
       if (st.fx) items.push({ y: v.pos.y + 0.5, draw: () => this._drawFx(ctx, v, st, now) });
     }
@@ -632,6 +636,11 @@ export class OfficeIso {
       const a = v.agent;
       const head = this._headPoint(v);
       let bottom = head.y + 4;
+      // se há um FX sobre a cabeça (?, estrela, lupa…), placa e balão ficam acima dele
+      const fxTag = v.st?.fx && v.st.fx !== 'fx_zzz' ? v.st.fx : null;
+      const fxs = this.assets.fx;
+      const ft = fxTag && fxs && (fxs.tags[fxTag] || (v.st.alt && fxs.tags[v.st.alt]));
+      if (ft) bottom = head.y - (fxs.frames[ft.from]?.h || 16) - 1;
       const showName = v === hoverChar || inHoverRoom(v) || a.state === 'working' || a.state === 'waiting';
       if (showName) {
         const name = nomeDe(a.id);
