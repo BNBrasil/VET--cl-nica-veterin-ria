@@ -38,9 +38,9 @@ export const FX = {
     });
   }) },
   fx_sweat: { fps: 6, frames: make(4, (L, i) => {
-    const y = 3 + i * 2;
-    L.px(8, y, 'cyanLight'); L.px(7, y + 1, 'cyanLight'); L.px(8, y + 1, 'snow'); L.px(9, y + 1, 'cyan');
-    L.px(7, y + 2, 'cyan'); L.px(8, y + 2, 'cyan'); L.px(9, y + 2, 'cyanDark'); L.px(8, y + 3, 'cyanDark');
+    const y = 2 + i * 2;
+    shape(L, ['..#..', '.###.', '#####', '#####', '#####', '.###.'], 6, y, { '#': 'cyan' });
+    L.px(8, y, 'cyanLight'); L.px(7, y + 2, 'snow'); L.px(7, y + 3, 'cyanLight'); L.px(10, y + 4, 'cyanDark'); L.px(9, y + 5, 'cyanDark');
     if (i < 2) { L.px(12, 6 + i, 'cyanLight'); L.px(12, 7 + i, 'cyan'); }
   }) },
   fx_star: { fps: 8, frames: make(4, (L, i) => {

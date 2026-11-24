@@ -10,10 +10,10 @@ export const DOOR = [8, 40];
 export const SEATS = {
   orquestrador: { i: 44, j: 60 }, roteirista: { i: 44, j: 60 }, 'editor-video': { i: 40, j: 58 }, animador: { i: 44, j: 60 },
   programador: { i: 54, j: 58 }, desenvolvedor: { i: 58, j: 56 }, designer: { i: 56, j: 58 }, revisor: { i: 56, j: 58 },
-  copa: { i: 56, j: 66 }, lounge: { i: 16, j: 36 },
+  copa: { i: 56, j: 66 }, lounge: { i: 20, j: 26 },
 };
 export const DESK = { di: 14, dj: 28, h: 16, off: 9 }; // mesa: começa `off` à frente da cadeira
-export const SOFA = { i: 6, j: 22, len: 76 }; // sofá do lounge (olha para +i)
+export const SOFA = { i: 6, j: 10, len: 92 }; // sofá do lounge (olha para +i)
 
 // ---------------------------------------------------------------- pisos
 const planks = (a, b, seam, w = 8) => (u, v) => {
@@ -293,7 +293,7 @@ ROOM_DRAW.revisor = {
       desk: { top: 'snow', edge: 'light', side: 'red', sideDark: 'redDark' }, chair: chairOf(r.ac),
       items: (L, iso, i, j, z) => { keyboard(L, iso, i, j, z); Fu.papers(L, iso, i + 3, j + 21, z, 2); iso.cylinder(L, i + 10, j + 25, 2, z, z + 2, { side: 'red', sideDark: 'redDark', top: 'redLight' }); },
     });
-    r.put((L, iso, I, J) => Fu.giantMagnifier(L, iso, I + 104, J + 84), { fg: true });
+    r.put((L, iso, I, J) => Fu.giantMagnifier(L, iso, I + 22, J + 92), { fg: true });
   },
 };
 
@@ -310,7 +310,7 @@ ROOM_DRAW.lounge = {
   },
   furniture(r) {
     const col = { c: 'teal', cD: 'tealDark', cL: 'tealLight' };
-    r.put((L, iso, I, J) => Fu.floorLamp(L, iso, I + 10, J + 10));
+    r.put((L, iso, I, J) => Fu.floorLamp(L, iso, I + 40, J + 12));
     r.put((L, iso, I, J) => Fu.sofaI(L, iso, I + SOFA.i, J + SOFA.j, SOFA.len, { c: 'orange', cD: 'orangeDark', cL: 'orangeLight' }, 'body'));
     r.put((L, iso, I, J) => Fu.sofaI(L, iso, I + SOFA.i, J + SOFA.j, SOFA.len, { c: 'orange', cD: 'orangeDark', cL: 'orangeLight' }, 'arm'), { fg: true });
     r.put((L, iso, I, J) => Fu.table(L, iso, I + 44, J + 42, 20, 34, 9, { top: 'woodLight', edge: 'wood' }));
@@ -318,7 +318,7 @@ ROOM_DRAW.lounge = {
     r.put((L, iso, I, J) => Fu.armchairBack(L, iso, I + 76, J + 76, col));
     r.put((L, iso, I, J) => Fu.plant(L, iso, I + 118, J + 12, { size: 3, pot: 'teal', potDark: 'tealDark' }));
     r.put((L, iso, I, J) => Fu.plant(L, iso, I + 116, J + 100, { size: 2, pot: 'teal', potDark: 'tealDark' }), { fg: true });
-    r.meta.seat = { i: SOFA.i + 14, j: SOFA.j + 14 };
+    r.meta.seat = { i: SOFA.i + 14, j: SOFA.j + 16 };
   },
 };
 

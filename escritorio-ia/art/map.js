@@ -3,8 +3,8 @@
 //
 // Planta (tiles de 16 unidades; i → sudeste, j → sudoeste):
 //   fileira de trás  j ∈ [0, 7)   : orquestrador | roteirista | editor-video | animador | copa
-//   corredor         j ∈ [7, 12)  : elevador na ponta esquerda, passadeira no meio
-//   fileira da frente j ∈ [12, 19): programador | desenvolvedor | designer | revisor | lounge
+//   corredor         j ∈ [7, 13)  : elevador na ponta esquerda, passadeira no meio
+//   fileira da frente j ∈ [13, 20): programador | desenvolvedor | designer | revisor | lounge
 //   cada sala tem 8 tiles em i (128 unidades) e 7 em j (112 unidades).
 // Paredes altas só no fundo de cada fileira (com decoração); divisórias baixas entre salas vizinhas,
 // para que nenhuma parede esconda o piso de outra sala. Frente aberta.
@@ -121,8 +121,8 @@ function corridorFloor(bg) {
     const rj = wj - CORR_J0;
     if (rj >= 10 && rj < 32) {
       if (rj === 10 || rj === 31) return 'tealDark';
-      if (rj === 12 || rj === 29) return 'tan';
-      return (Math.floor(wi / 4) + Math.floor(rj / 4)) % 2 ? 'teal' : 'tealDark';
+      if (rj === 12 || rj === 29) return 'tealLight';
+      return wi % 32 === 0 ? 'tealDark' : 'teal';
     }
     const edge = (wi % 16 === 0) || ((wj - CORR_J0) % 16 === 0);
     if (edge) return 'silver';
@@ -235,8 +235,8 @@ export function layoutData() {
   for (let k = 1; k < spine.length; k++) edges.push([spine[k - 1][1], spine[k][1]]);
 
   const L0 = roomOrigin('lounge');
-  const sofa = [0, 1, 2, 3].map((k) => ({ ...P(L0.I0 + SOFA.i + 14, L0.J0 + SOFA.j + 14 + k * 16), flip: false }));
-  const visitors = [[94, 30], [110, 52], [84, 56]].map(([i, j]) => ({ ...P(L0.I0 + i, L0.J0 + j), flip: true }));
+  const sofa = [0, 1, 2, 3].map((k) => ({ ...P(L0.I0 + SOFA.i + 14, L0.J0 + SOFA.j + 16 + k * 20), flip: false }));
+  const visitors = [[88, 24], [112, 74], [62, 98]].map(([i, j]) => ({ ...P(L0.I0 + i, L0.J0 + j), flip: true }));
   rooms.lounge.seat = { ...sofa[0] };
   return { rooms, lounge: { sofa, visitors }, paths: { nodes, edges } };
 }

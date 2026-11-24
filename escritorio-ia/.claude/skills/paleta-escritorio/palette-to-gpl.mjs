@@ -16,6 +16,6 @@ for (const { name, hex } of lista) {
   const [r, g, b] = [0, 2, 4].map((k) => parseInt(h.slice(k, k + 2), 16));
   out.push(`${String(r).padStart(3)} ${String(g).padStart(3)} ${String(b).padStart(3)}\t${name}`);
 }
-if (lista.length < 32 && !j.rooms) console.error(`aviso: ${lista.length} cores (regra: 32 a 48)`);
-if (lista.length > 48) console.error(`aviso: ${lista.length} cores (regra: 32 a 48)`);
+if (lista.length < 16 && !j.rooms) console.error(`aviso: ${lista.length} cores (regra: até 64)`);
+if (lista.length > 64) console.error(`aviso: ${lista.length} cores (regra: até 64)`);
 process.stdout.write(out.join('\n') + '\n');

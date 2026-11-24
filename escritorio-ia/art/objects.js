@@ -105,7 +105,7 @@ export const OBJECTS = {
       iso.disc(L, ci, cj, r, r, 0, (u, v, wi, wj) => (Math.hypot(wi - ci, wj - cj) > r - 3 ? 'yellowPale' : 'lamp'));
       L.stamp(L._out, { outline: false });
     }
-    Fu.floorLamp(L, iso, ci, cj, { shade: on ? 'lamp' : 'yellowDark', shadeDark: on ? 'yellow' : 'woodDark', on });
+    Fu.floorLamp(L, iso, ci, cj, { shade: on ? 'lamp' : 'yellow', shadeDark: on ? 'yellow' : 'yellowDark', on });
     if (tag === 'obj_work') { const p = iso.pt(ci, cj, 44); if (f % 2) { L._sp = [[p.x - 8, p.y - 2], [p.x + 8, p.y - 2], [p.x, p.y - 6]]; } }
   },
   'editor-video': (I0, J0) => {
@@ -141,7 +141,7 @@ export const OBJECTS = {
       if (tag === 'obj_sleep') return h % 3 === 0 && f % 2 ? 'blueLight' : 'blue';
       return (row + f) % 3 === 0 ? 'green' : 'greenDark';
     };
-    Fu.rackI(L, iso, I0, J0 + 30, 22, 42, leds);
+    Fu.rackI(L, iso, I0, J0 + 36, 22, 42, leds);
   },
   desenvolvedor: (I0, J0) => {
     const d = deskOf('desenvolvedor', I0, J0);

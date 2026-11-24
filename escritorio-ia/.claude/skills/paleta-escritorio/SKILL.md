@@ -1,6 +1,6 @@
 ---
 name: paleta-escritorio
-description: Use sempre que for escolher cores para pixel art, animação ou peça visual do próprio Escritório de IA - regras da paleta fechada (32 a 48 cores), onde ela mora (art/palette.js, public/assets/palette.json, shared/rooms.json), cor de destaque de cada sala, como importar no Aseprite (.gpl) e como conferir se uma imagem usa só cores da paleta.
+description: Use sempre que for escolher cores para pixel art, animação ou peça visual do próprio Escritório de IA - regras da paleta fechada (até 64 cores, versão isométrica), onde ela mora (art/palette.js, public/assets/palette.json, shared/rooms.json), cor de destaque de cada sala, como importar no Aseprite (.gpl) e como conferir se uma imagem usa só cores da paleta.
 ---
 
 # Paleta do escritório
@@ -30,7 +30,7 @@ comm -23 usadas.txt paleta.txt   # vazio = ok
 ```
 
 ## Regras
-- **Paleta fechada de 32 a 48 cores.** Precisa de cor nova? Peça à frente Pixel art para entrar
+- **Paleta fechada de até 64 cores** (v1 usava 32 a 48). Precisa de cor nova? Peça à frente Pixel art para entrar
   em `art/palette.js`; nunca use cor "solta" num sprite.
 - Rampas de 3–4 tons por material (sombra, base, luz, brilho); sombra puxa para azul/roxo,
   luz puxa para amarelo — nada de preto puro para sombra.

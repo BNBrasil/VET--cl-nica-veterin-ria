@@ -32,7 +32,7 @@ const addAnims = (list) => {
   for (const a of list) {
     const prev = animations[a.tag];
     if (prev && (prev.fps !== a.fps || prev.frames !== a.frames.length)) throw new Error(`tag ${a.tag} com fps/quadros diferentes entre sheets`);
-    animations[a.tag] = { fps: a.fps, loop: !/_done$|_error$/.test(a.tag) || true, frames: a.frames.length };
+    animations[a.tag] = { fps: a.fps, loop: true, frames: a.frames.length };
   }
 };
 
@@ -135,7 +135,7 @@ function putChar(c, f, p, flip = false) { c.blit(f, p.x - ANCHOR.x, p.y - ANCHOR
   lg.visitors.forEach((v, k) => sprites.push({ y: v.y, draw: (c) => putChar(c, frameOf('visitante', k === 0 ? 'visitante_work' : k === 1 ? 'base_stand' : 'base_walk_se', k), v, v.flip) }));
   // alguém andando no corredor
   const n = layout.paths.nodes;
-  sprites.push({ y: n.c_296.y, draw: (c) => putChar(c, frameOf('visitante', 'base_walk_ne', 0), { x: n.c_296.x + 20, y: n.c_296.y - 10 }) });
+  sprites.push({ y: n.c_296.y, draw: (c) => putChar(c, frameOf('desenvolvedor', 'base_walk_se', 0), { x: n.c_296.x + 24, y: n.c_296.y + 12 }) });
   sprites.sort((a, b) => a.y - b.y).forEach((s) => s.draw(scene));
   scene.blit(fg, 0, 0);
   // fx de exemplo
