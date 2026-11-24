@@ -481,6 +481,14 @@ export class OfficeIso {
     return { x: Math.round(v.pos.x + this.head.x * sx), y: Math.round(v.pos.y + this.head.y) };
   }
 
+  /** Centro do FX `tag` (manifest.fx.anchors[tag], relativo ao pé, x espelhado no flip); senão, acima da cabeça. */
+  _fxCenter(v, tag, f) {
+    const a = this.m.fx?.anchors?.[tag];
+    if (a) return { x: Math.round(v.pos.x + a.x * (v.flip ? -1 : 1)), y: Math.round(v.pos.y + a.y) };
+    const h = this._headPoint(v);
+    return { x: h.x, y: h.y - Math.floor((f?.h || 16) / 2) };
+  }
+
   _drawFx(ctx, v, st, now) {
     const sheet = this.assets.fx;
     if (!sheet) return;
@@ -493,8 +501,8 @@ export class OfficeIso {
     if (st.blink && t.to === t.from && Math.floor(now / 400) % 2 === 1) return;
     const f = v.fx.frame(now);
     if (!f) return;
-    const h = this._headPoint(v);
-    ctx.drawImage(sheet.img, f.x, f.y, f.w, f.h, Math.round(h.x - f.w / 2), h.y - f.h, f.w, f.h);
+    const c = this._fxCenter(v, tag, f);
+    ctx.drawImage(sheet.img, f.x, f.y, f.w, f.h, c.x - Math.floor(f.w / 2), c.y - Math.floor(f.h / 2), f.w, f.h);
   }
 
   // ---------- partículas (zZz de quem dorme, brilho de quem comemora) ----------
@@ -505,8 +513,8 @@ export class OfficeIso {
       const st = v.agent.state;
       const sleeping = !v.path.length && (st === 'sleeping' || (st === 'dozing' && v.at?.kind === 'sofa'));
       if (sleeping && now >= v.nextZ) {
-        const h = this._headPoint(v);
-        this.particles.push({ kind: 'z', x: h.x + (v.flip ? -4 : 4), y: h.y + 8, t0: now, life: 2600, dir: v.flip ? -1 : 1 });
+        const h = this._fxCenter(v, 'fx_zzz', null);
+        this.particles.push({ kind: 'z', x: h.x, y: h.y + 8, t0: now, life: 2600, dir: v.flip ? -1 : 1 });
         v.nextZ = now + 1100 + Math.random() * 400;
       }
       if (st === 'done' && !v.path.length && now >= (v.nextSpark || 0)) {
@@ -640,7 +648,11 @@ export class OfficeIso {
       const fxTag = v.st?.fx && v.st.fx !== 'fx_zzz' ? v.st.fx : null;
       const fxs = this.assets.fx;
       const ft = fxTag && fxs && (fxs.tags[fxTag] || (v.st.alt && fxs.tags[v.st.alt]));
-      if (ft) bottom = head.y - (fxs.frames[ft.from]?.h || 16) - 1;
+      if (ft) {
+        const fr = fxs.frames[ft.from];
+        const c = this._fxCenter(v, fxs.tags[fxTag] ? fxTag : v.st.alt, fr);
+        bottom = Math.min(bottom, c.y - Math.ceil((fr?.h || 16) / 2) - 1);
+      }
       const showName = v === hoverChar || inHoverRoom(v) || a.state === 'working' || a.state === 'waiting';
       if (showName) {
         const name = nomeDe(a.id);
