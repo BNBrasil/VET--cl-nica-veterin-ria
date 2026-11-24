@@ -22,6 +22,7 @@ const HAIRS = {
   ginger: { h: 'ginger', H: 'wood' },
   blonde: { h: 'blonde', H: 'tan' },
   gray: { h: 'light', H: 'silver' },
+  plum: { h: 'purpleDark', H: 'ink' },
 };
 
 export const LOOKS = {
@@ -31,7 +32,7 @@ export const LOOKS = {
   animador: { skin: 'light', hair: 'blonde', style: 'bun', cloth: ['cyan', 'cyanDark'], a: 'white', t: 'cyan', pants: 'slate', shoes: 'woodDark', chair: ['cyanDark', 'cyan'], acc: null },
   programador: { skin: 'dark', hair: 'black', style: 'short', cloth: ['green', 'greenDark'], a: 'greenLight', t: 'greenDark', pants: 'navy', shoes: 'shadow', chair: ['greenDark', 'green'], acc: 'beanie', accColors: ['gray', 'shadow'] },
   desenvolvedor: { skin: 'mid', hair: 'brown', style: 'short', cloth: ['blue', 'blueDark'], a: 'white', t: 'blueDark', pants: 'slate', shoes: 'white', chair: ['blueDark', 'blue'], acc: 'cap', accColors: ['orange', 'orangeDark'] },
-  designer: { skin: 'dark', hair: 'black', style: 'bob', cloth: ['pink', 'pinkDark'], a: 'pinkLight', t: 'pinkDark', pants: 'ink', shoes: 'pinkDark', chair: ['pinkDark', 'pink'], acc: 'beret', accColors: ['yellow', 'yellowDark'] },
+  designer: { skin: 'dark', hair: 'plum', style: 'bob', cloth: ['pink', 'pinkDark'], a: 'pinkLight', t: 'pinkDark', pants: 'ink', shoes: 'pinkDark', chair: ['pinkDark', 'pink'], acc: 'beret', accColors: ['yellow', 'yellowDark'] },
   revisor: { skin: 'light', hair: 'gray', style: 'bald', cloth: ['red', 'redDark'], a: 'white', t: 'redDark', pants: 'shadow', shoes: 'woodDark', chair: ['redDark', 'red'], acc: 'glasses', accColors: ['outline', 'cyanLight'] },
   visitante: { skin: 'mid', hair: 'brown', style: 'short', cloth: ['silver', 'gray'], a: 'white', t: 'teal', pants: 'slate', shoes: 'woodDark', chair: ['shadow', 'gray'], acc: 'badge' },
 };
@@ -159,7 +160,7 @@ const ACC = {
     side: { ox: -1, oy: -3, rows: ['.....o......', '..ooooAoo...', '.oAAAAAAAAo.', 'oAAAAAAAAAAo', '.oBBBBBBBBo.', '..oooooooo..'] },
   },
   glasses: {
-    front: { ox: 0, oy: 5, rows: ['.oooooooo.', '..oBooBo..'] },
+    front: { ox: 0, oy: 5, rows: ['.oBeBBeBo.', '..oooooo..'] },
     back: null,
     side: { ox: 0, oy: 5, rows: ['oooo......', '.Bo.......'] },
   },
@@ -236,10 +237,10 @@ function badge(c, look, M, y0) {
 }
 
 // ---------------------------------------------------------------- camadas: cadeira e pernas
-function chairBack(c, M, top = 11) {
-  c.rect(2, top, 12, 23 - top, M.x);
-  c.hline(2, 13, top, M.o); c.vline(2, top, 22, M.o); c.vline(13, top, 22, M.o);
-  c.hline(3, 12, top + 1, M.X);
+function chairBack(c, M, top = 14) {
+  c.rect(1, top, 14, 23 - top, M.x);
+  c.hline(2, 13, top, M.o); c.vline(1, top + 1, 22, M.o); c.vline(14, top + 1, 22, M.o);
+  c.hline(2, 13, top + 1, M.X); c.vline(2, top + 2, 22, M.X);
 }
 function chairBase(c, M) {
   c.px(3, 30, M.x); c.px(12, 30, M.x);
@@ -496,13 +497,14 @@ const WORK = {
     for (let i = 0; i < 6; i++) {
       const { c, M } = seated(look, { face: 'down', arms: 'none' });
       // papel saindo da máquina
-      c.rect(5, 18 - (i % 3 === 2 ? 1 : 0), 6, 4, 'white'); c.frame(4, 17 - (i % 3 === 2 ? 1 : 0), 8, 5, 'outline');
-      c.hline(6, 9, 19, 'gray');
+      const pu = i % 3 === 2 ? 1 : 0;
+      c.rect(5, 20 - pu, 6, 2 + pu, 'white'); c.frame(4, 19 - pu, 8, 4 + pu, 'outline');
+      c.hline(6, 9, 20 - pu, 'gray');
       // máquina
-      c.rect(3, 21, 10, 5, 'ink'); c.frame(2, 20, 12, 7, 'outline');
-      c.hline(3, 12, 21, 'shadow'); c.hline(4, 11, 23, 'gray'); c.hline(4, 11, 24, 'silver');
+      c.rect(3, 23, 10, 3, 'ink'); c.frame(2, 22, 12, 5, 'outline');
+      c.hline(3, 12, 22, 'outline'); c.hline(4, 11, 23, 'shadow'); c.hline(4, 11, 24, 'gray');
       for (let k = 4; k <= 11; k += 2) c.px(k, 24, 'white');
-      c.px(i % 2 ? 12 : 3, 22, 'yellow');
+      c.px(i % 2 ? 12 : 3, 23, 'yellow');
       // mãos alternando
       const up = i % 2;
       hand(c, M, 4, 22 + up); hand(c, M, 10, 23 - up);
