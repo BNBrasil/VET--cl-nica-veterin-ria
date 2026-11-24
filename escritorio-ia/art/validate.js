@@ -191,7 +191,7 @@ if (m) {
 // nenhum arquivo v1 sobrando; todos os PNGs passam na paleta (inclui preview)
 for (const f of fs.readdirSync(DIR)) {
   check(!/^room_/.test(f), `arquivo v1 órfão: ${f}`);
-  if (f.endsWith('.png')) img(f);
+  if (f.endsWith('.png') && !/^icon-/.test(f)) img(f); // ícones do app usam o fundo da interface
 }
 
 if (errors.length) {

@@ -11,6 +11,7 @@ import { buildMap, layoutData, roomOrigin, iso, MAP_W, MAP_H } from './map.js';
 import { T } from './iso.js';
 import { renderObject } from './objects.js';
 import { fxAnims, FW, FH } from './fx.js';
+import { makeIcons } from './icons.js';
 
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const OUT = path.join(ROOT, 'public', 'assets');
@@ -202,4 +203,5 @@ function putChar(c, f, p, flip = false) { c.blit(f, p.x - ANCHOR.x, p.y - ANCHOR
 // ---------------------------------------------------------------- limpa arquivos órfãos (v1) em public/assets
 for (const f of fs.readdirSync(OUT)) if (/\.(png|json)$/.test(f) && !written.has(f)) fs.unlinkSync(path.join(OUT, f));
 
+makeIcons(); // ícones do app (gerados depois da limpeza)
 console.log(`sprites v2: ${written.size} arquivos em public/assets/ (mapa ${MAP_W}x${MAP_H}, ${COLORS.length} cores na paleta)`);

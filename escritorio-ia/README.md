@@ -2,7 +2,7 @@
 
 ![Escritório](docs/screenshot.png)
 
-Cada subagente do Claude Code vira um personagem pixel art (16-bit, vista 3/4) sentado na sua sala.
+Cada subagente do Claude Code vira um personagem em pixel art isométrica, sentado na sua sala de um prédio animado.
 O personagem anima conforme o que o agente está fazendo:
 
 | Situação | Na tela |
@@ -43,6 +43,15 @@ Tudo o mais é feito na página:
 
 Para ver o log do servidor numa janela: `INICIAR.bat --visivel`. No macOS/Linux: `./iniciar.sh`.
 
+## Pelo celular (em casa e fora de casa)
+
+Em **⚙ Configurar → Celular**: ligue o acesso, clique em **Conectar um celular** e leia o QR code com o
+celular. Pronto: chat, escritório animado e equipe em abas, e dá para **Adicionar à tela inicial** como app.
+Fora de casa funciona pelo **Tailscale** (rede privada gratuita, sem expor nada na internet).
+Passo a passo e segurança: [`docs/CELULAR.md`](docs/CELULAR.md).
+
+![No celular: chat, escritório, equipe e pareamento](docs/celular.png)
+
 ![Chat com os agentes](docs/chat.png)
 
 ## Para desenvolvedores
@@ -53,7 +62,7 @@ npm install          # instala só o "ws"
 npm start            # servidor + chat em http://127.0.0.1:4317
 npm run demo         # simula eventos (sem gastar Claude): roteiro → animação → edição → revisão
 npm run sprites      # regenera os sprites em public/assets/
-npm test             # 51 testes
+npm test             # 53 testes
 ```
 
 - `?demo=1` na URL anima o escritório sem servidor (chat desligado).
@@ -77,6 +86,9 @@ Subagentes (Claude Code) ──evento──▶ Hooks (.claude/settings.json → 
 - `server/index.js` — HTTP (estático + `/event` + `/state` + `/api/*`) e WebSocket.
 - `server/claude.js` — ponte do chat: roda `claude -p --agent orquestrador --output-format stream-json`
   escondido, identifica qual agente escreveu cada mensagem e guarda nomes/config/histórico em `data/`.
+- `server/remote.js` — acesso pelo celular: pareamento por código/QR, token por aparelho, Tailscale.
+- `public/js/office-iso.js` — escritório isométrico (camadas, caminhada pelo corredor, balões de fala).
+- `public/js/mobile.js`, `public/sw.js`, `public/manifest.webmanifest` — abas do celular, pareamento e app instalável.
 - `INICIAR.bat` / `iniciar.sh` — inicialização em um clique.
 - `public/` — tela do escritório em Canvas 2D, sem build; funciona também com quadrados coloridos se faltar sprite.
 - `art/` — gerador de sprites em Node puro: paleta fechada, PNG + JSON no formato Aseprite (que Phaser e PixiJS também leem).
