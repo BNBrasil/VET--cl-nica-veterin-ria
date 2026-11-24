@@ -10,7 +10,7 @@
     "start": "node server/index.js",
     "sprites": "node art/generate.js",
     "demo": "node scripts/demo.js",
-    "test": "node --test test/"
+    "test": "node --test test/*.test.js"
   },
   "dependencies": { "ws": "^8.18.0" }
 }
