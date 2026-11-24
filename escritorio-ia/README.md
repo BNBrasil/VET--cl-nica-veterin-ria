@@ -1,5 +1,7 @@
 # Escritório de IA Animado
 
+![Escritório](docs/screenshot.png)
+
 Cada subagente do Claude Code vira um personagem pixel art (16-bit, vista 3/4) sentado na sua sala.
 O personagem anima conforme o que o agente está fazendo:
 

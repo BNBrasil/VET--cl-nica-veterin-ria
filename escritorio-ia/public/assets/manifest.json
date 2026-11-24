@@ -1,0 +1,385 @@
+{
+  "tile": 16,
+  "char": {
+    "w": 16,
+    "h": 32
+  },
+  "room": {
+    "w": 160,
+    "h": 112
+  },
+  "scale": 3,
+  "animations": {
+    "base_idle": {
+      "fps": 4,
+      "loop": true,
+      "frames": 2
+    },
+    "base_read": {
+      "fps": 6,
+      "loop": true,
+      "frames": 4
+    },
+    "base_doze": {
+      "fps": 4,
+      "loop": true,
+      "frames": 4
+    },
+    "base_sleep": {
+      "fps": 3,
+      "loop": true,
+      "frames": 4
+    },
+    "base_wait": {
+      "fps": 4,
+      "loop": true,
+      "frames": 2
+    },
+    "base_done": {
+      "fps": 8,
+      "loop": true,
+      "frames": 4
+    },
+    "base_error": {
+      "fps": 6,
+      "loop": true,
+      "frames": 3
+    },
+    "base_walk_down": {
+      "fps": 8,
+      "loop": true,
+      "frames": 4
+    },
+    "base_walk_up": {
+      "fps": 8,
+      "loop": true,
+      "frames": 4
+    },
+    "base_walk_left": {
+      "fps": 8,
+      "loop": true,
+      "frames": 4
+    },
+    "base_walk_right": {
+      "fps": 8,
+      "loop": true,
+      "frames": 4
+    },
+    "orquestrador_work": {
+      "fps": 8,
+      "loop": true,
+      "frames": 4
+    },
+    "roteirista_work": {
+      "fps": 8,
+      "loop": true,
+      "frames": 6
+    },
+    "editor-video_work": {
+      "fps": 8,
+      "loop": true,
+      "frames": 4
+    },
+    "animador_work": {
+      "fps": 8,
+      "loop": true,
+      "frames": 5
+    },
+    "programador_work": {
+      "fps": 8,
+      "loop": true,
+      "frames": 4
+    },
+    "desenvolvedor_work": {
+      "fps": 8,
+      "loop": true,
+      "frames": 4
+    },
+    "designer_work": {
+      "fps": 8,
+      "loop": true,
+      "frames": 4
+    },
+    "revisor_work": {
+      "fps": 8,
+      "loop": true,
+      "frames": 6
+    },
+    "visitante_work": {
+      "fps": 8,
+      "loop": true,
+      "frames": 4
+    },
+    "obj_off": {
+      "fps": 2,
+      "loop": true,
+      "frames": 2
+    },
+    "obj_work": {
+      "fps": 8,
+      "loop": true,
+      "frames": 4
+    },
+    "obj_sleep": {
+      "fps": 3,
+      "loop": true,
+      "frames": 4
+    },
+    "fx_zzz": {
+      "fps": 3,
+      "loop": true,
+      "frames": 4
+    },
+    "fx_question": {
+      "fps": 4,
+      "loop": true,
+      "frames": 2
+    },
+    "fx_smoke": {
+      "fps": 6,
+      "loop": true,
+      "frames": 4
+    },
+    "fx_sweat": {
+      "fps": 6,
+      "loop": true,
+      "frames": 3
+    },
+    "fx_star": {
+      "fps": 8,
+      "loop": true,
+      "frames": 4
+    },
+    "fx_magnifier": {
+      "fps": 6,
+      "loop": true,
+      "frames": 4
+    }
+  },
+  "characters": {
+    "orquestrador": {
+      "image": "char_orquestrador.png",
+      "data": "char_orquestrador.json"
+    },
+    "roteirista": {
+      "image": "char_roteirista.png",
+      "data": "char_roteirista.json"
+    },
+    "editor-video": {
+      "image": "char_editor-video.png",
+      "data": "char_editor-video.json"
+    },
+    "animador": {
+      "image": "char_animador.png",
+      "data": "char_animador.json"
+    },
+    "programador": {
+      "image": "char_programador.png",
+      "data": "char_programador.json"
+    },
+    "desenvolvedor": {
+      "image": "char_desenvolvedor.png",
+      "data": "char_desenvolvedor.json"
+    },
+    "designer": {
+      "image": "char_designer.png",
+      "data": "char_designer.json"
+    },
+    "revisor": {
+      "image": "char_revisor.png",
+      "data": "char_revisor.json"
+    }
+  },
+  "rooms": {
+    "orquestrador": {
+      "background": "room_orquestrador.png",
+      "seat": {
+        "x": 72,
+        "y": 80
+      },
+      "object": {
+        "image": "obj_orquestrador.png",
+        "data": "obj_orquestrador.json",
+        "x": 100,
+        "y": 7,
+        "w": 40,
+        "h": 24
+      }
+    },
+    "roteirista": {
+      "background": "room_roteirista.png",
+      "seat": {
+        "x": 72,
+        "y": 80
+      },
+      "object": {
+        "image": "obj_roteirista.png",
+        "data": "obj_roteirista.json",
+        "x": 84,
+        "y": 54,
+        "w": 16,
+        "h": 18
+      }
+    },
+    "editor-video": {
+      "background": "room_editor-video.png",
+      "seat": {
+        "x": 72,
+        "y": 80
+      },
+      "object": {
+        "image": "obj_editor-video.png",
+        "data": "obj_editor-video.json",
+        "x": 82,
+        "y": 56,
+        "w": 34,
+        "h": 18
+      }
+    },
+    "animador": {
+      "background": "room_animador.png",
+      "seat": {
+        "x": 72,
+        "y": 80
+      },
+      "object": {
+        "image": "obj_animador.png",
+        "data": "obj_animador.json",
+        "x": 104,
+        "y": 6,
+        "w": 40,
+        "h": 26
+      }
+    },
+    "programador": {
+      "background": "room_programador.png",
+      "seat": {
+        "x": 72,
+        "y": 80
+      },
+      "object": {
+        "image": "obj_programador.png",
+        "data": "obj_programador.json",
+        "x": 112,
+        "y": 30,
+        "w": 20,
+        "h": 48
+      }
+    },
+    "desenvolvedor": {
+      "background": "room_desenvolvedor.png",
+      "seat": {
+        "x": 72,
+        "y": 80
+      },
+      "object": {
+        "image": "obj_desenvolvedor.png",
+        "data": "obj_desenvolvedor.json",
+        "x": 84,
+        "y": 56,
+        "w": 16,
+        "h": 17
+      }
+    },
+    "designer": {
+      "background": "room_designer.png",
+      "seat": {
+        "x": 72,
+        "y": 80
+      },
+      "object": {
+        "image": "obj_designer.png",
+        "data": "obj_designer.json",
+        "x": 112,
+        "y": 6,
+        "w": 28,
+        "h": 30
+      }
+    },
+    "revisor": {
+      "background": "room_revisor.png",
+      "seat": {
+        "x": 72,
+        "y": 80
+      },
+      "object": {
+        "image": "obj_revisor.png",
+        "data": "obj_revisor.json",
+        "x": 84,
+        "y": 56,
+        "w": 16,
+        "h": 17
+      }
+    },
+    "copa": {
+      "background": "room_copa.png",
+      "seat": {
+        "x": 72,
+        "y": 80
+      },
+      "object": {
+        "image": "obj_copa.png",
+        "data": "obj_copa.json",
+        "x": 112,
+        "y": 18,
+        "w": 16,
+        "h": 16
+      }
+    },
+    "lounge": {
+      "background": "room_lounge.png",
+      "seat": {
+        "x": 116,
+        "y": 82
+      },
+      "object": {
+        "image": "obj_lounge.png",
+        "data": "obj_lounge.json",
+        "x": 64,
+        "y": 8,
+        "w": 32,
+        "h": 20
+      },
+      "sofa": {
+        "x": 40,
+        "y": 82
+      }
+    }
+  },
+  "fx": {
+    "image": "fx.png",
+    "data": "fx.json",
+    "anchors": {
+      "fx_zzz": {
+        "dx": 4,
+        "dy": -40
+      },
+      "fx_question": {
+        "dx": 2,
+        "dy": -44
+      },
+      "fx_star": {
+        "dx": -8,
+        "dy": -44
+      },
+      "fx_sweat": {
+        "dx": 2,
+        "dy": -34
+      },
+      "fx_magnifier": {
+        "dx": -18,
+        "dy": -24
+      },
+      "fx_smoke": {
+        "relativeTo": "object",
+        "dx": 0,
+        "dy": -12
+      }
+    }
+  },
+  "visitor": {
+    "image": "char_visitante.png",
+    "data": "char_visitante.json"
+  },
+  "notes": "seat = pé do personagem (ponto inferior-central). object.x/y = canto superior esquerdo do quadro do objeto. A mesa faz parte do fundo; o sprite sentado já prevê o tampo nas linhas 23..26."
+}

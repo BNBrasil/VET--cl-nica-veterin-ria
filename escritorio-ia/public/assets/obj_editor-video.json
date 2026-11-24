@@ -1,0 +1,253 @@
+{
+  "frames": {
+    "obj_off_0": {
+      "frame": {
+        "x": 0,
+        "y": 0,
+        "w": 34,
+        "h": 18
+      },
+      "rotated": false,
+      "trimmed": false,
+      "spriteSourceSize": {
+        "x": 0,
+        "y": 0,
+        "w": 34,
+        "h": 18
+      },
+      "sourceSize": {
+        "w": 34,
+        "h": 18
+      },
+      "duration": 500
+    },
+    "obj_off_1": {
+      "frame": {
+        "x": 34,
+        "y": 0,
+        "w": 34,
+        "h": 18
+      },
+      "rotated": false,
+      "trimmed": false,
+      "spriteSourceSize": {
+        "x": 0,
+        "y": 0,
+        "w": 34,
+        "h": 18
+      },
+      "sourceSize": {
+        "w": 34,
+        "h": 18
+      },
+      "duration": 500
+    },
+    "obj_work_0": {
+      "frame": {
+        "x": 0,
+        "y": 18,
+        "w": 34,
+        "h": 18
+      },
+      "rotated": false,
+      "trimmed": false,
+      "spriteSourceSize": {
+        "x": 0,
+        "y": 0,
+        "w": 34,
+        "h": 18
+      },
+      "sourceSize": {
+        "w": 34,
+        "h": 18
+      },
+      "duration": 125
+    },
+    "obj_work_1": {
+      "frame": {
+        "x": 34,
+        "y": 18,
+        "w": 34,
+        "h": 18
+      },
+      "rotated": false,
+      "trimmed": false,
+      "spriteSourceSize": {
+        "x": 0,
+        "y": 0,
+        "w": 34,
+        "h": 18
+      },
+      "sourceSize": {
+        "w": 34,
+        "h": 18
+      },
+      "duration": 125
+    },
+    "obj_work_2": {
+      "frame": {
+        "x": 68,
+        "y": 18,
+        "w": 34,
+        "h": 18
+      },
+      "rotated": false,
+      "trimmed": false,
+      "spriteSourceSize": {
+        "x": 0,
+        "y": 0,
+        "w": 34,
+        "h": 18
+      },
+      "sourceSize": {
+        "w": 34,
+        "h": 18
+      },
+      "duration": 125
+    },
+    "obj_work_3": {
+      "frame": {
+        "x": 102,
+        "y": 18,
+        "w": 34,
+        "h": 18
+      },
+      "rotated": false,
+      "trimmed": false,
+      "spriteSourceSize": {
+        "x": 0,
+        "y": 0,
+        "w": 34,
+        "h": 18
+      },
+      "sourceSize": {
+        "w": 34,
+        "h": 18
+      },
+      "duration": 125
+    },
+    "obj_sleep_0": {
+      "frame": {
+        "x": 0,
+        "y": 36,
+        "w": 34,
+        "h": 18
+      },
+      "rotated": false,
+      "trimmed": false,
+      "spriteSourceSize": {
+        "x": 0,
+        "y": 0,
+        "w": 34,
+        "h": 18
+      },
+      "sourceSize": {
+        "w": 34,
+        "h": 18
+      },
+      "duration": 333
+    },
+    "obj_sleep_1": {
+      "frame": {
+        "x": 34,
+        "y": 36,
+        "w": 34,
+        "h": 18
+      },
+      "rotated": false,
+      "trimmed": false,
+      "spriteSourceSize": {
+        "x": 0,
+        "y": 0,
+        "w": 34,
+        "h": 18
+      },
+      "sourceSize": {
+        "w": 34,
+        "h": 18
+      },
+      "duration": 333
+    },
+    "obj_sleep_2": {
+      "frame": {
+        "x": 68,
+        "y": 36,
+        "w": 34,
+        "h": 18
+      },
+      "rotated": false,
+      "trimmed": false,
+      "spriteSourceSize": {
+        "x": 0,
+        "y": 0,
+        "w": 34,
+        "h": 18
+      },
+      "sourceSize": {
+        "w": 34,
+        "h": 18
+      },
+      "duration": 333
+    },
+    "obj_sleep_3": {
+      "frame": {
+        "x": 102,
+        "y": 36,
+        "w": 34,
+        "h": 18
+      },
+      "rotated": false,
+      "trimmed": false,
+      "spriteSourceSize": {
+        "x": 0,
+        "y": 0,
+        "w": 34,
+        "h": 18
+      },
+      "sourceSize": {
+        "w": 34,
+        "h": 18
+      },
+      "duration": 333
+    }
+  },
+  "meta": {
+    "app": "escritorio-ia/art/generate.js",
+    "version": "1.0",
+    "image": "obj_editor-video.png",
+    "format": "RGBA8888",
+    "size": {
+      "w": 136,
+      "h": 54
+    },
+    "scale": "1",
+    "frameTags": [
+      {
+        "name": "obj_off",
+        "from": 0,
+        "to": 1,
+        "direction": "forward"
+      },
+      {
+        "name": "obj_work",
+        "from": 2,
+        "to": 5,
+        "direction": "forward"
+      },
+      {
+        "name": "obj_sleep",
+        "from": 6,
+        "to": 9,
+        "direction": "forward"
+      }
+    ],
+    "layers": [
+      {
+        "name": "sprite",
+        "opacity": 255,
+        "blendMode": "normal"
+      }
+    ],
+    "slices": []
+  }
+}
