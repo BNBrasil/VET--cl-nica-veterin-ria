@@ -1,0 +1,46 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="color-scheme" content="dark">
+  <title>Escritório de IA</title>
+  <link rel="icon" href="data:,">
+  <link rel="stylesheet" href="css/office.css">
+</head>
+<body>
+  <header class="topbar">
+    <h1><span class="logo" aria-hidden="true"></span>Escritório de IA</h1>
+    <div class="badges">
+      <span id="demo-badge" class="badge badge-demo" hidden>modo demo</span>
+      <span id="ph-badge" class="badge badge-ph" hidden title="">sem sprites · placeholder</span>
+      <span id="conn" class="conn" data-status="connecting"><i></i><span id="conn-text">Conectando…</span></span>
+    </div>
+  </header>
+
+  <main class="layout">
+    <section class="stage" aria-label="Mapa do escritório">
+      <div class="canvas-wrap" id="canvas-wrap">
+        <canvas id="office" width="680" height="368" role="img" aria-label="Escritório animado com as salas dos agentes"></canvas>
+      </div>
+      <p class="hint" id="hint">Passe o mouse (ou toque) numa sala para ver os detalhes.</p>
+    </section>
+
+    <aside class="panel">
+      <section class="card">
+        <h2>Equipe</h2>
+        <ul id="agents" class="agents"></ul>
+      </section>
+      <section class="card">
+        <h2>Últimos eventos</h2>
+        <ol id="log" class="log"><li class="empty">Nenhum evento ainda.</li></ol>
+      </section>
+    </aside>
+  </main>
+
+  <div id="tooltip" class="tooltip" role="tooltip" hidden></div>
+  <div id="fatal" class="fatal" hidden></div>
+
+  <script type="module" src="js/main.js"></script>
+</body>
+</html>
