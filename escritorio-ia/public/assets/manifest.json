@@ -1,19 +1,49 @@
 {
-  "tile": 16,
+  "version": 2,
+  "projection": "iso",
+  "tile": {
+    "w": 32,
+    "h": 16
+  },
   "char": {
-    "w": 16,
-    "h": 32
+    "w": 32,
+    "h": 48,
+    "anchor": {
+      "x": 16,
+      "y": 46
+    }
   },
-  "room": {
-    "w": 160,
-    "h": 112
+  "map": {
+    "w": 1008,
+    "h": 568,
+    "background": "map_bg.png",
+    "foreground": "map_fg.png"
   },
-  "scale": 3,
   "animations": {
+    "obj_off": {
+      "fps": 2,
+      "loop": true,
+      "frames": 2
+    },
+    "obj_work": {
+      "fps": 8,
+      "loop": true,
+      "frames": 6
+    },
+    "obj_sleep": {
+      "fps": 3,
+      "loop": true,
+      "frames": 4
+    },
+    "orquestrador_work": {
+      "fps": 8,
+      "loop": true,
+      "frames": 6
+    },
     "base_idle": {
       "fps": 4,
       "loop": true,
-      "frames": 2
+      "frames": 4
     },
     "base_read": {
       "fps": 6,
@@ -31,44 +61,34 @@
       "frames": 4
     },
     "base_wait": {
-      "fps": 4,
-      "loop": true,
-      "frames": 2
-    },
-    "base_done": {
-      "fps": 8,
+      "fps": 6,
       "loop": true,
       "frames": 4
+    },
+    "base_done": {
+      "fps": 10,
+      "loop": true,
+      "frames": 6
     },
     "base_error": {
       "fps": 6,
       "loop": true,
-      "frames": 3
+      "frames": 4
     },
-    "base_walk_down": {
+    "base_walk_se": {
       "fps": 8,
       "loop": true,
       "frames": 4
     },
-    "base_walk_up": {
+    "base_walk_ne": {
       "fps": 8,
       "loop": true,
       "frames": 4
     },
-    "base_walk_left": {
-      "fps": 8,
+    "base_stand": {
+      "fps": 2,
       "loop": true,
-      "frames": 4
-    },
-    "base_walk_right": {
-      "fps": 8,
-      "loop": true,
-      "frames": 4
-    },
-    "orquestrador_work": {
-      "fps": 8,
-      "loop": true,
-      "frames": 4
+      "frames": 2
     },
     "roteirista_work": {
       "fps": 8,
@@ -78,12 +98,12 @@
     "editor-video_work": {
       "fps": 8,
       "loop": true,
-      "frames": 4
+      "frames": 6
     },
     "animador_work": {
       "fps": 8,
       "loop": true,
-      "frames": 5
+      "frames": 6
     },
     "programador_work": {
       "fps": 8,
@@ -93,12 +113,12 @@
     "desenvolvedor_work": {
       "fps": 8,
       "loop": true,
-      "frames": 4
+      "frames": 6
     },
     "designer_work": {
       "fps": 8,
       "loop": true,
-      "frames": 4
+      "frames": 6
     },
     "revisor_work": {
       "fps": 8,
@@ -110,21 +130,6 @@
       "loop": true,
       "frames": 4
     },
-    "obj_off": {
-      "fps": 2,
-      "loop": true,
-      "frames": 2
-    },
-    "obj_work": {
-      "fps": 8,
-      "loop": true,
-      "frames": 4
-    },
-    "obj_sleep": {
-      "fps": 3,
-      "loop": true,
-      "frames": 4
-    },
     "fx_zzz": {
       "fps": 3,
       "loop": true,
@@ -133,7 +138,7 @@
     "fx_question": {
       "fps": 4,
       "loop": true,
-      "frames": 2
+      "frames": 4
     },
     "fx_smoke": {
       "fps": 6,
@@ -143,7 +148,7 @@
     "fx_sweat": {
       "fps": 6,
       "loop": true,
-      "frames": 3
+      "frames": 4
     },
     "fx_star": {
       "fps": 8,
@@ -152,6 +157,21 @@
     },
     "fx_magnifier": {
       "fps": 6,
+      "loop": true,
+      "frames": 4
+    },
+    "fx_heart": {
+      "fps": 6,
+      "loop": true,
+      "frames": 4
+    },
+    "fx_music": {
+      "fps": 6,
+      "loop": true,
+      "frames": 4
+    },
+    "fx_sparkle": {
+      "fps": 8,
       "loop": true,
       "frames": 4
     }
@@ -190,196 +210,650 @@
       "data": "char_revisor.json"
     }
   },
-  "rooms": {
-    "orquestrador": {
-      "background": "room_orquestrador.png",
-      "seat": {
-        "x": 72,
-        "y": 80
-      },
-      "object": {
-        "image": "obj_orquestrador.png",
-        "data": "obj_orquestrador.json",
-        "x": 100,
-        "y": 7,
-        "w": 40,
-        "h": 24
-      }
-    },
-    "roteirista": {
-      "background": "room_roteirista.png",
-      "seat": {
-        "x": 72,
-        "y": 80
-      },
-      "object": {
-        "image": "obj_roteirista.png",
-        "data": "obj_roteirista.json",
-        "x": 84,
-        "y": 54,
-        "w": 16,
-        "h": 18
-      }
-    },
-    "editor-video": {
-      "background": "room_editor-video.png",
-      "seat": {
-        "x": 72,
-        "y": 80
-      },
-      "object": {
-        "image": "obj_editor-video.png",
-        "data": "obj_editor-video.json",
-        "x": 82,
-        "y": 56,
-        "w": 34,
-        "h": 18
-      }
-    },
-    "animador": {
-      "background": "room_animador.png",
-      "seat": {
-        "x": 72,
-        "y": 80
-      },
-      "object": {
-        "image": "obj_animador.png",
-        "data": "obj_animador.json",
-        "x": 104,
-        "y": 6,
-        "w": 40,
-        "h": 26
-      }
-    },
-    "programador": {
-      "background": "room_programador.png",
-      "seat": {
-        "x": 72,
-        "y": 80
-      },
-      "object": {
-        "image": "obj_programador.png",
-        "data": "obj_programador.json",
-        "x": 112,
-        "y": 30,
-        "w": 20,
-        "h": 48
-      }
-    },
-    "desenvolvedor": {
-      "background": "room_desenvolvedor.png",
-      "seat": {
-        "x": 72,
-        "y": 80
-      },
-      "object": {
-        "image": "obj_desenvolvedor.png",
-        "data": "obj_desenvolvedor.json",
-        "x": 84,
-        "y": 56,
-        "w": 16,
-        "h": 17
-      }
-    },
-    "designer": {
-      "background": "room_designer.png",
-      "seat": {
-        "x": 72,
-        "y": 80
-      },
-      "object": {
-        "image": "obj_designer.png",
-        "data": "obj_designer.json",
-        "x": 112,
-        "y": 6,
-        "w": 28,
-        "h": 30
-      }
-    },
-    "revisor": {
-      "background": "room_revisor.png",
-      "seat": {
-        "x": 72,
-        "y": 80
-      },
-      "object": {
-        "image": "obj_revisor.png",
-        "data": "obj_revisor.json",
-        "x": 84,
-        "y": 56,
-        "w": 16,
-        "h": 17
-      }
-    },
-    "copa": {
-      "background": "room_copa.png",
-      "seat": {
-        "x": 72,
-        "y": 80
-      },
-      "object": {
-        "image": "obj_copa.png",
-        "data": "obj_copa.json",
-        "x": 112,
-        "y": 18,
-        "w": 16,
-        "h": 16
-      }
-    },
-    "lounge": {
-      "background": "room_lounge.png",
-      "seat": {
-        "x": 116,
-        "y": 82
-      },
-      "object": {
-        "image": "obj_lounge.png",
-        "data": "obj_lounge.json",
-        "x": 64,
-        "y": 8,
-        "w": 32,
-        "h": 20
-      },
-      "sofa": {
-        "x": 40,
-        "y": 82
-      }
-    }
-  },
-  "fx": {
-    "image": "fx.png",
-    "data": "fx.json",
-    "anchors": {
-      "fx_zzz": {
-        "dx": 4,
-        "dy": -40
-      },
-      "fx_question": {
-        "dx": 2,
-        "dy": -44
-      },
-      "fx_star": {
-        "dx": -8,
-        "dy": -44
-      },
-      "fx_sweat": {
-        "dx": 2,
-        "dy": -34
-      },
-      "fx_magnifier": {
-        "dx": -18,
-        "dy": -24
-      },
-      "fx_smoke": {
-        "relativeTo": "object",
-        "dx": 0,
-        "dy": -12
-      }
-    }
-  },
   "visitor": {
     "image": "char_visitante.png",
     "data": "char_visitante.json"
   },
-  "notes": "seat = pé do personagem (ponto inferior-central). object.x/y = canto superior esquerdo do quadro do objeto. A mesa faz parte do fundo; o sprite sentado já prevê o tampo nas linhas 23..26."
+  "fx": {
+    "image": "fx.png",
+    "data": "fx.json",
+    "w": 16,
+    "h": 16,
+    "anchors": {
+      "head": {
+        "x": 0,
+        "y": -50
+      },
+      "fx_zzz": {
+        "x": 10,
+        "y": -50
+      },
+      "fx_question": {
+        "x": 9,
+        "y": -52
+      },
+      "fx_star": {
+        "x": -9,
+        "y": -50
+      },
+      "fx_sweat": {
+        "x": 11,
+        "y": -38
+      },
+      "fx_magnifier": {
+        "x": 14,
+        "y": -24
+      },
+      "fx_smoke": {
+        "x": 22,
+        "y": -36
+      },
+      "fx_heart": {
+        "x": 0,
+        "y": -52
+      },
+      "fx_music": {
+        "x": 11,
+        "y": -48
+      },
+      "fx_sparkle": {
+        "x": 0,
+        "y": -26
+      }
+    }
+  },
+  "rooms": {
+    "orquestrador": {
+      "label": {
+        "x": 296,
+        "y": 150
+      },
+      "poly": [
+        [
+          344,
+          66
+        ],
+        [
+          472,
+          130
+        ],
+        [
+          360,
+          186
+        ],
+        [
+          232,
+          122
+        ]
+      ],
+      "seat": {
+        "x": 328,
+        "y": 118,
+        "flip": false
+      },
+      "object": {
+        "image": "obj_orquestrador.png",
+        "data": "obj_orquestrador.json",
+        "x": 359,
+        "y": 32,
+        "w": 54,
+        "h": 54
+      },
+      "door": "n_orquestrador"
+    },
+    "roteirista": {
+      "label": {
+        "x": 424,
+        "y": 214
+      },
+      "poly": [
+        [
+          472,
+          130
+        ],
+        [
+          600,
+          194
+        ],
+        [
+          488,
+          250
+        ],
+        [
+          360,
+          186
+        ]
+      ],
+      "seat": {
+        "x": 456,
+        "y": 182,
+        "flip": false
+      },
+      "object": {
+        "image": "obj_roteirista.png",
+        "data": "obj_roteirista.json",
+        "x": 510,
+        "y": 141,
+        "w": 48,
+        "h": 62
+      },
+      "door": "n_roteirista"
+    },
+    "editor-video": {
+      "label": {
+        "x": 552,
+        "y": 278
+      },
+      "poly": [
+        [
+          600,
+          194
+        ],
+        [
+          728,
+          258
+        ],
+        [
+          616,
+          314
+        ],
+        [
+          488,
+          250
+        ]
+      ],
+      "seat": {
+        "x": 582,
+        "y": 243,
+        "flip": false
+      },
+      "object": {
+        "image": "obj_editor-video.png",
+        "data": "obj_editor-video.json",
+        "x": 603,
+        "y": 211,
+        "w": 22,
+        "h": 24
+      },
+      "door": "n_editor-video"
+    },
+    "animador": {
+      "label": {
+        "x": 680,
+        "y": 342
+      },
+      "poly": [
+        [
+          728,
+          258
+        ],
+        [
+          856,
+          322
+        ],
+        [
+          744,
+          378
+        ],
+        [
+          616,
+          314
+        ]
+      ],
+      "seat": {
+        "x": 712,
+        "y": 310,
+        "flip": false
+      },
+      "object": {
+        "image": "obj_animador.png",
+        "data": "obj_animador.json",
+        "x": 734,
+        "y": 278,
+        "w": 15,
+        "h": 21
+      },
+      "door": "n_animador"
+    },
+    "programador": {
+      "label": {
+        "x": 88,
+        "y": 248
+      },
+      "poly": [
+        [
+          136,
+          170
+        ],
+        [
+          264,
+          234
+        ],
+        [
+          152,
+          290
+        ],
+        [
+          24,
+          226
+        ]
+      ],
+      "seat": {
+        "x": 132,
+        "y": 226,
+        "flip": false
+      },
+      "object": {
+        "image": "obj_programador.png",
+        "data": "obj_programador.json",
+        "x": 83,
+        "y": 142,
+        "w": 42,
+        "h": 64
+      },
+      "door": "n_programador"
+    },
+    "desenvolvedor": {
+      "label": {
+        "x": 216,
+        "y": 312
+      },
+      "poly": [
+        [
+          264,
+          234
+        ],
+        [
+          392,
+          298
+        ],
+        [
+          280,
+          354
+        ],
+        [
+          152,
+          290
+        ]
+      ],
+      "seat": {
+        "x": 266,
+        "y": 291,
+        "flip": false
+      },
+      "object": {
+        "image": "obj_desenvolvedor.png",
+        "data": "obj_desenvolvedor.json",
+        "x": 288,
+        "y": 259,
+        "w": 15,
+        "h": 21
+      },
+      "door": "n_desenvolvedor"
+    },
+    "designer": {
+      "label": {
+        "x": 344,
+        "y": 376
+      },
+      "poly": [
+        [
+          392,
+          298
+        ],
+        [
+          520,
+          362
+        ],
+        [
+          408,
+          418
+        ],
+        [
+          280,
+          354
+        ]
+      ],
+      "seat": {
+        "x": 390,
+        "y": 355,
+        "flip": false
+      },
+      "object": {
+        "image": "obj_designer.png",
+        "data": "obj_designer.json",
+        "x": 477,
+        "y": 299,
+        "w": 20,
+        "h": 35
+      },
+      "door": "n_designer"
+    },
+    "revisor": {
+      "label": {
+        "x": 472,
+        "y": 440
+      },
+      "poly": [
+        [
+          520,
+          362
+        ],
+        [
+          648,
+          426
+        ],
+        [
+          536,
+          482
+        ],
+        [
+          408,
+          418
+        ]
+      ],
+      "seat": {
+        "x": 518,
+        "y": 419,
+        "flip": false
+      },
+      "object": {
+        "image": "obj_revisor.png",
+        "data": "obj_revisor.json",
+        "x": 540,
+        "y": 387,
+        "w": 15,
+        "h": 21
+      },
+      "door": "n_revisor"
+    },
+    "copa": {
+      "label": {
+        "x": 808,
+        "y": 406
+      },
+      "poly": [
+        [
+          856,
+          322
+        ],
+        [
+          984,
+          386
+        ],
+        [
+          872,
+          442
+        ],
+        [
+          744,
+          378
+        ]
+      ],
+      "seat": {
+        "x": 846,
+        "y": 383,
+        "flip": false
+      },
+      "object": {
+        "image": "obj_copa.png",
+        "data": "obj_copa.json",
+        "x": 913,
+        "y": 324,
+        "w": 26,
+        "h": 32
+      },
+      "door": "n_copa"
+    },
+    "lounge": {
+      "label": {
+        "x": 600,
+        "y": 504
+      },
+      "poly": [
+        [
+          648,
+          426
+        ],
+        [
+          776,
+          490
+        ],
+        [
+          664,
+          546
+        ],
+        [
+          536,
+          482
+        ]
+      ],
+      "seat": {
+        "x": 632,
+        "y": 454,
+        "flip": false
+      },
+      "object": {
+        "image": "obj_lounge.png",
+        "data": "obj_lounge.json",
+        "x": 705,
+        "y": 414,
+        "w": 36,
+        "h": 40
+      },
+      "door": "n_lounge"
+    }
+  },
+  "lounge": {
+    "sofa": [
+      {
+        "x": 632,
+        "y": 454,
+        "flip": false
+      },
+      {
+        "x": 616,
+        "y": 462,
+        "flip": false
+      },
+      {
+        "x": 600,
+        "y": 470,
+        "flip": false
+      },
+      {
+        "x": 584,
+        "y": 478,
+        "flip": false
+      }
+    ],
+    "visitors": [
+      {
+        "x": 712,
+        "y": 488,
+        "flip": true
+      },
+      {
+        "x": 706,
+        "y": 507,
+        "flip": true
+      },
+      {
+        "x": 676,
+        "y": 496,
+        "flip": true
+      }
+    ]
+  },
+  "paths": {
+    "nodes": {
+      "n_orquestrador": {
+        "x": 278,
+        "y": 139
+      },
+      "c_40": {
+        "x": 250,
+        "y": 153
+      },
+      "n_roteirista": {
+        "x": 406,
+        "y": 203
+      },
+      "c_168": {
+        "x": 378,
+        "y": 217
+      },
+      "n_editor-video": {
+        "x": 534,
+        "y": 267
+      },
+      "c_296": {
+        "x": 506,
+        "y": 281
+      },
+      "n_animador": {
+        "x": 662,
+        "y": 331
+      },
+      "c_424": {
+        "x": 634,
+        "y": 345
+      },
+      "n_copa": {
+        "x": 790,
+        "y": 395
+      },
+      "c_552": {
+        "x": 762,
+        "y": 409
+      },
+      "n_programador": {
+        "x": 152,
+        "y": 186
+      },
+      "c_24": {
+        "x": 234,
+        "y": 145
+      },
+      "n_desenvolvedor": {
+        "x": 280,
+        "y": 250
+      },
+      "c_152": {
+        "x": 362,
+        "y": 209
+      },
+      "n_designer": {
+        "x": 408,
+        "y": 314
+      },
+      "c_280": {
+        "x": 490,
+        "y": 273
+      },
+      "n_revisor": {
+        "x": 536,
+        "y": 378
+      },
+      "c_408": {
+        "x": 618,
+        "y": 337
+      },
+      "n_lounge": {
+        "x": 672,
+        "y": 446
+      },
+      "c_544": {
+        "x": 754,
+        "y": 405
+      },
+      "n_elevador": {
+        "x": 216,
+        "y": 136
+      }
+    },
+    "edges": [
+      [
+        "n_orquestrador",
+        "c_40"
+      ],
+      [
+        "n_roteirista",
+        "c_168"
+      ],
+      [
+        "n_editor-video",
+        "c_296"
+      ],
+      [
+        "n_animador",
+        "c_424"
+      ],
+      [
+        "n_copa",
+        "c_552"
+      ],
+      [
+        "n_programador",
+        "c_24"
+      ],
+      [
+        "n_desenvolvedor",
+        "c_152"
+      ],
+      [
+        "n_designer",
+        "c_280"
+      ],
+      [
+        "n_revisor",
+        "c_408"
+      ],
+      [
+        "n_lounge",
+        "c_544"
+      ],
+      [
+        "n_elevador",
+        "c_24"
+      ],
+      [
+        "c_24",
+        "c_40"
+      ],
+      [
+        "c_40",
+        "c_152"
+      ],
+      [
+        "c_152",
+        "c_168"
+      ],
+      [
+        "c_168",
+        "c_280"
+      ],
+      [
+        "c_280",
+        "c_296"
+      ],
+      [
+        "c_296",
+        "c_408"
+      ],
+      [
+        "c_408",
+        "c_424"
+      ],
+      [
+        "c_424",
+        "c_544"
+      ],
+      [
+        "c_544",
+        "c_552"
+      ]
+    ]
+  },
+  "notes": "Coordenadas em pixels do mapa. seat/sofa/visitors = ponto do personagem (anchor do quadro 32x48 = {16,46}); sentado, é o centro da cadeira. object.x/y = canto superior esquerdo do quadro do objeto (já no lugar certo no mapa). map_fg já tem um furo onde cada objeto aparece. fx.anchors = centro do quadro do efeito relativo ao ponto do personagem (espelhe o x quando flip). obj_* e fx_* são loops; base_done/base_error também podem tocar em loop pela duração do estado."
 }

@@ -1,672 +1,672 @@
-// Personagens 16x32 (vista 3/4), sentados em cadeira atrás da mesa.
-// Camadas separadas: cadeira -> corpo (pernas, tronco, braços) -> cabeça (cabelo + rosto + acessório) -> objeto da função.
-// A mesa NÃO faz parte do sprite: ela está no fundo da sala, com o tampo nas linhas 23..26 do sprite
-// (seat.y-9 .. seat.y-6) e a borda na linha 27; por baixo dela aparecem as canelas e os sapatos.
+// Personagens chibi 32x48 (v2, isométrico). Âncora = ponto do chão sob o corpo: (16, 46).
+// Sentado: o ponto é o centro da cadeira; a mesa (camada fg do mapa) começa 8 unidades à frente
+// (sudeste) com tampo a 20 px, então o tampo esconde a barriga e as pernas e as mãos ficam logo acima
+// da borda de trás (linha y ≈ 32 + (x-24)·(-1/2) no quadro).
+// Cada quadro é montado em partes (braço de trás, pernas, tronco, cabeça, braço da frente, adereços),
+// cada parte com contorno escuro próprio de 1 px.
 import { Canvas } from './draw.js';
+import { Layer } from './iso.js';
 
-export const CW = 16, CH = 32;
-const HX = 3;            // x da cabeça (10 px de largura)
-const SEAT_HEAD_Y = 6;   // cabeça sentada: linhas 6..15
-const STAND_HEAD_Y = 3;  // cabeça em pé: linhas 3..12
+export const CW = 32, CH = 48, ANCHOR = { x: 16, y: 46 };
 
-// ---------------------------------------------------------------- visuais por cargo
+// ---------------------------------------------------------------- aparência por cargo
 const SKINS = {
-  light: { s: 'skin', S: 'skinMid', m: 'skinDark' },
-  mid: { s: 'skinMid', S: 'skinDark', m: 'wood' },
-  dark: { s: 'skinDark', S: 'wood', m: 'woodDark' },
+  light: ['skin', 'skinMid'], mid: ['skinMid', 'skinDark'], dark: ['skinDark', 'skinDeep'], deep: ['skinDeep', 'woodDark'],
 };
 const HAIRS = {
-  black: { h: 'ink', H: 'outline' },
-  darkBrown: { h: 'woodDark', H: 'outline' },
-  brown: { h: 'wood', H: 'woodDark' },
-  ginger: { h: 'ginger', H: 'wood' },
-  blonde: { h: 'blonde', H: 'tan' },
-  gray: { h: 'light', H: 'silver' },
-  plum: { h: 'purpleDark', H: 'ink' },
+  black: ['ink', 'outline', 'shadow'], darkBrown: ['woodDark', 'outline', 'wood'], brown: ['wood', 'woodDark', 'woodLight'],
+  ginger: ['ginger', 'brownDark', 'orange'], blonde: ['blonde', 'tan', 'lamp'], gray: ['light', 'silver', 'snow'],
+  plum: ['purpleDark', 'ink', 'purple'], teal: ['tealDark', 'ink', 'teal'],
 };
 
 export const LOOKS = {
-  orquestrador: { skin: 'light', hair: 'darkBrown', style: 'short', cloth: ['slate', 'navy'], a: 'white', t: 'orange', pants: 'navy', shoes: 'woodDark', chair: ['orangeDark', 'orange'], acc: null },
-  roteirista: { skin: 'light', hair: 'ginger', style: 'long', cloth: ['yellow', 'yellowDark'], a: 'cream', t: 'yellowDark', pants: 'wood', shoes: 'woodDark', chair: ['yellowDark', 'yellow'], acc: null },
-  'editor-video': { skin: 'mid', hair: 'black', style: 'short', cloth: ['purple', 'purpleDark'], a: 'neon', t: 'purpleDark', pants: 'ink', shoes: 'shadow', chair: ['purpleDark', 'purple'], acc: 'headphones', accColors: ['ink', 'neon'] },
-  animador: { skin: 'light', hair: 'blonde', style: 'bun', cloth: ['cyan', 'cyanDark'], a: 'white', t: 'cyan', pants: 'slate', shoes: 'woodDark', chair: ['cyanDark', 'cyan'], acc: null },
-  programador: { skin: 'dark', hair: 'black', style: 'short', cloth: ['green', 'greenDark'], a: 'greenLight', t: 'greenDark', pants: 'navy', shoes: 'shadow', chair: ['greenDark', 'green'], acc: 'beanie', accColors: ['gray', 'shadow'] },
-  desenvolvedor: { skin: 'mid', hair: 'brown', style: 'short', cloth: ['blue', 'blueDark'], a: 'white', t: 'blueDark', pants: 'slate', shoes: 'white', chair: ['blueDark', 'blue'], acc: 'cap', accColors: ['orange', 'orangeDark'] },
-  designer: { skin: 'dark', hair: 'plum', style: 'bob', cloth: ['pink', 'pinkDark'], a: 'pinkLight', t: 'pinkDark', pants: 'ink', shoes: 'pinkDark', chair: ['pinkDark', 'pink'], acc: 'beret', accColors: ['yellow', 'yellowDark'] },
-  revisor: { skin: 'light', hair: 'gray', style: 'bald', cloth: ['red', 'redDark'], a: 'white', t: 'redDark', pants: 'shadow', shoes: 'woodDark', chair: ['redDark', 'red'], acc: 'glasses', accColors: ['outline', 'cyanLight'] },
-  visitante: { skin: 'mid', hair: 'brown', style: 'short', cloth: ['silver', 'gray'], a: 'white', t: 'teal', pants: 'slate', shoes: 'woodDark', chair: ['shadow', 'gray'], acc: 'badge' },
+  orquestrador: { skin: 'light', hair: 'darkBrown', style: 'neat', top: ['navy', 'ink'], kind: 'blazer', shirt: 'white', tie: 'orange', pants: 'slate', shoes: 'woodDark' },
+  roteirista: { skin: 'light', hair: 'ginger', style: 'long', top: ['yellow', 'yellowDark'], kind: 'cardigan', shirt: 'cream', pants: 'wood', shoes: 'woodDark', acc: 'pencil' },
+  'editor-video': { skin: 'mid', hair: 'black', style: 'messy', top: ['purple', 'purpleDark'], kind: 'hoodie', shirt: 'neon', pants: 'ink', shoes: 'snow', acc: 'headphones' },
+  animador: { skin: 'light', hair: 'blonde', style: 'bun', top: ['cyan', 'cyanDark'], kind: 'apron', shirt: 'white', pants: 'slate', shoes: 'red' },
+  programador: { skin: 'dark', hair: 'black', style: 'short', top: ['green', 'greenDark'], kind: 'hoodie', shirt: 'greenLight', pants: 'navy', shoes: 'shadow', acc: 'beanie', beard: true },
+  desenvolvedor: { skin: 'mid', hair: 'brown', style: 'short', top: ['blue', 'blueDark'], kind: 'jacket', shirt: 'white', pants: 'slate', shoes: 'snow', acc: 'cap' },
+  designer: { skin: 'deep', hair: 'plum', style: 'bob', top: ['pink', 'pinkDark'], kind: 'tee', shirt: 'pinkLight', pants: 'ink', shoes: 'lamp', acc: 'beret', earring: true },
+  revisor: { skin: 'light', hair: 'gray', style: 'bald', top: ['red', 'redDark'], kind: 'vest', shirt: 'white', tie: 'redDark', pants: 'shadow', shoes: 'woodDark', acc: 'glasses', mustache: true },
+  visitante: { skin: 'dark', hair: 'black', style: 'curly', top: ['teal', 'tealDark'], kind: 'jacket', shirt: 'cream', pants: 'steel', shoes: 'woodDark', acc: 'badge' },
 };
 
-function colorMap(look) {
-  const sk = SKINS[look.skin], hr = HAIRS[look.hair];
-  const [ac1, ac2] = look.accColors || ['ink', 'gray'];
-  return {
-    o: 'outline', e: 'outline', w: 'white', g: 'gray', G: 'silver', d: 'shadow', r: 'red', R: 'redDark', y: 'lamp',
-    s: sk.s, S: sk.S, m: sk.m, h: hr.h, H: hr.H,
-    c: look.cloth[0], C: look.cloth[1], a: look.a, t: look.t,
-    p: look.pants, P: 'outline', k: look.shoes,
-    x: look.chair[0], X: look.chair[1],
-    q: ac1, A: ac1, B: ac2,
-  };
-}
-
-// ---------------------------------------------------------------- cabeças (10 px de largura)
-const HEAD_FRONT = {
-  short: [
-    '..oooooo..',
-    '.ohhhhhho.',
-    'ohhhhhhhHo',
-    'ohhhhhhhHo',
-    'ohhssssshо'.replace('о', 'o'),
-    'ossessesso',
-    'ossessesso',
-    'oSssssssSo',
-    '.oSsmmsSo.',
-    '..oooooo..',
-  ],
-  long: [
-    '..oooooo..',
-    '.ohhhhhho.',
-    'ohhhhhhhho',
-    'ohhhhhhhHo',
-    'ohhsssshHo',
-    'ohsessesHo',
-    'ohsessesHo',
-    'ohSssssSHo',
-    'ohoSmmSoHo',
-    'ohhoooohHo',
-    'ohho..ohHo',
-    'ohho..ohHo',
-    '.oo....oo.',
-  ],
-  bob: [
-    '..oooooo..',
-    '.ohhhhhho.',
-    'ohhhhhhhho',
-    'ohhhhhhhHo',
-    'ohhhhhhhHo',
-    'ohsessesHo',
-    'ohsessesHo',
-    'ohSssssSHo',
-    'ohoSmmSoHo',
-    'ohhoooohHo',
-    '.oo....oo.',
-  ],
-  bun: [
-    '..oooooo..',
-    '.ohhhhhho.',
-    'ohhhhhhhHo',
-    'ohhhhhhhHo',
-    'ohssssshHo',
-    'ossessesso',
-    'ossessesso',
-    'oSssssssSo',
-    '.oSsmmsSo.',
-    '..oooooo..',
-  ],
-  bald: [
-    '..oooooo..',
-    '.osssssso.',
-    'osssssssSo',
-    'ohssssssHo',
-    'ohssssssHo',
-    'ohsessesHo',
-    'ohsessesHo',
-    'oSssssssSo',
-    '.oSsmmsSo.',
-    '..oooooo..',
-  ],
-};
-const BUN_TOP = { rows: ['...oooo...', '..ohhhHo..', '..ohhhHo..'], ox: 0, oy: -3 };
-
-const HEAD_BACK = {
-  short: ['..oooooo..', '.ohhhhhho.', 'ohhhhhhhHo', 'ohhhhhhhHo', 'ohhhhhhhHo', 'ohhhhhhhHo', 'ohhhhhhhHo', 'oShhhhhHSo', '.oShhhHSo.', '..oooooo..'],
-  long: ['..oooooo..', '.ohhhhhho.', 'ohhhhhhhHo', 'ohhhhhhhHo', 'ohhhhhhhHo', 'ohhhhhhhHo', 'ohhhhhhhHo', 'ohhhhhhhHo', 'ohhhhhhhHo', 'ohhhhhhhHo', 'ohhhhhhhHo', '.ohhhhhHo.', '..oooooo..'],
-  bob: ['..oooooo..', '.ohhhhhho.', 'ohhhhhhhHo', 'ohhhhhhhHo', 'ohhhhhhhHo', 'ohhhhhhhHo', 'ohhhhhhhHo', 'ohhhhhhhHo', 'ohhhhhhhHo', 'ohHHHHHHHo', '.oooooooo.'],
-  bun: ['..oooooo..', '.ohhhhhho.', 'ohhhhhhhHo', 'ohhhhhhhHo', 'ohhhhhhhHo', 'ohhhhhhhHo', 'ohhhhhhhHo', 'oShhhhhHSo', '.oShhhHSo.', '..oooooo..'],
-  bald: ['..oooooo..', '.osssssso.', 'osssssssSo', 'osssssssSo', 'ohhhhhhhHo', 'ohhhhhhhHo', 'ohhhhhhhHo', 'oShhhhhHSo', '.oSSSSSSo.', '..oooooo..'],
-};
-
-// perfil olhando para a esquerda (direita = espelho)
-const HEAD_SIDE = {
-  short: ['..oooooo..', '.ohhhhhho.', 'ohhhhhhhHo', 'ohhhhhhhHo', 'osshhhhhHo', 'oessShhhHo', 'oessSShhHo', 'osssssshHo', '.omssssHo.', '..ooooo...'],
-  long: ['..oooooo..', '.ohhhhhho.', 'ohhhhhhhHo', 'ohhhhhhhHo', 'osshhhhhHo', 'oessShhhHo', 'oessShhhHo', 'osssshhhHo', '.omsshhhHo', '..oohhhhHo', '...ohhhhHo', '...ohhhHo.', '....oooo..'],
-  bob: ['..oooooo..', '.ohhhhhho.', 'ohhhhhhhHo', 'ohhhhhhhHo', 'osshhhhhHo', 'oessShhhHo', 'oessShhhHo', 'osssshhhHo', '.omsshhhHo', '..oohhhHo.', '....oooo..'],
-  bun: ['..oooooo..', '.ohhhhhho.', 'ohhhhhhhHo', 'ohhhhhhhHo', 'osshhhhhHo', 'oessShhhHo', 'oessSShhHo', 'osssssshHo', '.omssssHo.', '..ooooo...'],
-  bald: ['..oooooo..', '.osssssso.', 'osssssssSo', 'osssssssSo', 'ossshhhhHo', 'oessShhhHo', 'oessSShhHo', 'osssssshHo', '.omssssHo.', '..ooooo...'],
-};
-const BUN_SIDE = { rows: ['......ooo.', '.....ohhHo', '.....ohhHo', '......ooo.'], ox: 1, oy: -1 };
-
-// acessórios por vista: { rows, ox, oy } relativos à origem da cabeça
-const ACC = {
-  headphones: {
-    front: { ox: -1, oy: -1, rows: ['...oooooo...', '..oqqqqqqo..', '.oqo....oqo.', 'oqo......oqo', 'oBBo....oBBo', 'oBBo....oBBo', 'oBBo....oBBo', '.oo......oo.'] },
-    back: { ox: -1, oy: -1, rows: ['...oooooo...', '..oqqqqqqo..', '.oqo....oqo.', 'oqo......oqo', 'oBBo....oBBo', 'oBBo....oBBo', 'oBBo....oBBo', '.oo......oo.'] },
-    side: { ox: 0, oy: -1, rows: ['...oooooo.', '..oqqqqqqo', '...o..oqo.', '......oqo.', '.....oBBo.', '.....oBBo.', '.....oBBo.', '......oo..'] },
-  },
-  beanie: {
-    front: { ox: 0, oy: -3, rows: ['....oo....', '...oAAo...', '.ooooooo o'.replace(' ', 'o'), 'oAAAAAAAAo', 'oBABABABAo', 'oooooooooo'] },
-    back: { ox: 0, oy: -3, rows: ['....oo....', '...oAAo...', '.oooooooo.', 'oAAAAAAAAo', 'oBABABABAo', 'oooooooooo'] },
-    side: { ox: 0, oy: -3, rows: ['.....oo...', '....oAAo..', '.oooooooo.', 'oAAAAAAAAo', 'oBABABABAo', 'oooooooooo'] },
-  },
-  cap: {
-    front: { ox: 0, oy: -1, rows: ['..oooooo..', '.oAAAAAAo.', 'oAAAAAAAAo', 'oBBBBBBBBo', 'oooooooooo'] },
-    back: { ox: 0, oy: -1, rows: ['..oooooo..', '.oAAAAAAo.', 'oAAAAAAAAo', 'oBBBBBBBBo', 'oooBBBBooo', '...oooo...'] },
-    side: { ox: 0, oy: -1, rows: ['..oooooo...', '.oAAAAAAo..', 'oAAAAAAAAo.', 'oBBBBBBBBBo', 'ooooooooBBo', '........oo.'] },
-  },
-  beret: {
-    front: { ox: -1, oy: -3, rows: ['......o.....', '..ooooAoo...', '.oAAAAAAAAo.', 'oAAAAAAAAAAo', '.oBBBBBBBBo.', '..oooooooo..'] },
-    back: { ox: -1, oy: -3, rows: ['......o.....', '..ooooAoo...', '.oAAAAAAAAo.', 'oAAAAAAAAAAo', '.oBBBBBBBBo.', '..oooooooo..'] },
-    side: { ox: -1, oy: -3, rows: ['.....o......', '..ooooAoo...', '.oAAAAAAAAo.', 'oAAAAAAAAAAo', '.oBBBBBBBBo.', '..oooooooo..'] },
-  },
-  glasses: {
-    front: { ox: 0, oy: 5, rows: ['.oBeBBeBo.', '..oooooo..'] },
-    back: null,
-    side: { ox: 0, oy: 5, rows: ['oooo......', '.Bo.......'] },
-  },
-  badge: null,
-};
-
-// rostos (sobre a cabeça de frente): limpa olhos (linhas 5-6, col 2..7) e boca (linha 8, col 3..6)
-const FACES = {
-  open: { eyes: [[3, 5], [3, 6], [6, 5], [6, 6]], mouth: [[4, 8], [5, 8]], mouthColor: 'm' },
-  blink: { eyes: [[2, 6], [3, 6], [6, 6], [7, 6]], mouth: [[4, 8], [5, 8]], mouthColor: 'm' },
-  down: { eyes: [[3, 6], [6, 6]], mouth: [[4, 8], [5, 8]], mouthColor: 'm' },
-  right: { eyes: [[4, 5], [4, 6], [7, 5], [7, 6]], mouth: [[5, 8]], mouthColor: 'm' },
-  up: { eyes: [[3, 5], [6, 5]], mouth: [[4, 8], [5, 8]], mouthColor: 'm' },
-  closed: { eyes: [[2, 6], [3, 6], [6, 6], [7, 6]], mouth: [[4, 8], [5, 8]], mouthColor: 'm' },
-  snore: { eyes: [[2, 6], [3, 6], [6, 6], [7, 6]], mouth: [[4, 8], [5, 8]], mouthColor: 'o' },
-  happy: { eyes: [[2, 6], [3, 5], [4, 6], [5, 6], [6, 5], [7, 6]], mouth: [[3, 8], [4, 8], [5, 8], [6, 8]], mouthColor: 'o' },
-  worried: { eyes: [[3, 5], [3, 6], [6, 5], [6, 6], [2, 4], [7, 4]], mouth: [[4, 8]], mouthColor: 'o' },
-  focus: { eyes: [[3, 6], [6, 6], [2, 5], [3, 5], [6, 5], [7, 5]], mouth: [[4, 8], [5, 8]], mouthColor: 'm' },
-};
-
-function drawHead(c, look, M, x, y, view = 'front', face = 'open') {
-  const st = look.style;
-  if (view === 'front') {
-    if (st === 'bun') c.tpl(BUN_TOP.rows, M, x + BUN_TOP.ox, y + BUN_TOP.oy);
-    c.tpl(HEAD_FRONT[st], M, x, y);
-    const f = FACES[face];
-    // limpa a zona do rosto e desenha olhos/boca
-    for (let yy = 5; yy <= 6; yy++) for (let xx = 2; xx <= 7; xx++) c.px(x + xx, y + yy, M.s);
-    for (let xx = 3; xx <= 6; xx++) c.px(x + xx, y + 8, M.s);
-    if (st === 'short' || st === 'bun') { c.px(x + 3, y + 8, M.S); c.px(x + 6, y + 8, M.S); }
-    for (const [ex, ey] of f.eyes) c.px(x + ex, y + ey, ey === 4 ? M.H : M.e);
-    for (const [mx, my] of f.mouth) c.px(x + mx, y + my, M[f.mouthColor]);
-  } else if (view === 'back') {
-    if (st === 'bun') c.tpl(BUN_TOP.rows, M, x + BUN_TOP.ox, y + BUN_TOP.oy);
-    c.tpl(HEAD_BACK[st], M, x, y);
-  } else {
-    if (st === 'bun') c.tpl(BUN_SIDE.rows, M, x + BUN_SIDE.ox, y + BUN_SIDE.oy);
-    c.tpl(HEAD_SIDE[st], M, x, y);
+// ---------------------------------------------------------------- utilitários
+function thick(L, x0, y0, x1, y1, w, col) {
+  const n = Math.max(Math.abs(x1 - x0), Math.abs(y1 - y0), 1);
+  for (let s = 0; s <= n; s++) {
+    const x = Math.round(x0 + ((x1 - x0) * s) / n), y = Math.round(y0 + ((y1 - y0) * s) / n);
+    const a = -Math.floor((w - 1) / 2), b = Math.ceil((w - 1) / 2);
+    for (let dy = a; dy <= b; dy++) for (let dx = a; dx <= b; dx++) L.px(x + dx, y + dy, col);
   }
-  const acc = look.acc && ACC[look.acc] && ACC[look.acc][view];
-  if (acc) c.tpl(acc.rows, M, x + acc.ox, y + acc.oy);
 }
+function disc(L, cx, cy, r, col) { for (let y = -r; y <= r; y++) for (let x = -r; x <= r; x++) if (x * x + y * y <= r * r + r * 0.6) L.px(cx + x, cy + y, col); }
+function rows(L, list, col) { for (const [y, x0, x1] of list) for (let x = x0; x <= x1; x++) L.px(x, y, col); }
 
-// ---------------------------------------------------------------- tronco / braços
-const TORSO_SEATED = [
-  '....occaacco....',
-  '...occcaaccco...',
-  '..occccttcccco..',
-  '..oCcCcttcCcCo..',
-  '..oCcCcttcCcCo..',
-  '..oCcCcttcCcCo..',
-  '..oCcCCCCCCcCo..',
-]; // linhas 16..22
-const TORSO_NOARMS = [
-  '....occaacco....',
-  '...occcaaccco...',
-  '...occcttccco...',
-  '...oCccttccCo...',
-  '...oCccttccCo...',
-  '...oCccttccCo...',
-  '...oCCCCCCCCo...',
+// ---------------------------------------------------------------- cabeça (20x19, 3/4 virada para a direita)
+const SKULL = [
+  '......########......',
+  '....############....',
+  '...##############...',
+  '..################..',
+  '.##################.',
+  '.##################.',
+  '####################',
+  '####################',
+  '####################',
+  '####################',
+  '####################',
+  '####################',
+  '.##################.',
+  '.##################.',
+  '..################..',
+  '...##############...',
+  '....#############...',
+  '......#########.....',
 ];
+const inSkull = (x, y) => y >= 0 && y < SKULL.length && x >= 0 && x < 20 && SKULL[y][x] === '#';
 
-function hand(c, M, x, y) {
-  c.px(x, y, M.s); c.px(x + 1, y, M.s);
-  c.px(x - 1, y, M.o); c.px(x + 2, y, M.o); c.px(x, y + 1, M.o); c.px(x + 1, y + 1, M.o);
+/** Região de cabelo por estilo (coordenadas locais da cabeça; pode sair do crânio). Retorna 0 (nada), 1 (cabelo), 2 (sombra). */
+function hairAt(style, x, y, back) {
+  const skull = inSkull(x, y);
+  // volume: 1 px acima do crânio
+  const above = !skull && inSkull(x, y + 1) && y < 8;
+  if (back) {
+    // vista de costas: cabelo cobre quase tudo
+    if (style === 'bald') return (skull && y >= 6 && y < 14) ? 1 : 0;
+    if (style === 'long') { if (skull || above) return 1; if (y >= 12 && y < 22 && x >= 1 && x <= 18) return y > 19 || (x + y) % 7 === 0 ? 2 : 1; return 0; }
+    if (style === 'bob') { if (skull || above) return 1; if (y >= 12 && y < 19 && x >= 0 && x <= 19) return 1; return 0; }
+    if (style === 'curly') { if (skull || above || (y >= -2 && y < 15 && Math.hypot(x - 9.5, y - 7) < 11.5)) return 1; return 0; }
+    if (skull) return y < 15 ? 1 : 0;
+    return above ? 1 : 0;
+  }
+  switch (style) {
+    case 'neat': // risca do lado, franja caída para a direita
+      if (above) return 1;
+      if (!skull) return 0;
+      if (x <= 4 && y <= 12) return 1;
+      if (y <= 3) return 1;
+      if (y === 4 && x <= 15) return 1;
+      if (y === 5 && x <= 10) return 1;
+      if (y === 6 && x <= 7) return 1;
+      if (y <= 8 && x <= 5) return 1;
+      if (y === 4 && x >= 18) return 1;
+      if (y >= 4 && y <= 7 && x === 19) return 1;
+      return 0;
+    case 'short':
+      if (above) return 1;
+      if (!skull) return 0;
+      if (y <= 4) return 1;
+      if (y === 5 && (x <= 6 || x % 3 !== 1)) return 1;
+      if (x <= 4 && y <= 11) return 1;
+      if (x >= 18 && y <= 7) return 1;
+      return 0;
+    case 'messy': { // espetado
+      const spikes = [[3, -2], [6, -3], [9, -2], [12, -3], [15, -2], [1, 0], [18, 1]];
+      for (const [sx, sy] of spikes) if (y >= sy && y < sy + 3 && Math.abs(x - sx) <= (y - sy)) return 1;
+      if (above) return 1;
+      if (!skull) return 0;
+      if (y <= 4) return 1;
+      if (y === 5 && x % 4 !== 2) return 1;
+      if (y === 6 && x % 4 === 0) return 1;
+      if (x <= 4 && y <= 12) return 1;
+      if (x >= 18 && y <= 8) return 1;
+      return 0;
+    }
+    case 'long': // ondulado até os ombros, franja aberta
+      if (above) return 1;
+      if (skull) {
+        if (y <= 4) return 1;
+        if (y === 5 && (x <= 9 || x >= 15)) return 1;
+        if (y >= 6 && (x <= 5 || x >= 18)) return 1;
+        return 0;
+      }
+      if (y >= 9 && y <= 25) {
+        if (x >= -1 && x <= 5) return y >= 23 && (x + y) % 3 === 0 ? 0 : (x <= 0 ? 2 : 1);
+        if (x >= 18 && x <= 20 && y <= 20) return 1;
+      }
+      if (y >= 6 && y < 9 && (x === -1 || x === 20)) return 1;
+      return 0;
+    case 'bun':
+      if (y >= -5 && y <= -1 && Math.hypot(x - 7, y + 3) <= 3.2) return y <= -4 ? 1 : 1;
+      if (above) return 1;
+      if (!skull) return 0;
+      if (y <= 4) return 1;
+      if (y === 5 && (x <= 11 || x >= 17)) return 1;
+      if (x <= 4 && y <= 11) return 1;
+      if (x >= 18 && y <= 10) return 1;
+      return 0;
+    case 'bob': // chanel, franja reta
+      if (above) return 1;
+      if (skull) {
+        if (y <= 6) return 1;
+        if (x <= 5 || x >= 18) return 1;
+        return 0;
+      }
+      if (y >= 6 && y <= 18 && x >= -1 && x <= 20 && (x <= 1 || x >= 18)) return y === 18 ? 2 : 1;
+      return 0;
+    case 'curly': // black power/cachos volumosos
+      if (!skull && y < 15 && Math.hypot(x - 9.5, y - 6) < 11.5 && !(x > 15 && y > 8)) return (x + y) % 5 === 0 ? 2 : 1;
+      if (!skull) return 0;
+      if (y <= 5) return 1;
+      if (y === 6 && x % 3 !== 0) return 1;
+      if (x <= 4 && y <= 12) return 1;
+      return 0;
+    case 'bald': // careca em cima, cabelo nos lados
+      if (!skull) return 0;
+      if (x <= 4 && y >= 5 && y <= 12) return 1;
+      if (x >= 18 && y >= 6 && y <= 9) return 1;
+      return 0;
+    default: return 0;
+  }
 }
-/** antebraço curto (manga) ligando o ombro à mão na mesa */
-function forearm(c, M, x, y) { c.px(x, y, M.c); c.px(x + 1, y, M.C); }
 
-function badge(c, look, M, y0) {
-  if (look.acc !== 'badge') return;
-  c.px(7, y0 + 2, M.t); c.px(8, y0 + 2, M.t); c.rect(7, y0 + 3, 2, 2, 'white'); c.px(8, y0 + 4, 'teal');
-}
-
-// ---------------------------------------------------------------- camadas: cadeira e pernas
-function chairBack(c, M, top = 14) {
-  c.rect(1, top, 14, 23 - top, M.x);
-  c.hline(2, 13, top, M.o); c.vline(1, top + 1, 22, M.o); c.vline(14, top + 1, 22, M.o);
-  c.hline(2, 13, top + 1, M.X); c.vline(2, top + 2, 22, M.X);
-}
-function chairBase(c, M) {
-  c.px(3, 30, M.x); c.px(12, 30, M.x);
-  c.hline(2, 3, 31, M.o); c.hline(12, 13, 31, M.o);
-}
-function seatedLegs(c, M, { tapRight = 0, tapLeft = 0 } = {}) {
-  const leg = (x, lift) => {
-    c.vline(x - 1, 28, 29 - lift, M.o); c.vline(x + 2, 28, 29 - lift, M.o);
-    c.rect(x, 28, 2, 2 - lift, M.p);
-    c.rect(x - 1, 30 - lift, 4, 1, M.k);
-    c.hline(x - 1, x + 2, 31 - lift, M.o);
-    c.px(x - 2, 30 - lift, M.o);
-  };
-  leg(5, tapLeft);
-  leg(9, tapRight);
-}
-
-// ---------------------------------------------------------------- pose sentada genérica
 /**
- * opts: headDy, headDx, face, arms ('rest'|'type'|'none'|'up'|'mid'|'lap'), handsL/handsR override [x,y],
- *       tapRight, bodyDy, view
+ * Desenha a cabeça em (ox, oy). face: { eyes, mouth, look } ; back = vista de costas.
  */
-function seated(look, opts = {}) {
-  const M = colorMap(look);
-  const c = new Canvas(CW, CH);
-  const bodyDy = opts.bodyDy || 0;
-  chairBack(c, M);
-  chairBase(c, M);
-  seatedLegs(c, M, opts);
-  const arms = opts.arms || 'rest';
-  c.tpl(arms === 'up' || arms === 'mid' ? TORSO_NOARMS : TORSO_SEATED, M, 0, 16 + bodyDy);
-  badge(c, look, M, 16 + bodyDy);
-  // cabeça
-  drawHead(c, look, M, HX + (opts.headDx || 0), SEAT_HEAD_Y + bodyDy + (opts.headDy || 0), opts.view || 'front', opts.face || 'open');
-  // braços / mãos
-  const L = opts.handsL, R = opts.handsR;
-  if (arms === 'rest') { hand(c, M, L ? L[0] : 3, L ? L[1] : 23); hand(c, M, R ? R[0] : 11, R ? R[1] : 23); }
-  if (arms === 'type') {
-    const ly = L ? L[1] : 23, ry = R ? R[1] : 23, lx = L ? L[0] : 5, rx = R ? R[0] : 9;
-    forearm(c, M, 4, 22); forearm(c, M, 10, 22);
-    hand(c, M, lx, ly); hand(c, M, rx, ry);
+function drawHead(L, look, ox, oy, face, back = false) {
+  const [sk, skS] = SKINS[look.skin];
+  const [h, hS, hL] = HAIRS[look.hair];
+  // crânio
+  for (let y = 0; y < SKULL.length; y++) for (let x = 0; x < 20; x++) if (inSkull(x, y)) {
+    let c = sk;
+    if (!back && (x <= 1 || y >= 16 || (x <= 2 && y >= 12))) c = skS;
+    L.px(ox + x, oy + y, c);
   }
-  if (arms === 'up' || arms === 'mid') {
-    const top = arms === 'up' ? 3 : 9;
-    const by = 17 + bodyDy;
-    for (const side of [0, 1]) {
-      const ax = side ? 12 : 2;
-      for (let y = top + 2; y <= by; y++) { c.px(ax, y, M.c); c.px(ax + (side ? 1 : -1) * 0, y, M.c); c.px(ax + (side ? -1 : 1), y, M.C); c.px(ax + (side ? 1 : -1), y, M.o); }
-      c.px(ax, top + 1, M.o);
-      hand(c, M, side ? 12 : 1, top);
+  if (!back) {
+    // orelha (lado esquerdo da tela)
+    L.px(ox + 3, oy + 10, sk); L.px(ox + 4, oy + 10, skS); L.px(ox + 3, oy + 11, skS); L.px(ox + 3, oy + 9, sk);
+    if (look.earring) L.px(ox + 3, oy + 13, 'lamp');
+  }
+  // cabelo
+  for (let y = -6; y < 27; y++) for (let x = -2; x < 22; x++) {
+    const k = hairAt(look.style, x, y, back);
+    if (!k) continue;
+    let c = k === 2 ? hS : h;
+    // sombra na base e nas laterais, brilho em arco em cima à direita
+    if (k === 1) {
+      if (!back && y >= 2 && y <= 3 && x >= 11 && x <= 15 && look.style !== 'bald') c = hL;
+      if (back && y >= 1 && y <= 2 && x >= 6 && x <= 12) c = hL;
+      if (x <= 0 || (back ? y >= 15 : false)) c = hS;
+    }
+    L.px(ox + x, oy + y, c);
+  }
+  if (look.style === 'bald' && !back) { L.px(ox + 12, oy + 2, 'snow'); L.px(ox + 13, oy + 2, 'snow'); L.px(ox + 11, oy + 3, 'snow'); }
+  if (!back) drawFace(L, look, ox, oy, face);
+  drawHeadAcc(L, look, ox, oy, back);
+}
+
+function drawFace(L, look, ox, oy, { eyes = 'open', mouth = 'smile', look: lk = 0, blush = true }) {
+  const [sk, skS] = SKINS[look.skin];
+  const E = [[8, 9], [14, 9]]; // canto superior esquerdo de cada olho (2x3)
+  const P = (x, y, c) => L.px(ox + x, oy + y, c);
+  for (const [ex0, ey] of E) {
+    const ex = ex0 + lk;
+    switch (eyes) {
+      case 'open':
+        P(ex, ey, 'outline'); P(ex + 1, ey, 'snow'); P(ex, ey + 1, 'outline'); P(ex + 1, ey + 1, 'outline'); P(ex, ey + 2, 'outline'); P(ex + 1, ey + 2, 'outline');
+        break;
+      case 'wide':
+        P(ex, ey - 1, 'outline'); P(ex + 1, ey - 1, 'outline');
+        P(ex, ey, 'snow'); P(ex + 1, ey, 'outline'); P(ex, ey + 1, 'outline'); P(ex + 1, ey + 1, 'outline'); P(ex, ey + 2, 'outline'); P(ex + 1, ey + 2, 'outline');
+        break;
+      case 'down': // olhando para baixo (lendo)
+        P(ex, ey + 1, 'outline'); P(ex + 1, ey + 1, 'outline'); P(ex, ey + 2, 'outline'); P(ex + 1, ey + 2, 'outline');
+        break;
+      case 'half':
+        P(ex - 1, ey + 1, 'outline'); P(ex, ey + 1, 'outline'); P(ex + 1, ey + 1, 'outline'); P(ex, ey + 2, 'outline'); P(ex + 1, ey + 2, 'outline');
+        break;
+      case 'closed':
+        P(ex, ey + 2, 'outline'); P(ex + 1, ey + 2, 'outline'); P(ex - 1, ey + 1, skS);
+        break;
+      case 'sleep': // arquinhos para baixo
+        P(ex - 1, ey + 1, 'outline'); P(ex, ey + 2, 'outline'); P(ex + 1, ey + 2, 'outline'); P(ex + 2, ey + 1, 'outline');
+        break;
+      case 'happy': // ^ ^
+        P(ex - 1, ey + 2, 'outline'); P(ex, ey + 1, 'outline'); P(ex + 1, ey + 1, 'outline'); P(ex + 2, ey + 2, 'outline');
+        break;
+      case 'dizzy':
+        P(ex, ey, 'outline'); P(ex + 1, ey + 1, 'outline'); P(ex, ey + 2, 'outline'); P(ex + 1, ey, 'outline'); P(ex, ey + 1, 'outline'); P(ex + 1, ey + 2, 'outline');
+        break;
     }
   }
-  return { c, M };
-}
-
-// ---------------------------------------------------------------- animações base (sentado)
-export function baseIdle(look) {
-  return [
-    seated(look, { face: 'open' }).c,
-    seated(look, { face: 'blink', headDy: 1 }).c,
-  ];
-}
-
-function paper(c, x, y, w = 6, h = 5, fold = false) {
-  c.rect(x, y, w, h, 'white');
-  c.frame(x - 1, y - 1, w + 2, h + 2, 'outline');
-  for (let yy = y + 1; yy < y + h - 1; yy += 2) c.hline(x + 1, x + w - 2, yy, 'light');
-  if (fold) { c.px(x + w - 1, y, 'light'); c.px(x + w - 1, y - 1, null); c.px(x + w, y, 'outline'); }
-}
-
-export function baseRead(look) {
-  const frames = [];
-  for (let i = 0; i < 4; i++) {
-    const { c, M } = seated(look, { face: i === 2 ? 'blink' : 'down', arms: 'none', headDy: i === 1 ? 1 : 0 });
-    const py = 19 + (i === 3 ? -1 : 0);
-    paper(c, 5, py, 6, 6, i === 2);
-    if (i === 1) c.hline(6, 9, py + 3, 'gray');
-    hand(c, M, 3, py + 4); hand(c, M, 11, py + 4);
-    frames.push(c);
+  // sobrancelhas de preocupação
+  if (mouth === 'frown' || eyes === 'wide') { P(8 + lk, 7, 'outline'); P(9 + lk, 6, 'outline'); P(15 + lk, 6, 'outline'); P(16 + lk, 7, 'outline'); }
+  if (blush) { P(6, 13, 'blush'); P(7, 13, 'blush'); P(17, 13, 'blush'); }
+  const mx = 11 + lk, my = 14;
+  switch (mouth) {
+    case 'smile': P(mx - 1, my - 1, 'outline'); P(mx, my, 'outline'); P(mx + 1, my, 'outline'); P(mx + 2, my - 1, 'outline'); break;
+    case 'flat': P(mx, my, 'outline'); P(mx + 1, my, 'outline'); break;
+    case 'open': P(mx, my - 1, 'outline'); P(mx + 1, my - 1, 'outline'); P(mx - 1, my, 'outline'); P(mx, my, 'redDark'); P(mx + 1, my, 'redDark'); P(mx + 2, my, 'outline'); P(mx, my + 1, 'outline'); P(mx + 1, my + 1, 'outline'); break;
+    case 'big': P(mx - 1, my - 1, 'outline'); P(mx, my - 1, 'outline'); P(mx + 1, my - 1, 'outline'); P(mx + 2, my - 1, 'outline'); P(mx - 1, my, 'outline'); P(mx, my, 'red'); P(mx + 1, my, 'red'); P(mx + 2, my, 'outline'); P(mx, my + 1, 'outline'); P(mx + 1, my + 1, 'outline'); break;
+    case 'o': P(mx, my - 1, 'outline'); P(mx + 1, my - 1, 'outline'); P(mx, my, 'outline'); P(mx + 1, my, 'outline'); break;
+    case 'frown': P(mx - 1, my + 1, 'outline'); P(mx, my, 'outline'); P(mx + 1, my, 'outline'); P(mx + 2, my + 1, 'outline'); break;
+    case 'wavy': P(mx - 1, my, 'outline'); P(mx, my - 1, 'outline'); P(mx + 1, my, 'outline'); P(mx + 2, my - 1, 'outline'); break;
+    case 'drool': P(mx, my, 'outline'); P(mx + 1, my, 'outline'); P(mx + 1, my + 1, 'cyanLight'); break;
+    case 'tongue': P(mx - 1, my - 1, 'outline'); P(mx, my, 'outline'); P(mx + 1, my, 'pinkLight'); P(mx + 2, my - 1, 'outline'); break;
   }
-  return frames;
+  if (look.mustache) { P(mx - 1, my - 2, 'light'); P(mx, my - 2, 'silver'); P(mx + 1, my - 2, 'silver'); P(mx + 2, my - 2, 'light'); P(mx - 2, my - 1, 'light'); P(mx + 3, my - 1, 'light'); }
+  if (look.beard) { for (let x = 4; x <= 17; x++) { const y = x < 7 || x > 15 ? 15 : 16; P(x, y, 'outline'); if (x > 6 && x < 15) P(x, 17, 'ink'); } P(mx, my + 2, 'ink'); P(mx + 1, my + 2, 'ink'); }
 }
 
-export function baseDoze(look) {
-  return [
-    seated(look, { face: 'down' }).c,
-    seated(look, { face: 'closed', headDy: 1 }).c,
-    seated(look, { face: 'closed', headDy: 3 }).c,
-    seated(look, { face: 'open', headDy: -1 }).c,
-  ];
-}
-
-export function baseSleep(look) {
-  // cabeça para trás, encostada na cadeira; boca abre e fecha
-  const frames = [];
-  const seq = [['closed', 0], ['snore', 0], ['snore', 1], ['closed', 1]];
-  for (const [face, dy] of seq) {
-    const { c, M } = seated(look, { face, headDy: -2 + dy, headDx: 0, arms: 'rest', handsL: [4, 24], handsR: [10, 24] });
-    // pescoço aparente (cabeça inclinada para trás)
-    c.px(7, 14 + dy, M.S); c.px(8, 14 + dy, M.S);
-    frames.push(c);
-  }
-  return frames;
-}
-
-export function baseWait(look) {
-  return [
-    seated(look, { face: 'up', arms: 'rest' }).c,
-    seated(look, { face: 'up', arms: 'rest', tapRight: 1, handsR: [11, 22] }).c,
-  ];
-}
-
-export function baseDone(look) {
-  return [
-    seated(look, { face: 'happy', arms: 'up', bodyDy: -1 }).c,
-    seated(look, { face: 'happy', arms: 'mid' }).c,
-    seated(look, { face: 'happy', arms: 'up', bodyDy: -1 }).c,
-    seated(look, { face: 'open', arms: 'mid' }).c,
-  ];
-}
-
-function sweat(c, x, y) {
-  c.px(x, y, 'cyanLight'); c.px(x, y + 1, 'cyan'); c.px(x - 1, y + 1, 'cyanLight'); c.px(x, y + 2, 'cyanDark');
-  c.px(x + 1, y + 1, 'cyanDark');
-}
-export function baseError(look) {
-  const frames = [];
-  for (let i = 0; i < 3; i++) {
-    const { c, M } = seated(look, { face: 'worried', arms: 'none', headDx: i === 1 ? 1 : 0 });
-    // mãos na cabeça
-    hand(c, M, 1, 14); hand(c, M, 13, 14);
-    c.px(2, 16, M.c); c.px(13, 16, M.c); c.px(2, 17, M.c); c.px(13, 17, M.c);
-    sweat(c, 13, 5 + i * 2);
-    frames.push(c);
-  }
-  return frames;
-}
-
-// ---------------------------------------------------------------- em pé / andando
-const TORSO_STAND_FRONT = [
-  '....occaacco....',
-  '...occcaaccco...',
-  '..occccttcccco..',
-  '..oCcCcttcCcCo..',
-  '..oCcCcttcCcCo..',
-  '..oCcCcttcCcCo..',
-  '..oCcoCCCCocCo..',
-  '..osso....osso..',
-  '...oo......oo...',
-]; // linhas 13..21
-const TORSO_STAND_BACK = TORSO_STAND_FRONT.map((r) => r.replace(/a/g, 'c').replace(/t/g, 'c'));
-const TORSO_STAND_SIDE = [
-  '.....occco......',
-  '....occccco.....',
-  '....occccCo.....',
-  '....oCcccCo.....',
-  '....oCcccCo.....',
-  '....oCcccCo.....',
-  '....oCCCCCo.....',
-]; // linhas 13..19
-
-function standLegsFront(c, M, liftL, liftR) {
-  // quadril
-  c.rect(5, 20, 6, 2, M.p); c.vline(4, 20, 21, M.o); c.vline(11, 20, 21, M.o);
-  const leg = (x, lift) => {
-    const bottom = 31 - lift;
-    c.vline(x - 1, 22, bottom - 3, M.o); c.vline(x + 2, 22, bottom - 3, M.o);
-    c.rect(x, 22, 2, bottom - 3 - 22 + 1, M.p);
-    c.px(x + 1, bottom - 3, M.P);
-    c.rect(x - 1, bottom - 2, 4, 2, M.k); c.px(x - 2, bottom - 1, M.o); c.px(x - 2, bottom - 2, M.o); c.px(x + 3, bottom - 2, M.o); c.px(x + 3, bottom - 1, M.o);
-    c.hline(x - 1, x + 2, bottom, M.o);
-  };
-  leg(5, liftL); leg(9, liftR);
-}
-
-function walkFront(look, view) {
-  const M = colorMap(look);
-  const seq = [[0, 0, 0], [1, 0, -1], [0, 0, 0], [0, 1, -1]];
-  return seq.map(([lL, lR, bob], i) => {
-    const c = new Canvas(CW, CH);
-    standLegsFront(c, M, lL * 2, lR * 2);
-    const tor = view === 'front' ? TORSO_STAND_FRONT : TORSO_STAND_BACK;
-    c.tpl(tor, M, 0, 13 + bob);
-    if (view === 'front') badge(c, look, M, 13 + bob);
-    // braços balançando
-    if (i === 1) { c.px(3, 20 + bob, M.c); c.px(12, 19 + bob, M.c); }
-    if (i === 3) { c.px(12, 20 + bob, M.c); c.px(3, 19 + bob, M.c); }
-    drawHead(c, look, M, HX, STAND_HEAD_Y + bob, view, 'open');
-    return c;
-  });
-}
-
-function walkSide(look) {
-  // olhando para a esquerda
-  const M = colorMap(look);
-  const poses = [
-    { back: [9, 0], front: [6, 0], bob: 0, arm: 0 },
-    { back: [10, 0], front: [5, 0], bob: -1, arm: 1 },
-    { back: [8, 0], front: [7, 0], bob: 0, arm: 0 },
-    { back: [5, 0], front: [10, 0], bob: -1, arm: -1 },
-  ];
-  return poses.map((p) => {
-    const c = new Canvas(CW, CH);
-    const legSide = (lx, color) => {
-      // perna de 2px do quadril (y20) até o pé (y29..31)
-      for (let y = 20; y <= 28; y++) {
-        const t = (y - 20) / 8;
-        const x = Math.round(7 + (lx - 7) * t);
-        c.px(x - 1, y, M.o); c.px(x, y, color); c.px(x + 1, y, color); c.px(x + 2, y, M.o);
+function drawHeadAcc(L, look, ox, oy, back) {
+  const P = (x, y, c) => L.px(ox + x, oy + y, c);
+  switch (look.acc) {
+    case 'headphones':
+      // arco por cima e concha na orelha (esquerda) + concha direita aparecendo
+      for (let x = 2; x <= 18; x++) { const y = x < 5 || x > 15 ? 1 : x < 8 || x > 12 ? -1 : -2; P(x, y, 'ink'); P(x, y - 1, 'shadow'); }
+      for (const [x0, w] of back ? [[0, 4], [16, 4]] : [[1, 5], [18, 3]]) for (let y = 7; y <= 13; y++) for (let x = x0; x < x0 + w; x++) P(x, y, y === 7 || y === 13 ? 'ink' : x === x0 + 1 ? 'neon' : 'purple');
+      break;
+    case 'beanie':
+      for (let y = -3; y <= 6; y++) for (let x = -1; x <= 20; x++) {
+        const inCap = (y >= 4 && y <= 6 && inSkull(x, Math.min(y, 6)) ) || (y < 4 && (inSkull(x, y) || inSkull(x, y + 2)) && Math.hypot(x - 9.5, y - 4) < 11.5);
+        if (!inCap) continue;
+        P(x, y, y >= 4 ? (x % 2 ? 'shadow' : 'gray') : (x + y) % 4 === 0 ? 'shadow' : 'gray');
       }
-      const fx = lx;
-      c.rect(fx - 2, 29, 4, 2, M.k); c.px(fx - 3, 30, M.o); c.px(fx - 3, 29, M.o); c.hline(fx - 2, fx + 1, 28, M.o); c.px(fx + 2, 29, M.o); c.px(fx + 2, 30, M.o);
-      c.hline(fx - 2, fx + 1, 31, M.o);
-    };
-    legSide(p.back[0], M.P === 'outline' ? 'shadow' : M.P);
-    legSide(p.front[0], M.p);
-    c.rect(6, 19 + p.bob, 5, 2, M.p);
-    c.tpl(TORSO_STAND_SIDE, M, 0, 13 + p.bob);
-    // braço (frente do corpo)
-    const ax = 7 + p.arm;
-    for (let y = 15 + p.bob; y <= 18 + p.bob; y++) { c.px(ax, y, M.C); c.px(ax + 1, y, M.c); }
-    c.px(ax + p.arm, 19 + p.bob, M.s); c.px(ax + 1 + p.arm, 19 + p.bob, M.s); c.hline(ax + p.arm, ax + 1 + p.arm, 20 + p.bob, M.o);
-    drawHead(c, look, M, HX, STAND_HEAD_Y + p.bob, 'side', 'open');
-    return c;
-  });
+      P(9, -4, 'greenLight'); P(10, -4, 'greenLight'); P(9, -5, 'green'); P(10, -5, 'green'); P(8, -4, 'green'); P(11, -4, 'green');
+      break;
+    case 'cap': // boné virado para trás (aba atrás, à esquerda)
+      for (let y = -2; y <= 5; y++) for (let x = -1; x <= 20; x++) {
+        if (!(inSkull(x, y) || inSkull(x, y + 1) || inSkull(x, y + 2)) || y > 5) continue;
+        if (Math.hypot(x - 10, y - 5) > 11) continue;
+        P(x, y, y === 5 ? 'orangeDark' : (x > 12 && y < 2) ? 'orangeLight' : 'orange');
+      }
+      if (!back) for (let x = -4; x <= 2; x++) { P(x, 4, 'orangeDark'); P(x, 5, 'orangeDark'); }
+      else for (let x = 7; x <= 13; x++) { P(x, 6, 'orangeDark'); P(x, 7, 'orangeDark'); }
+      P(10, -2, 'orangeDark');
+      break;
+    case 'beret':
+      for (let y = -4; y <= 3; y++) for (let x = -1; x <= 19; x++) {
+        if (((x - 8) / 11) ** 2 + ((y + 0.5) / 3.6) ** 2 > 1) continue;
+        P(x, y, y >= 2 ? 'yellowDark' : (x > 9 && y < 0) ? 'lamp' : 'yellow');
+      }
+      P(8, -5, 'yellowDark'); P(8, -6, 'yellowDark');
+      break;
+    case 'glasses':
+      if (back) { P(0, 9, 'outline'); P(19, 9, 'outline'); break; }
+      for (const [x0] of [[7], [13]]) {
+        for (let x = x0; x < x0 + 5; x++) { P(x, 8, 'outline'); P(x, 12, 'outline'); }
+        for (let y = 8; y <= 12; y++) { P(x0, y, 'outline'); P(x0 + 4, y, 'outline'); }
+        P(x0 + 1, 9, 'cyanLight');
+      }
+      P(12, 9, 'outline'); for (let x = 2; x < 7; x++) P(x, 9, 'outline');
+      break;
+    case 'pencil':
+      if (back) break;
+      P(2, 6, 'lamp'); P(3, 7, 'lamp'); P(4, 8, 'yellow'); P(5, 9, 'sand'); P(1, 5, 'pink');
+      break;
+  }
 }
 
-// ---------------------------------------------------------------- objetos de trabalho (camada "função")
-const WORK = {
-  // carimba papéis
-  orquestrador(look) {
-    const frames = [];
-    const stampY = [16, 18, 21, 17];
-    for (let i = 0; i < 4; i++) {
-      const { c, M } = seated(look, { face: i === 2 ? 'blink' : 'down', arms: 'none' });
-      paper(c, 4, 24, 7, 2);
-      if (i === 3 || i === 0) { c.px(8, 24, 'red'); c.px(9, 24, 'red'); c.px(8, 25, 'red'); }
-      hand(c, M, 2, 23); // mão esquerda segura o papel
-      const sy = stampY[i];
-      // carimbo: cabo de madeira + base laranja
-      c.rect(9, sy - 2, 2, 2, 'woodLight'); c.frame(8, sy - 3, 4, 4, 'outline'); c.rect(9, sy - 2, 2, 2, 'woodLight');
-      c.rect(8, sy + 1, 4, 1, 'orange'); c.hline(7, 12, sy + 2, 'outline'); c.px(7, sy + 1, 'outline'); c.px(12, sy + 1, 'outline');
-      hand(c, M, 11, sy - 1);
-      for (let y = sy + 1; y <= 22; y++) { c.px(12, y, M.c); c.px(13, y, M.o); }
-      if (i === 2) { c.px(6, 21, 'white'); c.px(13, 22, 'white'); c.px(5, 23, 'lamp'); }
-      frames.push(c);
-    }
-    return frames;
+// ---------------------------------------------------------------- corpo
+/** Tronco sentado/em pé (frente 3/4). ty = linha do topo do tronco. */
+function drawTorso(L, look, ty, { back = false, h = 12 } = {}) {
+  const [c, C] = look.top;
+  const list = [];
+  for (let y = 0; y < h; y++) {
+    const x0 = y === 0 ? 11 : y >= h - 2 ? 11 : 10, x1 = y === 0 ? 21 : y >= h - 2 ? 21 : 22;
+    list.push([ty + y, x0, x1]);
+  }
+  for (const [y, x0, x1] of list) for (let x = x0; x <= x1; x++) {
+    let col = x <= x0 + 2 ? C : c;
+    if (y >= ty + h - 2) col = C;
+    L.px(x, y, col);
+  }
+  if (back) {
+    if (look.kind === 'hoodie') rows(L, [[ty, 12, 20], [ty + 1, 12, 20], [ty + 2, 13, 19]], C);
+    return;
+  }
+  const P = (x, y, col) => L.px(x, y, col);
+  switch (look.kind) {
+    case 'blazer':
+      // camisa em V, gravata, lapelas
+      for (let y = 0; y < 6; y++) for (let x = 15 - Math.max(0, 3 - y); x <= 17 + Math.max(0, 3 - y); x++) if (y < 4 || x === 16) P(x, ty + y, look.shirt);
+      for (let y = 1; y < 8; y++) P(16, ty + y, y < 2 ? look.tie : y < 7 ? look.tie : 'orangeDark');
+      P(15, ty + 1, 'orangeDark');
+      for (let y = 1; y < 7; y++) { P(14 - (y > 4 ? 0 : 0), ty + y, C); P(18, ty + y, C); }
+      P(19, ty + 6, 'lamp');
+      break;
+    case 'cardigan':
+      for (let y = 0; y < h; y++) for (let x = 15; x <= 17; x++) P(x, ty + y, look.shirt);
+      for (let y = 0; y < h; y++) { P(14, ty + y, C); P(18, ty + y, C); }
+      P(18, ty + 4, 'cream'); P(18, ty + 7, 'cream'); P(18, ty + 10, 'cream');
+      break;
+    case 'hoodie':
+      rows(L, [[ty, 12, 20]], C);
+      P(14, ty + 1, 'white'); P(14, ty + 2, 'white'); P(14, ty + 3, 'white'); P(18, ty + 1, 'white'); P(18, ty + 2, 'white'); P(18, ty + 3, 'white');
+      rows(L, [[ty + 7, 13, 20], [ty + 8, 13, 20]], C);
+      P(16, ty + 4, look.shirt); P(17, ty + 4, look.shirt); P(16, ty + 5, look.shirt);
+      break;
+    case 'apron':
+      for (let y = 2; y < h; y++) for (let x = 13; x <= 20; x++) P(x, ty + y, y === 2 ? 'light' : 'white');
+      P(13, ty, 'white'); P(13, ty + 1, 'white'); P(20, ty, 'white'); P(20, ty + 1, 'white');
+      P(15, ty + 5, 'cyan'); P(16, ty + 5, 'pink'); P(17, ty + 5, 'yellow'); // canetinhas no bolso
+      rows(L, [[ty + 6, 14, 19]], 'light');
+      break;
+    case 'jacket':
+      for (let y = 0; y < h; y++) P(16, ty + y, y === 0 ? look.shirt : C);
+      for (let x = 14; x <= 18; x++) P(x, ty, look.shirt);
+      P(15, ty + 1, look.shirt); P(17, ty + 1, look.shirt);
+      rows(L, [[ty + 7, 12, 14], [ty + 7, 18, 21]], C);
+      break;
+    case 'tee':
+      rows(L, [[ty, 14, 18]], look.skin ? SKINS[look.skin][0] : 'skin');
+      P(14, ty + 1, SKINS[look.skin][0]); P(18, ty + 1, SKINS[look.skin][0]); P(15, ty + 1, SKINS[look.skin][0]); P(16, ty + 1, SKINS[look.skin][0]); P(17, ty + 1, SKINS[look.skin][0]);
+      // estampa: coração/estrela
+      P(16, ty + 5, 'snow'); P(15, ty + 4, 'snow'); P(17, ty + 4, 'snow'); P(16, ty + 4, 'pinkLight');
+      break;
+    case 'vest':
+      for (let y = 0; y < h; y++) for (let x = 14; x <= 18; x++) if (y < 6 - Math.abs(x - 16) * 0 || x === 16) P(x, ty + y, y < 6 ? look.shirt : c);
+      for (let y = 0; y < 7; y++) P(16, ty + y, y < 1 ? look.shirt : look.tie);
+      P(17, ty + 7, 'lamp'); P(17, ty + 9, 'lamp');
+      rows(L, [[ty, 11, 13], [ty, 19, 21]], look.shirt);
+      break;
+  }
+  if (look.acc === 'badge') { for (let y = 0; y < 5; y++) { P(14 + Math.floor(y / 2), ty + y, 'orange'); P(18 - Math.floor(y / 2), ty + y, 'orange'); } rows(L, [[ty + 5, 15, 17], [ty + 6, 15, 17], [ty + 7, 15, 17]], 'snow'); P(16, ty + 6, 'teal'); }
+}
+
+/** Braço: ombro → cotovelo → mão. sleeve = cor da manga. hand: 'open'|'fist'|'up'. */
+function drawArm(L, look, sh, el, hd, { sleeve, handOnly = false } = {}) {
+  const [sk, skS] = SKINS[look.skin];
+  const sl = sleeve || look.top[0];
+  if (!handOnly) { thick(L, sh[0], sh[1], el[0], el[1], 3, sl); thick(L, el[0], el[1], hd[0], hd[1], 3, sl); }
+  // punho
+  L.px(hd[0] - 1, hd[1] - 1, sk); L.px(hd[0], hd[1] - 1, sk); L.px(hd[0] + 1, hd[1] - 1, sk);
+  L.px(hd[0] - 1, hd[1], sk); L.px(hd[0], hd[1], sk); L.px(hd[0] + 1, hd[1], skS);
+  L.px(hd[0] - 1, hd[1] + 1, skS); L.px(hd[0], hd[1] + 1, skS); L.px(hd[0] + 1, hd[1] + 1, skS);
+}
+
+function drawSeatedLegs(L, look) {
+  const p = look.pants, P2 = 'outline';
+  rows(L, [[35, 11, 21], [36, 11, 23], [37, 12, 24], [38, 15, 25], [39, 18, 25], [40, 19, 25]], p);
+  // canelas (duas pernas)
+  rows(L, [[41, 19, 21], [42, 19, 21], [43, 19, 21], [41, 23, 25], [42, 23, 25], [43, 23, 25]], p);
+  L.px(22, 41, P2);
+  // sapatos
+  rows(L, [[44, 18, 22], [45, 18, 22], [44, 23, 27], [45, 23, 27]], look.shoes);
+  rows(L, [[46, 19, 22], [46, 24, 27]], 'outline');
+}
+
+/** Pernas em pé / andando. nf, ff = deslocamento [dx,dy] do pé de perto e do pé de longe. */
+function drawStandLegs(L, look, nf = [0, 0], ff = [0, 0], { back = false } = {}) {
+  const p = look.pants;
+  rows(L, [[36, 11, 21], [37, 11, 21]], p);
+  // perna de longe primeiro
+  thick(L, 18, 37, 18 + ff[0], 42 + ff[1], 3, p);
+  rows(L, [[43 + ff[1], 16 + ff[0], 20 + ff[0] + (back ? 0 : 1)], [44 + ff[1], 16 + ff[0], 20 + ff[0] + (back ? 0 : 1)]], look.shoes);
+  thick(L, 14, 37, 14 + nf[0], 43 + nf[1], 3, p);
+  rows(L, [[44 + nf[1], 12 + nf[0], 16 + nf[0] + (back ? 0 : 1)], [45 + nf[1], 12 + nf[0], 16 + nf[0] + (back ? 0 : 1)]], look.shoes);
+}
+
+// ---------------------------------------------------------------- montagem de um quadro
+/**
+ * pose: {
+ *   mode: 'sit' | 'stand' | 'walk_se' | 'walk_ne',
+ *   by: deslocamento do corpo, hx/hy: da cabeça em relação ao corpo,
+ *   face: { eyes, mouth, look }, arms: { near: [sh, el, hd] | null, far: [...] | null },
+ *   nf/ff: pés (andando), pre/post: funções extras (adereços atrás/na frente)
+ * }
+ */
+function frame(look, pose) {
+  const out = new Canvas(CW, CH);
+  const L = new Layer(CW, CH);
+  const by = pose.by || 0, hx = pose.hx || 0, hy = pose.hy || 0;
+  const back = pose.mode === 'walk_ne';
+  const sit = pose.mode === 'sit';
+  const ty = (sit ? 25 : 25) + by;
+  const stamp = () => L.stamp(out);
+  const shift = (fn) => (Lx) => fn(Lx);
+
+  // braços padrão
+  const cp = (a) => a && a.map((p) => [...p]);
+  const near0 = pose.arms?.near ?? (sit ? [[11, 27], [13, 33], [22, 35]] : [[10, ty + 2], [9, ty + 6], [9, ty + 10]]);
+  const near = cp(near0);
+  const far0 = pose.arms?.far ?? (sit ? [[21, 27], [25, 30], [27, 32]] : [[22, ty + 2], [23, ty + 6], [23, ty + 10]]);
+  const far = cp(far0);
+
+  if (sit) { near && (near[0] = [11, 27 + by]); far && (far[0] = [21, 27 + by]); }
+  pose.pre?.(L, out); stamp();
+  if (back) {
+    // de costas: braço "de perto" (direita da tela) fica atrás do tronco
+    if (near) { drawArm(L, look, [near[0][0], near[0][1]], near[1], near[2]); stamp(); }
+    drawStandLegs(L, look, pose.nf, pose.ff, { back: true }); stamp();
+    drawTorso(L, look, ty, { back: true }); stamp();
+    if (far) { drawArm(L, look, far[0], far[1], far[2]); stamp(); }
+    drawHead(L, look, 6 + hx, 6 + by + hy, {}, true); stamp();
+    pose.post?.(L, out); stamp();
+    return out;
+  }
+  if (far) { drawArm(L, look, far[0], far[1], far[2]); stamp(); }
+  if (sit) drawSeatedLegs(L, look); else drawStandLegs(L, look, pose.nf, pose.ff);
+  stamp();
+  drawTorso(L, look, ty); stamp();
+  pose.mid?.(L, out); stamp();
+  drawHead(L, look, 6 + hx, 6 + by + hy, pose.face || {}); stamp();
+  if (near) { drawArm(L, look, near[0], near[1], near[2]); stamp(); }
+  pose.post?.(L, out); stamp();
+  return out;
+}
+
+// ---------------------------------------------------------------- adereços
+const prop = {
+  paper(L, x, y, { w = 7, h = 5, lines = true } = {}) {
+    for (let yy = 0; yy < h; yy++) for (let xx = 0; xx < w; xx++) L.px(x + xx, y + yy, 'snow');
+    if (lines) for (let yy = 1; yy < h - 1; yy += 2) for (let xx = 1; xx < w - 2; xx++) L.px(x + xx, y + yy, 'light');
   },
-  // máquina de escrever + papel amassado voando
-  roteirista(look) {
-    const frames = [];
-    const ballPath = [null, null, null, [12, 14], [14, 11], [15, 15]];
-    for (let i = 0; i < 6; i++) {
-      const { c, M } = seated(look, { face: 'down', arms: 'none' });
-      // papel saindo da máquina
-      const pu = i % 3 === 2 ? 1 : 0;
-      c.rect(5, 20 - pu, 6, 2 + pu, 'white'); c.frame(4, 19 - pu, 8, 4 + pu, 'outline');
-      c.hline(6, 9, 20 - pu, 'gray');
-      // máquina
-      c.rect(3, 23, 10, 3, 'ink'); c.frame(2, 22, 12, 5, 'outline');
-      c.hline(3, 12, 22, 'outline'); c.hline(4, 11, 23, 'shadow'); c.hline(4, 11, 24, 'gray');
-      for (let k = 4; k <= 11; k += 2) c.px(k, 24, 'white');
-      c.px(i % 2 ? 12 : 3, 23, 'yellow');
-      // mãos alternando
-      const up = i % 2;
-      hand(c, M, 4, 22 + up); hand(c, M, 10, 23 - up);
-      const b = ballPath[i];
-      if (b) { c.rect(b[0] - 1, b[1] - 1, 3, 3, 'white'); c.px(b[0], b[1], 'light'); c.px(b[0] - 1, b[1] - 1, 'light'); c.frame(b[0] - 2, b[1] - 2, 5, 5, null); }
-      frames.push(c);
-    }
-    // contorno das bolinhas de papel
-    frames.forEach((c, i) => { const b = ballPath[i]; if (b) { for (const [dx, dy] of [[-2, 0], [2, 0], [0, -2], [0, 2], [-2, -1], [2, 1], [-1, 2], [1, -2]]) if (c.get(b[0] + dx, b[1] + dy) < 0) c.px(b[0] + dx, b[1] + dy, 'outline'); } });
-    return frames;
+  stamp(L, x, y, col = 'orange') { // cabo + base (x,y = centro do cabo em cima)
+    L.px(x, y, 'woodLight'); L.px(x + 1, y, 'wood'); L.px(x, y + 1, 'woodLight'); L.px(x + 1, y + 1, 'wood'); L.px(x, y + 2, 'wood'); L.px(x + 1, y + 2, 'woodDark');
+    for (let xx = -1; xx <= 2; xx++) { L.px(x + xx, y + 3, 'shadow'); L.px(x + xx, y + 4, col); }
   },
-  // fone no ouvido, mão no mouse
-  'editor-video'(look) {
-    const frames = [];
-    for (let i = 0; i < 4; i++) {
-      const { c, M } = seated(look, { face: 'right', arms: 'none', headDy: i % 2 });
-      // teclado
-      c.rect(3, 24, 6, 2, 'gray'); c.frame(2, 23, 8, 4, 'outline'); c.hline(3, 8, 24, 'silver');
-      hand(c, M, 4, 23);
-      // mouse
-      const mx = 11 + (i === 1 ? 1 : i === 3 ? -1 : 0);
-      c.rect(mx, 24, 2, 2, 'light'); c.frame(mx - 1, 23, 4, 4, 'outline'); c.px(mx, 24, 'neon');
-      hand(c, M, mx, 23 - (i === 2 ? 1 : 0));
-      c.px(12, 22, M.c);
-      // notas musicais saindo do fone
-      if (i === 1 || i === 2) { c.px(1, 6 - i, 'neon'); c.px(1, 7 - i, 'neon'); c.px(0, 8 - i, 'neon'); }
-      frames.push(c);
+  ball(L, x, y) { L.px(x, y, 'snow'); L.px(x + 1, y, 'light'); L.px(x, y + 1, 'light'); L.px(x + 1, y + 1, 'snow'); L.px(x - 1, y, 'snow'); L.px(x, y - 1, 'snow'); },
+  phone(L, x, y, scr) { for (let yy = 0; yy < 7; yy++) for (let xx = 0; xx < 5; xx++) L.px(x + xx, y + yy, yy === 0 || yy === 6 || xx === 0 || xx === 4 ? 'ink' : scr[(yy + xx) % scr.length]); },
+  lens(L, cx, cy, r = 3) {
+    for (let y = -r - 1; y <= r + 1; y++) for (let x = -r - 1; x <= r + 1; x++) {
+      const d = Math.hypot(x, y);
+      if (d <= r - 0.3) L.px(cx + x, cy + y, x + y < -1 ? 'snow' : 'cyanLight');
+      else if (d <= r + 0.8) L.px(cx + x, cy + y, 'silver');
     }
-    return frames;
   },
-  // desenha na mesa digitalizadora
-  animador(look) {
-    const frames = [];
-    const strokes = [[5, 25], [6, 24], [7, 25], [8, 24], [9, 25]];
-    for (let i = 0; i < 5; i++) {
-      const { c, M } = seated(look, { face: 'down', arms: 'none' });
-      c.rect(3, 23, 9, 3, 'slate'); c.frame(2, 22, 11, 5, 'outline'); c.hline(3, 11, 23, 'navy');
-      for (let k = 0; k <= i; k++) c.px(strokes[k][0], strokes[k][1], 'cyanLight');
-      hand(c, M, 3, 23);
-      const [sx, sy] = strokes[i];
-      // caneta
-      c.px(sx, sy - 1, 'outline'); c.px(sx + 1, sy - 2, 'white'); c.px(sx + 2, sy - 3, 'white');
-      hand(c, M, sx + 2, sy - 2);
-      c.px(sx + 3, sy - 3, M.c); c.px(12, 21, M.c);
-      if (i % 2) c.px(1, 12, 'cyan');
-      frames.push(c);
+  wheel(L, cx, cy, rot) {
+    const cols = ['red', 'orange', 'yellow', 'green', 'cyan', 'blue', 'purple', 'pink'];
+    for (let y = -4; y <= 4; y++) for (let x = -4; x <= 4; x++) {
+      const d = Math.hypot(x, y);
+      if (d > 4.4) continue;
+      if (d < 1.2) { L.px(cx + x, cy + y, 'snow'); continue; }
+      const a = (Math.atan2(y, x) / (Math.PI * 2) + 1 + rot / 8) % 1;
+      L.px(cx + x, cy + y, cols[Math.floor(a * 8)]);
     }
-    return frames;
   },
-  // digita rápido
-  programador(look) {
-    const frames = [];
-    const seq = [[22, 23], [23, 22], [22, 22], [23, 23]];
-    for (let i = 0; i < 4; i++) {
-      const { c, M } = seated(look, { face: 'focus', arms: 'none' });
-      c.rect(3, 24, 10, 2, 'shadow'); c.frame(2, 23, 12, 4, 'outline');
-      for (let k = 3; k <= 12; k++) c.px(k, 24, (k + i) % 3 ? 'gray' : 'greenLight');
-      hand(c, M, 4, seq[i][0] + 1); hand(c, M, 10, seq[i][1] + 1);
-      // reflexo verde do monitor no rosto
-      c.px(4, 12, 'green');
-      frames.push(c);
-    }
-    return frames;
-  },
-  // testa app no celular
-  desenvolvedor(look) {
-    const frames = [];
-    const screens = [['blueLight', 'blue'], ['white', 'blueLight'], ['blueLight', 'orange'], ['white', 'blue']];
-    for (let i = 0; i < 4; i++) {
-      const { c, M } = seated(look, { face: 'down', arms: 'none' });
-      // celular segurado à frente do peito
-      c.frame(5, 17, 6, 8, 'outline'); c.rect(6, 18, 4, 6, 'ink');
-      const [a, b] = screens[i];
-      c.rect(6, 18, 4, 2, a); c.rect(6, 20, 4, 3, b); c.hline(6, 9, 23, 'shadow');
-      if (i % 2) c.px(7, 21, 'white');
-      hand(c, M, 3, 21); hand(c, M, 11, 21);
-      c.px(5, 21, M.s); c.px(10, 21, M.s);
-      // polegar toca a tela
-      c.px(i % 2 ? 8 : 7, 22, M.s);
-      frames.push(c);
-    }
-    return frames;
-  },
-  // gira a roda de cores
-  designer(look) {
-    const frames = [];
-    const ring = ['red', 'orange', 'yellow', 'green', 'cyan', 'blue', 'purple', 'pink'];
-    const pos = [[1, 0], [2, 0], [3, 1], [3, 2], [2, 3], [1, 3], [0, 2], [0, 1]];
-    for (let i = 0; i < 4; i++) {
-      const { c, M } = seated(look, { face: 'right', arms: 'none' });
-      hand(c, M, 3, 23);
-      // roda 6x6 na mão direita, acima da mesa
-      const wx = 9, wy = 16;
-      c.ellipse(wx, wy, 6, 6, 'outline');
-      pos.forEach(([px, py], k) => c.px(wx + 1 + px, wy + 1 + py, ring[(k + i * 2) % 8]));
-      c.px(wx + 2, wy + 2, 'white'); c.px(wx + 3, wy + 3, 'white'); c.px(wx + 2, wy + 3, 'light'); c.px(wx + 3, wy + 2, 'light');
-      hand(c, M, 11, 22);
-      c.px(12, 21, M.c);
-      frames.push(c);
-    }
-    return frames;
-  },
-  // olha com lupa e bate o carimbo
-  revisor(look) {
-    const frames = [];
-    const lupaX = [4, 6, 8, null, null, null];
-    for (let i = 0; i < 6; i++) {
-      const { c, M } = seated(look, { face: 'down', arms: 'none' });
-      paper(c, 4, 24, 8, 2);
-      if (i >= 4) { c.hline(6, 9, 24, 'red'); c.hline(6, 9, 25, 'red'); c.px(5, 24, 'red'); c.px(10, 25, 'red'); }
-      hand(c, M, 2, 23);
-      const lx = lupaX[i];
-      if (lx !== null) {
-        // lupa
-        c.ellipse(lx, 19, 5, 5, 'outline'); c.rect(lx + 1, 20, 3, 3, 'cyanLight'); c.px(lx + 1, 20, 'white');
-        c.px(lx + 4, 23, 'woodDark'); c.px(lx + 5, 24, 'woodDark');
-        hand(c, M, lx + 5, 23);
-      } else {
-        const sy = i === 3 ? 16 : i === 4 ? 21 : 17;
-        c.frame(8, sy - 3, 4, 4, 'outline'); c.rect(9, sy - 2, 2, 2, 'woodLight');
-        c.rect(8, sy + 1, 4, 1, 'red'); c.hline(7, 12, sy + 2, 'outline'); c.px(7, sy + 1, 'outline'); c.px(12, sy + 1, 'outline');
-        hand(c, M, 11, sy - 1);
-        for (let y = sy + 1; y <= 22; y++) { c.px(12, y, M.c); c.px(13, y, M.o); }
-        if (i === 4) { c.px(6, 21, 'white'); c.px(13, 22, 'white'); }
-      }
-      frames.push(c);
-    }
-    return frames;
-  },
-  // visitante: notebook
-  visitante(look) {
-    const frames = [];
-    for (let i = 0; i < 4; i++) {
-      const { c, M } = seated(look, { face: i === 3 ? 'blink' : 'down', arms: 'none' });
-      c.frame(3, 18, 10, 7, 'outline'); c.rect(4, 19, 8, 5, 'silver'); c.rect(7, 20, 2, 2, 'teal');
-      c.rect(2, 25, 12, 1, 'gray'); c.hline(2, 13, 26, 'outline'); c.px(1, 25, 'outline'); c.px(14, 25, 'outline');
-      hand(c, M, 3, 24 - (i % 2)); hand(c, M, 11, 23 + (i % 2));
-      frames.push(c);
-    }
-    return frames;
-  },
+  stylus(L, x, y) { L.px(x, y, 'ink'); L.px(x + 1, y - 1, 'shadow'); L.px(x + 2, y - 2, 'shadow'); L.px(x + 3, y - 3, 'cyan'); },
+  mouse(L, x, y) { L.px(x, y, 'light'); L.px(x + 1, y, 'silver'); L.px(x, y + 1, 'silver'); L.px(x + 1, y + 1, 'gray'); },
 };
 
-// ---------------------------------------------------------------- folha completa
-export const FPS = { work: 8, read: 6, idle: 4, doze: 4, sleep: 3, wait: 4, done: 8, error: 6, walk: 8 };
+// ---------------------------------------------------------------- animações
+const SIT = (o = {}) => ({ mode: 'sit', ...o });
+const STAND = (o = {}) => ({ mode: 'stand', ...o });
 
+function baseAnims(look) {
+  const F = (p) => frame(look, p);
+  const anims = [];
+  const A = (tag, fps, poses) => anims.push({ tag, fps, frames: poses.map(F) });
+
+  // idle: respira (corpo desce 1 px) e pisca no último quadro
+  A('base_idle', 4, [
+    SIT({ face: { eyes: 'open', mouth: 'smile' } }),
+    SIT({ face: { eyes: 'open', mouth: 'smile' }, hy: 0 }),
+    SIT({ by: 1, face: { eyes: 'open', mouth: 'smile' } }),
+    SIT({ by: 1, face: { eyes: 'closed', mouth: 'smile' } }),
+  ]);
+  // read: folha nas mãos, olhar para baixo, vira a página
+  const paperArms = (ty, d) => ({ near: [[11, 27], [14, 33], [20, 31 + d]], far: [[21, 27], [25, 31], [27, 29 + d]] });
+  A('base_read', 6, [0, 1, 2, 3].map((f) => SIT({
+    hy: 1, face: { eyes: 'down', mouth: f === 2 ? 'o' : 'flat', look: 1 }, arms: paperArms(25, f === 1 ? 1 : 0),
+    post: (L) => { prop.paper(L, 19, 26 + (f === 1 ? 1 : 0), { w: 9, h: 6 }); if (f === 2) prop.paper(L, 24, 22, { w: 4, h: 5, lines: false }); if (f === 3) prop.paper(L, 15, 25, { w: 4, h: 5, lines: false }); },
+  })));
+  // doze: cabeça cai e levanta
+  A('base_doze', 4, [
+    SIT({ face: { eyes: 'half', mouth: 'flat' } }),
+    SIT({ hy: 1, face: { eyes: 'closed', mouth: 'flat' } }),
+    SIT({ hy: 3, hx: 1, face: { eyes: 'sleep', mouth: 'o' } }),
+    SIT({ hy: 0, face: { eyes: 'wide', mouth: 'flat' } }),
+  ]);
+  // sleep: cabeça tombada, respiração lenta, baba
+  A('base_sleep', 3, [
+    SIT({ hy: 3, hx: -1, face: { eyes: 'sleep', mouth: 'flat' }, arms: { near: [[11, 28], [12, 32], [17, 33]], far: [[21, 27], [22, 31], [21, 33]] } }),
+    SIT({ by: 1, hy: 3, hx: -1, face: { eyes: 'sleep', mouth: 'o' }, arms: { near: [[11, 29], [12, 33], [17, 34]], far: [[21, 28], [22, 32], [21, 34]] } }),
+    SIT({ by: 1, hy: 4, hx: -1, face: { eyes: 'sleep', mouth: 'o' }, arms: { near: [[11, 29], [12, 33], [17, 34]], far: [[21, 28], [22, 32], [21, 34]] } }),
+    SIT({ hy: 3, hx: -1, face: { eyes: 'sleep', mouth: 'drool' }, arms: { near: [[11, 28], [12, 32], [17, 33]], far: [[21, 27], [22, 31], [21, 33]] } }),
+  ]);
+  // wait: olha para fora (para quem assiste), tamborila os dedos, inclina a cabeça
+  A('base_wait', 6, [
+    SIT({ hx: 0, face: { eyes: 'open', mouth: 'flat', look: -1 }, arms: { far: [[21, 27], [25, 30], [27, 32]] } }),
+    SIT({ hx: -1, face: { eyes: 'open', mouth: 'flat', look: -1 }, arms: { far: [[21, 27], [25, 30], [27, 30]] } }),
+    SIT({ hx: -1, face: { eyes: 'closed', mouth: 'wavy', look: -1 }, arms: { far: [[21, 27], [25, 30], [27, 32]] } }),
+    SIT({ hx: 0, face: { eyes: 'open', mouth: 'flat', look: -1 }, arms: { far: [[21, 27], [25, 30], [27, 30]] } }),
+  ]);
+  // done: braços para cima e pulo na cadeira (6 quadros)
+  const up = (by, wave) => ({ near: [[11, 27 + by], [8, 22 + by], [7 + wave, 17 + by]], far: [[21, 27 + by], [25, 22 + by], [26 - wave, 17 + by]] });
+  A('base_done', 10, [
+    SIT({ face: { eyes: 'happy', mouth: 'smile' } }),
+    SIT({ by: -1, face: { eyes: 'happy', mouth: 'big' }, arms: up(-1, 0) }),
+    SIT({ by: -3, face: { eyes: 'happy', mouth: 'big' }, arms: up(-3, 1) }),
+    SIT({ by: -4, face: { eyes: 'happy', mouth: 'big' }, arms: up(-4, 0) }),
+    SIT({ by: -2, face: { eyes: 'happy', mouth: 'big' }, arms: up(-2, 1) }),
+    SIT({ by: 0, face: { eyes: 'happy', mouth: 'open' }, arms: up(0, 0) }),
+  ]);
+  // error: mãos na cabeça, tremendo, suor
+  const head = (by) => ({ near: [[11, 27 + by], [7, 22 + by], [8, 15 + by]], far: [[21, 27 + by], [25, 22 + by], [25, 14 + by]] });
+  const sweat = (d) => (L) => { L.px(27, 9 + d, 'cyanLight'); L.px(27, 10 + d, 'cyan'); L.px(26, 10 + d, 'cyanLight'); L.px(28, 10 + d, 'cyan'); L.px(27, 11 + d, 'cyanDark'); };
+  A('base_error', 6, [
+    SIT({ hx: -1, face: { eyes: 'wide', mouth: 'frown' }, arms: head(0), post: sweat(0) }),
+    SIT({ hx: 1, face: { eyes: 'wide', mouth: 'frown' }, arms: head(0), post: sweat(1) }),
+    SIT({ hx: -1, by: 1, face: { eyes: 'dizzy', mouth: 'wavy' }, arms: head(1), post: sweat(2) }),
+    SIT({ hx: 1, face: { eyes: 'wide', mouth: 'frown' }, arms: head(0), post: sweat(3) }),
+  ]);
+  // walk SE: pernas alternando, braços opostos, corpo sobe no passo
+  const swingSE = (s) => ({ near: [[10, 27 + (s ? 0 : 0)], [9 + s, 31], [9 + 2 * s, 35]], far: [[22, 27], [23 - s, 31], [23 - 2 * s, 35]] });
+  A('base_walk_se', 8, [
+    STAND({ face: { eyes: 'open', mouth: 'smile' }, nf: [2, 1], ff: [-2, -1], arms: swingSE(-1) }),
+    STAND({ by: -1, face: { eyes: 'open', mouth: 'smile' }, nf: [0, -1], ff: [0, 0], arms: swingSE(0) }),
+    STAND({ face: { eyes: 'open', mouth: 'smile' }, nf: [-2, -1], ff: [2, 1], arms: swingSE(1) }),
+    STAND({ by: -1, face: { eyes: 'closed', mouth: 'smile' }, nf: [0, 0], ff: [0, -1], arms: swingSE(0) }),
+  ]);
+  // walk NE (de costas)
+  const swingNE = (s) => ({ near: [[22, 27], [23 + s, 31], [23 + 2 * s, 35]], far: [[10, 27], [9 - s, 31], [9 - 2 * s, 35]] });
+  A('base_walk_ne', 8, [
+    { mode: 'walk_ne', nf: [2, -1], ff: [-2, 1], arms: swingNE(-1) },
+    { mode: 'walk_ne', by: -1, nf: [0, -1], ff: [0, 0], arms: swingNE(0) },
+    { mode: 'walk_ne', nf: [-2, 1], ff: [2, -1], arms: swingNE(1) },
+    { mode: 'walk_ne', by: -1, nf: [0, 0], ff: [0, -1], arms: swingNE(0) },
+  ]);
+  // stand: em pé respirando
+  A('base_stand', 2, [
+    STAND({ face: { eyes: 'open', mouth: 'smile' } }),
+    STAND({ by: 1, face: { eyes: 'closed', mouth: 'smile' } }),
+  ]);
+  return anims;
+}
+
+// ---------------------------------------------------------------- trabalho por cargo
+function workAnim(id, look) {
+  const F = (p) => frame(look, p);
+  // Mesa: borda de trás do tampo na linha y = 47 - x/2 (x=22 → 36, x=27 → 33,5). Mãos logo acima dela.
+  const N = (x, y) => [[11, 27], [13, 33], [x, y]];       // braço de perto (mão em x,y)
+  const R = (x, y, ex = 25, ey = 30) => [[21, 27], [ex, ey], [x, y]]; // braço de longe
+  const rest = { near: N(22, 35), far: R(27, 32) };
+  switch (id) {
+    case 'orquestrador': { // carimba papéis e move cartões do kanban
+      const paper = (L, mark) => { prop.paper(L, 22, 32, { w: 7, h: 2, lines: false }); if (mark) { L.px(24, 32, 'orange'); L.px(25, 32, 'orange'); } };
+      const card = (L, x, y, a, b) => { for (let yy = 0; yy < 4; yy++) for (let xx = 0; xx < 5; xx++) L.px(x + xx, y + yy, yy === 0 ? a : b); };
+      return [
+        SIT({ face: { eyes: 'down', mouth: 'flat', look: 1 }, arms: { near: N(22, 25), far: R(27, 32) }, pre: (L) => paper(L, false), post: (L) => prop.stamp(L, 21, 22) }),
+        SIT({ by: 1, face: { eyes: 'closed', mouth: 'open', look: 1 }, arms: { near: N(22, 30), far: R(27, 32) }, pre: (L) => paper(L, false), post: (L) => { prop.stamp(L, 21, 27); L.px(19, 30, 'lamp'); L.px(18, 29, 'lamp'); L.px(26, 29, 'lamp'); L.px(27, 28, 'lamp'); } }),
+        SIT({ face: { eyes: 'happy', mouth: 'smile', look: 1 }, arms: { near: N(22, 26), far: R(27, 32) }, pre: (L) => paper(L, true), post: (L) => prop.stamp(L, 21, 23) }),
+        SIT({ hx: 1, face: { eyes: 'open', mouth: 'smile', look: 1 }, arms: { near: N(22, 35), far: R(28, 20, 26, 26) }, pre: (L) => paper(L, true), post: (L) => card(L, 27, 15, 'orange', 'orangeLight') }),
+        SIT({ hx: 1, by: -1, face: { eyes: 'open', mouth: 'open', look: 1 }, arms: { near: N(22, 35), far: R(29, 16, 27, 23) }, pre: (L) => paper(L, true), post: (L) => card(L, 27, 11, 'green', 'greenLight') }),
+        SIT({ face: { eyes: 'happy', mouth: 'smile', look: 1 }, arms: rest, pre: (L) => paper(L, true) }),
+      ].map(F);
+    }
+    case 'roteirista': { // bate na máquina de escrever; papel amassado voa para o lixo
+      const ball = [null, null, null, [25, 27], [29, 18], [31, 26]];
+      return [0, 1, 2, 3, 4, 5].map((f) => F(SIT({
+        hy: f < 3 ? f % 2 : 0, face: { eyes: f === 3 ? 'closed' : f >= 4 ? 'open' : 'down', mouth: f === 3 ? 'frown' : f >= 4 ? 'smile' : 'flat', look: 1 },
+        arms: f === 3 ? { near: N(23, 28), far: R(26, 27) } : f >= 4 ? { near: N(22, 35), far: R(28, 26 - (f - 4) * 2) } : { near: N(22, 35 - (f % 2)), far: R(27, 31 + (f % 2)) },
+        post: (L) => { if (ball[f]) prop.ball(L, ...ball[f]); },
+      })));
+    }
+    case 'editor-video': { // fone, mão no mouse, cabeça no ritmo
+      return [0, 1, 2, 3, 4, 5].map((f) => F(SIT({
+        hy: f % 2, face: { eyes: f === 4 ? 'closed' : 'open', mouth: f % 2 ? 'smile' : 'flat', look: 1 },
+        arms: { near: N(22, 35), far: R(27 + (f % 3 === 1 ? 1 : 0), 32) },
+        post: (L) => prop.mouse(L, 27 + (f % 3 === 1 ? 1 : 0), 33),
+      })));
+    }
+    case 'animador': { // desenha na mesa digitalizadora
+      const path = [[25, 31], [27, 30], [28, 32], [26, 33], [24, 32], [26, 31]];
+      return path.map(([x, y], f) => F(SIT({
+        hy: 1, face: { eyes: 'down', mouth: f === 2 || f === 3 ? 'tongue' : 'flat', look: 1 },
+        arms: { near: N(21, 35), far: R(x, y) },
+        post: (L) => prop.stylus(L, x - 2, y + 1),
+      })));
+    }
+    case 'programador': { // digita rápido
+      return [0, 1, 2, 3].map((f) => F(SIT({
+        hy: f === 2 ? 1 : 0, face: { eyes: 'open', mouth: f === 2 ? 'o' : 'flat', look: 1 },
+        arms: { near: N(22 + (f % 2), 35 - (f % 2)), far: R(27 - (f % 2), 31 + (f % 2)) },
+        post: (L) => { L.px(f % 2 ? 24 : 29, f % 2 ? 31 : 29, 'greenLight'); },
+      })));
+    }
+    case 'desenvolvedor': { // testa o app no celular
+      const scr = [['blue', 'blueLight'], ['pink', 'pinkLight'], ['green', 'greenLight'], ['orange', 'orangeLight']];
+      return [0, 1, 2, 3, 4, 5].map((f) => F(SIT({
+        hy: 1, face: { eyes: 'down', mouth: f === 3 ? 'smile' : f === 5 ? 'o' : 'flat', look: 1 },
+        arms: { near: N(21, 30), far: R(26, 29, 25, 31) },
+        post: (L) => { prop.phone(L, 21, 23, scr[Math.floor(f / 2) % 4]); L.px(23 + (f % 2), 26 + (f % 3), 'skin'); },
+      })));
+    }
+    case 'designer': { // gira a roda de cores
+      return [0, 1, 2, 3, 4, 5].map((f) => F(SIT({
+        hx: f >= 3 ? 1 : 0, face: { eyes: f === 5 ? 'happy' : 'open', mouth: f % 2 ? 'smile' : 'open', look: 1 },
+        arms: { near: N(23, 27 + (f % 2)), far: R(28, 24, 26, 28) },
+        post: (L) => prop.wheel(L, 26, 20, f),
+      })));
+    }
+    case 'revisor': { // olha com lupa e bate o carimbo
+      const paper = (L, mark) => { prop.paper(L, 22, 32, { w: 7, h: 2, lines: false }); if (mark) { L.px(24, 32, 'red'); L.px(25, 32, 'red'); L.px(26, 32, 'red'); } };
+      const lensPos = [[24, 28], [26, 29], [28, 28]];
+      return [0, 1, 2, 3, 4, 5].map((f) => {
+        if (f < 3) {
+          const [lx, ly] = lensPos[f];
+          return F(SIT({
+            hy: 1, hx: f === 2 ? 1 : 0, face: { eyes: 'down', mouth: f === 1 ? 'o' : 'flat', look: 1 },
+            arms: { near: N(22, 35), far: R(lx + 2, ly + 4) }, pre: (L) => paper(L, false),
+            post: (L) => { prop.lens(L, lx, ly, 3); L.px(lx + 3, ly + 3, 'woodDark'); L.px(lx + 4, ly + 4, 'wood'); },
+          }));
+        }
+        const sy = [22, 27, 23][f - 3];
+        return F(SIT({
+          by: f === 4 ? 1 : 0, face: { eyes: f === 4 ? 'closed' : 'happy', mouth: f === 4 ? 'open' : 'smile', look: 1 },
+          arms: { near: N(22, sy + 3), far: R(27, 32) }, pre: (L) => paper(L, f === 5),
+          post: (L) => { prop.stamp(L, 21, sy, 'red'); if (f === 4) { L.px(19, 30, 'lamp'); L.px(18, 29, 'lamp'); L.px(26, 29, 'lamp'); L.px(27, 28, 'lamp'); } },
+        }));
+      });
+    }
+    case 'visitante': { // em pé, consultando a prancheta e olhando em volta
+      return [0, 1, 2, 3].map((f) => F(STAND({
+        hx: f === 2 ? -1 : f === 3 ? 1 : 0, by: f % 2, face: { eyes: f === 1 ? 'closed' : 'open', mouth: f === 3 ? 'o' : 'smile', look: f === 2 ? -1 : 1 },
+        arms: { near: [[10, 27], [12, 31], [17, 31]], far: [[22, 27], [24, 30], [22, 30]] },
+        post: (L) => { for (let y = 0; y < 7; y++) for (let x = 0; x < 6; x++) L.px(17 + x, 27 + y + (f % 2), y === 0 ? 'woodDark' : x === 0 || x === 5 || y === 6 ? 'wood' : (y % 2 ? 'snow' : 'cyanLight')); },
+      })));
+    }
+  }
+  throw new Error(`sem animação de trabalho para ${id}`);
+}
+
+export const WORK_FPS = 8;
+
+/** Todas as animações de um personagem: [{ tag, fps, frames: Canvas[] }]. */
 export function characterAnims(id) {
   const look = LOOKS[id];
   if (!look) throw new Error(`sem visual para ${id}`);
-  const side = walkSide(look);
-  return [
-    { tag: 'base_idle', frames: baseIdle(look), fps: FPS.idle },
-    { tag: 'base_read', frames: baseRead(look), fps: FPS.read },
-    { tag: 'base_doze', frames: baseDoze(look), fps: FPS.doze },
-    { tag: 'base_sleep', frames: baseSleep(look), fps: FPS.sleep },
-    { tag: 'base_wait', frames: baseWait(look), fps: FPS.wait },
-    { tag: 'base_done', frames: baseDone(look), fps: FPS.done },
-    { tag: 'base_error', frames: baseError(look), fps: FPS.error },
-    { tag: 'base_walk_down', frames: walkFront(look, 'front'), fps: FPS.walk },
-    { tag: 'base_walk_up', frames: walkFront(look, 'back'), fps: FPS.walk },
-    { tag: 'base_walk_left', frames: side, fps: FPS.walk },
-    { tag: 'base_walk_right', frames: side.map((f) => f.flipX()), fps: FPS.walk },
-    { tag: `${id}_work`, frames: WORK[id](look), fps: FPS.work },
-  ];
+  return [{ tag: `${id}_work`, fps: WORK_FPS, frames: workAnim(id, look) }, ...baseAnims(look)];
 }

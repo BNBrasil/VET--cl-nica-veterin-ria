@@ -4,209 +4,251 @@
       "frame": {
         "x": 0,
         "y": 0,
-        "w": 32,
-        "h": 20
+        "w": 36,
+        "h": 40
       },
       "rotated": false,
       "trimmed": false,
       "spriteSourceSize": {
         "x": 0,
         "y": 0,
-        "w": 32,
-        "h": 20
+        "w": 36,
+        "h": 40
       },
       "sourceSize": {
-        "w": 32,
-        "h": 20
+        "w": 36,
+        "h": 40
       },
       "duration": 500
     },
     "obj_off_1": {
       "frame": {
-        "x": 32,
+        "x": 36,
         "y": 0,
-        "w": 32,
-        "h": 20
+        "w": 36,
+        "h": 40
       },
       "rotated": false,
       "trimmed": false,
       "spriteSourceSize": {
         "x": 0,
         "y": 0,
-        "w": 32,
-        "h": 20
+        "w": 36,
+        "h": 40
       },
       "sourceSize": {
-        "w": 32,
-        "h": 20
+        "w": 36,
+        "h": 40
       },
       "duration": 500
     },
     "obj_work_0": {
       "frame": {
         "x": 0,
-        "y": 20,
-        "w": 32,
-        "h": 20
+        "y": 40,
+        "w": 36,
+        "h": 40
       },
       "rotated": false,
       "trimmed": false,
       "spriteSourceSize": {
         "x": 0,
         "y": 0,
-        "w": 32,
-        "h": 20
+        "w": 36,
+        "h": 40
       },
       "sourceSize": {
-        "w": 32,
-        "h": 20
+        "w": 36,
+        "h": 40
       },
       "duration": 125
     },
     "obj_work_1": {
       "frame": {
-        "x": 32,
-        "y": 20,
-        "w": 32,
-        "h": 20
+        "x": 36,
+        "y": 40,
+        "w": 36,
+        "h": 40
       },
       "rotated": false,
       "trimmed": false,
       "spriteSourceSize": {
         "x": 0,
         "y": 0,
-        "w": 32,
-        "h": 20
+        "w": 36,
+        "h": 40
       },
       "sourceSize": {
-        "w": 32,
-        "h": 20
+        "w": 36,
+        "h": 40
       },
       "duration": 125
     },
     "obj_work_2": {
       "frame": {
-        "x": 64,
-        "y": 20,
-        "w": 32,
-        "h": 20
+        "x": 72,
+        "y": 40,
+        "w": 36,
+        "h": 40
       },
       "rotated": false,
       "trimmed": false,
       "spriteSourceSize": {
         "x": 0,
         "y": 0,
-        "w": 32,
-        "h": 20
+        "w": 36,
+        "h": 40
       },
       "sourceSize": {
-        "w": 32,
-        "h": 20
+        "w": 36,
+        "h": 40
       },
       "duration": 125
     },
     "obj_work_3": {
       "frame": {
-        "x": 96,
-        "y": 20,
-        "w": 32,
-        "h": 20
+        "x": 108,
+        "y": 40,
+        "w": 36,
+        "h": 40
       },
       "rotated": false,
       "trimmed": false,
       "spriteSourceSize": {
         "x": 0,
         "y": 0,
-        "w": 32,
-        "h": 20
+        "w": 36,
+        "h": 40
       },
       "sourceSize": {
-        "w": 32,
-        "h": 20
+        "w": 36,
+        "h": 40
+      },
+      "duration": 125
+    },
+    "obj_work_4": {
+      "frame": {
+        "x": 144,
+        "y": 40,
+        "w": 36,
+        "h": 40
+      },
+      "rotated": false,
+      "trimmed": false,
+      "spriteSourceSize": {
+        "x": 0,
+        "y": 0,
+        "w": 36,
+        "h": 40
+      },
+      "sourceSize": {
+        "w": 36,
+        "h": 40
+      },
+      "duration": 125
+    },
+    "obj_work_5": {
+      "frame": {
+        "x": 180,
+        "y": 40,
+        "w": 36,
+        "h": 40
+      },
+      "rotated": false,
+      "trimmed": false,
+      "spriteSourceSize": {
+        "x": 0,
+        "y": 0,
+        "w": 36,
+        "h": 40
+      },
+      "sourceSize": {
+        "w": 36,
+        "h": 40
       },
       "duration": 125
     },
     "obj_sleep_0": {
       "frame": {
         "x": 0,
-        "y": 40,
-        "w": 32,
-        "h": 20
+        "y": 80,
+        "w": 36,
+        "h": 40
       },
       "rotated": false,
       "trimmed": false,
       "spriteSourceSize": {
         "x": 0,
         "y": 0,
-        "w": 32,
-        "h": 20
+        "w": 36,
+        "h": 40
       },
       "sourceSize": {
-        "w": 32,
-        "h": 20
+        "w": 36,
+        "h": 40
       },
       "duration": 333
     },
     "obj_sleep_1": {
       "frame": {
-        "x": 32,
-        "y": 40,
-        "w": 32,
-        "h": 20
+        "x": 36,
+        "y": 80,
+        "w": 36,
+        "h": 40
       },
       "rotated": false,
       "trimmed": false,
       "spriteSourceSize": {
         "x": 0,
         "y": 0,
-        "w": 32,
-        "h": 20
+        "w": 36,
+        "h": 40
       },
       "sourceSize": {
-        "w": 32,
-        "h": 20
+        "w": 36,
+        "h": 40
       },
       "duration": 333
     },
     "obj_sleep_2": {
       "frame": {
-        "x": 64,
-        "y": 40,
-        "w": 32,
-        "h": 20
+        "x": 72,
+        "y": 80,
+        "w": 36,
+        "h": 40
       },
       "rotated": false,
       "trimmed": false,
       "spriteSourceSize": {
         "x": 0,
         "y": 0,
-        "w": 32,
-        "h": 20
+        "w": 36,
+        "h": 40
       },
       "sourceSize": {
-        "w": 32,
-        "h": 20
+        "w": 36,
+        "h": 40
       },
       "duration": 333
     },
     "obj_sleep_3": {
       "frame": {
-        "x": 96,
-        "y": 40,
-        "w": 32,
-        "h": 20
+        "x": 108,
+        "y": 80,
+        "w": 36,
+        "h": 40
       },
       "rotated": false,
       "trimmed": false,
       "spriteSourceSize": {
         "x": 0,
         "y": 0,
-        "w": 32,
-        "h": 20
+        "w": 36,
+        "h": 40
       },
       "sourceSize": {
-        "w": 32,
-        "h": 20
+        "w": 36,
+        "h": 40
       },
       "duration": 333
     }
@@ -217,8 +259,8 @@
     "image": "obj_lounge.png",
     "format": "RGBA8888",
     "size": {
-      "w": 128,
-      "h": 60
+      "w": 216,
+      "h": 120
     },
     "scale": "1",
     "frameTags": [
@@ -231,13 +273,13 @@
       {
         "name": "obj_work",
         "from": 2,
-        "to": 5,
+        "to": 7,
         "direction": "forward"
       },
       {
         "name": "obj_sleep",
-        "from": 6,
-        "to": 9,
+        "from": 8,
+        "to": 11,
         "direction": "forward"
       }
     ],

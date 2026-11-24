@@ -11,13 +11,13 @@
 import { Canvas } from './draw.js';
 import { Iso, Layer, T, wallDecal } from './iso.js';
 import { ACCENT } from './palette.js';
-import { ROOM_DRAW } from './rooms.js';
+import { ROOM_DRAW, SEATS, SOFA, DOOR } from './rooms.js';
 
-export const RI = 8 * T, RJ = 7 * T, CJ = 5 * T; // tamanho da sala e largura do corredor (unidades)
+export const RI = 8 * T, RJ = 7 * T, CJ = 6 * T; // tamanho da sala e largura do corredor (unidades)
 export const SLOTS = 5;
-export const WALL_H = 48, WALL_T = 4, PART_H = 14, SLAB = 8;
+export const WALL_H = 44, WALL_T = 4, PART_H = 14, SLAB = 8;
 export const BACK_J0 = 0, CORR_J0 = RJ, FRONT_J0 = RJ + CJ, MAX_I = SLOTS * RI, MAX_J = FRONT_J0 + RJ;
-export const SPINE_J = CORR_J0 + 20; // linha de caminhada no corredor (parte visível)
+export const SPINE_J = CORR_J0 + 22; // linha de caminhada no corredor (parte visível)
 
 const MARGIN_X = 20, MARGIN_TOP = 18, MARGIN_BOTTOM = 14;
 export const MAP_W = MAX_I + MAX_J + WALL_T * 2 + MARGIN_X * 2;
@@ -190,4 +190,53 @@ function leftOuterWall(L, bg, ctx) {
 function corridorProps(L, bg, fg) {
   // nada por enquanto; plantas e bancos entram em rooms.js (corridor)
   ROOM_DRAW.corridor?.(L, bg, fg);
+}
+
+// ---------------------------------------------------------------- dados para o manifest
+/** Converte coordenadas de mundo em ponto de tela inteiro. */
+const P = (wi, wj, z = 0) => iso.pt(wi, wj, z);
+
+/**
+ * Geometria do manifest v2: poly, label, seat, door de cada sala; vagas do lounge; grafo do corredor.
+ * Tudo em pixels do mapa.
+ */
+export function layoutData() {
+  const rooms = {};
+  const nodes = {};
+  const edges = [];
+  const spine = []; // [i, nome]
+  const addSpine = (i) => {
+    const name = `c_${Math.round(i)}`;
+    if (!nodes[name]) { nodes[name] = P(i, SPINE_J); spine.push([i, name]); }
+    return name;
+  };
+  for (const id of [...LAYOUT.back, ...LAYOUT.front]) {
+    const { I0, J0, row } = roomOrigin(id);
+    const s = SEATS[id];
+    const poly = [P(I0, J0), P(I0 + RI, J0), P(I0 + RI, J0 + RJ), P(I0, J0 + RJ)].map((p) => [p.x, p.y]);
+    const lab = P(I0 + RI / 2, J0 + RJ);
+    let doorPt, spineI;
+    if (row === 'back') { spineI = I0 + 40; doorPt = P(I0 + 40, J0 + RJ - 6); }
+    else { const span = ROOM_DRAW[id].doorSpan || DOOR; spineI = I0 + (span[0] + span[1]) / 2; doorPt = P(spineI, J0 + 8); }
+    const door = `n_${id}`;
+    nodes[door] = doorPt;
+    edges.push([door, addSpine(spineI)]);
+    rooms[id] = {
+      label: { x: lab.x, y: lab.y - (row === 'back' ? 4 : 10) },
+      poly,
+      seat: { ...P(I0 + s.i, J0 + s.j), flip: false },
+      door,
+    };
+  }
+  // elevador na ponta esquerda do corredor
+  nodes.n_elevador = P(6, SPINE_J);
+  spine.push([6, 'n_elevador']);
+  spine.sort((a, b) => a[0] - b[0]);
+  for (let k = 1; k < spine.length; k++) edges.push([spine[k - 1][1], spine[k][1]]);
+
+  const L0 = roomOrigin('lounge');
+  const sofa = [0, 1, 2, 3].map((k) => ({ ...P(L0.I0 + SOFA.i + 14, L0.J0 + SOFA.j + 14 + k * 16), flip: false }));
+  const visitors = [[94, 30], [110, 52], [84, 56]].map(([i, j]) => ({ ...P(L0.I0 + i, L0.J0 + j), flip: true }));
+  rooms.lounge.seat = { ...sofa[0] };
+  return { rooms, lounge: { sofa, visitors }, paths: { nodes, edges } };
 }
