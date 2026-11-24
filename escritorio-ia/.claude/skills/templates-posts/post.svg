@@ -1,0 +1,17 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1080" height="1350" viewBox="0 0 1080 1350">
+  <rect width="1080" height="1350" fill="#f7f5f2"/>
+  <circle cx="960" cy="160" r="360" fill="#1f6f78" opacity="0.12"/>
+  <rect x="80" y="96" width="300" height="60" rx="30" fill="#f28c6a"/>
+  <text x="230" y="136" font-family="DejaVu Sans, Arial, sans-serif" font-size="28" font-weight="700" fill="#fff" text-anchor="middle">DICA RÁPIDA</text>
+  <text font-family="DejaVu Sans, Arial, sans-serif" font-size="96" font-weight="800" fill="#1d232b">
+    <tspan x="80" y="560">Título curto</tspan>
+    <tspan x="80" y="670">com <tspan fill="#1f6f78">destaque</tspan></tspan>
+  </text>
+  <text font-family="DejaVu Sans, Arial, sans-serif" font-size="38" fill="#1d232b">
+    <tspan x="80" y="770">Uma ou duas linhas de apoio explicando</tspan>
+    <tspan x="80" y="822">o benefício principal.</tspan>
+  </text>
+  <text x="80" y="1236" font-family="DejaVu Sans, Arial, sans-serif" font-size="28" font-weight="700" fill="#1d232b">@perfil</text>
+  <rect x="700" y="1190" width="300" height="72" rx="16" fill="#1f6f78"/>
+  <text x="850" y="1236" font-family="DejaVu Sans, Arial, sans-serif" font-size="28" font-weight="700" fill="#fff" text-anchor="middle">Saiba mais →</text>
+</svg>

@@ -1,0 +1,25 @@
+/* Tokens de marca — copie para design/tokens.css e troque os valores. */
+:root {
+  /* cores */
+  --cor-primaria: #1f6f78;
+  --cor-secundaria: #3b4a6b;
+  --cor-acento: #f28c6a;
+  --cor-fundo: #f7f5f2;
+  --cor-superficie: #ffffff;
+  --cor-texto: #1d232b;
+  --cor-texto-suave: #5b6470;
+  --cor-erro: #c0392b;
+  --cor-sucesso: #2e8b57;
+  --cor-primaria-clara: color-mix(in oklch, var(--cor-primaria) 20%, white);
+
+  /* tipografia */
+  --fonte-titulo: "Poppins", system-ui, sans-serif;
+  --fonte-texto: "Inter", system-ui, sans-serif;
+  --fs-1: 0.75rem; --fs-2: 0.875rem; --fs-3: 1rem; --fs-4: 1.25rem;
+  --fs-5: 1.5625rem; --fs-6: 1.953rem; --fs-7: 2.441rem; --fs-8: 3.052rem;
+
+  /* forma */
+  --raio: 12px;
+  --sombra: 0 6px 20px rgb(0 0 0 / 0.12);
+  --espaco: 8px; /* múltiplos: calc(var(--espaco) * n) */
+}

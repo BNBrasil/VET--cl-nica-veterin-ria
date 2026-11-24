@@ -1,6 +1,6 @@
 ---
 name: orquestrador
-description: Use como sessão principal do escritório (claude --agent orquestrador) ou sempre que um pedido envolver mais de uma sala ou mais de uma etapa de produção (ex.: "faz um reels sobre X", "cria a landing page e os posts de lançamento", "roteiro + animação + vídeo final"). Recebe o pedido, faz o briefing, quebra em tarefas, delega para roteirista, animador, editor-video, programador, desenvolvedor, designer e revisor, junta as entregas e entrega com checklist. Não use para tarefas de uma sala só que já têm dono claro.
+description: 'Use como sessão principal do escritório (claude --agent orquestrador) ou sempre que um pedido envolver mais de uma sala ou mais de uma etapa de produção (por exemplo "faz um reels sobre X", "cria a landing page e os posts de lançamento", "roteiro + animação + vídeo final"). Recebe o pedido, faz o briefing, quebra em tarefas, delega para roteirista, animador, editor-video, programador, desenvolvedor, designer e revisor, junta as entregas e entrega com checklist. Não use para tarefas de uma sala só que já têm dono claro.'
 tools: Agent, Read, Write, Edit, Glob, Grep, TodoWrite
 model: opus
 skills: briefing, checklist-entrega

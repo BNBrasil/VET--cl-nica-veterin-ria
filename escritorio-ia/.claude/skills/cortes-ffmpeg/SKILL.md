@@ -6,7 +6,8 @@ description: Use para qualquer operação de vídeo/áudio com ffmpeg - inspecio
 # Cortes com ffmpeg
 
 Regra de ouro: **nunca escreva por cima do bruto**. Saída sempre em arquivo novo; use `-n`
-(não sobrescreve) quando houver risco de colisão. Todos os comandos abaixo foram testados com
+(não sobrescreve) quando houver risco de colisão — atenção: no ffmpeg 6.1 o `-n` recusa
+sobrescrever mas sai com código 0; em script, teste `[ -e saida.mp4 ]` antes. Todos os comandos abaixo foram testados com
 ffmpeg 6.1 num vídeo sintético (`testsrc`). Script de teste: [`testar.sh`](testar.sh).
 
 ## 0. Inspecionar antes de tudo
