@@ -270,3 +270,8 @@ button.small { padding: 2px 8px; font-size: 12px; }
 body.off .layout { opacity: 0.35; pointer-events: none; }
 
 [hidden] { display: none !important; }
+
+/* mapa isométrico (manifest v2): o prédio tem ~1008 px; a coluna do chat cede um pouco para o mapa caber em 1x */
+@media (min-width: 1100px) {
+  body.iso .layout { grid-template-columns: minmax(0, 1fr) minmax(340px, 28vw); }
+}
