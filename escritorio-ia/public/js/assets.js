@@ -56,6 +56,17 @@ export async function loadAssets() {
     return { placeholder: true, reason: 'manifest ausente (' + e.message + ')', warnings, rooms: {}, chars: {} };
   }
 
+  if (manifest.version === 2) {
+    try {
+      const v2 = await loadAssetsV2(manifest, warnings);
+      if (v2) return v2;
+    } catch (e) {
+      warnings.push('v2: ' + e.message);
+    }
+    console.warn('[assets] manifest v2 incompleto, caindo para o modo placeholder:', warnings);
+    return { placeholder: true, reason: 'manifest v2 incompleto (' + (warnings[0] || '?') + ')', warnings, rooms: {}, chars: {} };
+  }
+
   try {
     const chars = {};
     const rooms = {};
@@ -89,4 +100,38 @@ export async function loadAssets() {
   } catch (e) {
     return { placeholder: true, reason: e.message, warnings, rooms: {}, chars: {} };
   }
+}
+
+/**
+ * Manifest v2 (isométrico, CONTRATO "Versão 2"). Retorna
+ * { v2: true, placeholder: false, manifest, bg, fg, chars, visitor, fx, rooms: {id: {object}} , warnings }
+ * ou null se faltar o essencial (fundo do mapa ou nenhum personagem).
+ */
+async function loadAssetsV2(manifest, warnings) {
+  const chars = {};
+  const rooms = {};
+  let bg = null, fg = null, fx = null, visitor = null;
+  const jobs = [];
+  const map = manifest.map || {};
+  if (map.background) jobs.push(optional(loadImage(BASE + map.background), 'map_bg', warnings).then((i) => { bg = i; }));
+  if (map.foreground) jobs.push(optional(loadImage(BASE + map.foreground), 'map_fg', warnings).then((i) => { fg = i; }));
+  for (const [id, c] of Object.entries(manifest.characters || {})) {
+    jobs.push(optional(loadSheet(c.image, c.data), 'personagem ' + id, warnings).then((s) => { if (s) chars[id] = s; }));
+  }
+  for (const [id, r] of Object.entries(manifest.rooms || {})) {
+    const entry = { object: null };
+    rooms[id] = entry;
+    const o = r.object;
+    if (o && o.image && o.data) {
+      jobs.push(optional(loadSheet(o.image, o.data), 'objeto ' + id, warnings)
+        .then((s) => { if (s) entry.object = { sheet: s, x: o.x || 0, y: o.y || 0, w: o.w || 0, h: o.h || 0 }; }));
+    }
+  }
+  if (manifest.fx) jobs.push(optional(loadSheet(manifest.fx.image, manifest.fx.data), 'fx', warnings).then((s) => { fx = s; }));
+  if (manifest.visitor) jobs.push(optional(loadSheet(manifest.visitor.image, manifest.visitor.data), 'visitante', warnings).then((s) => { visitor = s; }));
+  await Promise.all(jobs);
+  if (!bg) { warnings.unshift('sem map_bg'); return null; }
+  if (!Object.keys(chars).length) { warnings.unshift('nenhum personagem carregou'); return null; }
+  if (warnings.length) console.warn('[assets v2] avisos:', warnings);
+  return { v2: true, placeholder: false, manifest, bg, fg, chars, visitor, fx, rooms, warnings };
 }
