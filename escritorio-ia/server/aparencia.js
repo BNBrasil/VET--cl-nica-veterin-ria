@@ -305,7 +305,7 @@ export function createAparencia(o = {}) {
     const lista = temas().map(resumoTema);
     const escolha = ler();
     return {
-      temas: lista, escolha, ...interfaceAplicada(escolha.tema || 'padrao'),
+      temas: lista, escolha, ...interfaceAplicada((aplicada || escolha).tema || 'padrao'),
       estado: status(), opcoes: {
         ...OPCOES,
         salas: salas.map((r) => ({ id: r.id, nome: r.nome, accent: r.accent, comum: !(rooms.rooms || []).includes(r) })),

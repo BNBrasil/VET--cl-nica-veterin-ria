@@ -90,9 +90,17 @@ const PADROES_NOME = [
 ];
 
 /** Data/hora a partir do nome do arquivo. Retorna { data, hora|null } ou null. */
-export function dataDoNome(nomeArquivo) {
+export function dataDoNome(nomeArquivo, { fusoMin } = {}) {
   const nome = String(nomeArquivo).replace(/^.*[\\/]/, '');
-  if (nomeSemData(nome) && !/(\d{8})/.test(nome)) return null;
+  if (nomeSemData(nome)) return null;
+  // Gravação de tela do iPhone "RPReplay_Final1700000000" e apps que usam o horário Unix em ms
+  // ("VID_1700000000000"): converte para o fuso local.
+  const ep = nome.match(/RPReplay_Final(\d{10})(?!\d)/i) || nome.match(/(?<!\d)(1[4-9]\d{11})(?!\d)/);
+  if (ep) {
+    const ms = ep[1].length === 10 ? +ep[1] * 1000 : +ep[1];
+    const r = dataLocal(new Date(ms), fusoMin);
+    if (r) return r;
+  }
   for (const { re, f } of PADROES_NOME) {
     const m = nome.match(re);
     if (!m) continue;
@@ -193,7 +201,7 @@ export function tagsDoProbe(probe) {
  */
 export function descobrirData({ caminhoRelativo, tags, mtime, fusoMin } = {}) {
   const nome = String(caminhoRelativo || '').replace(/^.*[\\/]/, '');
-  const doNome = dataDoNome(nome);
+  const doNome = dataDoNome(nome, { fusoMin });
   const doMeta = tags ? dataDoMetadado(tags, { nomeArquivo: nome, fusoMin }) : null;
   const doMtime = mtime != null ? dataLocal(mtime instanceof Date ? mtime : new Date(mtime), fusoMin) : null;
   const daPasta = dataDaPasta(caminhoRelativo || '');
