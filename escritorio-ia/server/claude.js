@@ -140,8 +140,9 @@ export class ClaudeBridge extends EventEmitter {
 
   // ---------- persistência ----------
   saveConfig() {
+    // preserva o que outras partes guardam no mesmo arquivo (agenda, produção...)
     writeFileSync(this.cfgFile, JSON.stringify({
-      nomes: this.nomes, permissionMode: this.permissionMode, sessionId: this.sessionId,
+      ...readJson(this.cfgFile, {}), nomes: this.nomes, permissionMode: this.permissionMode, sessionId: this.sessionId,
     }, null, 2));
   }
   saveChatSoon() {
@@ -154,8 +155,11 @@ export class ClaudeBridge extends EventEmitter {
   get apiKey() { return readJson(this.secretFile, {}).apiKey || null; }
   setApiKey(key) {
     const k = cleanText(key, 400).trim();
-    if (!k) { try { writeFileSync(this.secretFile, '{}'); } catch {} }
-    else writeFileSync(this.secretFile, JSON.stringify({ apiKey: k }), { mode: 0o600 });
+    // preserva os outros segredos (tokens das redes sociais, chave da fila)
+    const s = readJson(this.secretFile, {});
+    const rest = s && typeof s === 'object' && !Array.isArray(s) ? s : {};
+    if (!k) delete rest.apiKey; else rest.apiKey = k;
+    try { writeFileSync(this.secretFile, JSON.stringify(rest), { mode: 0o600 }); } catch (e) { if (k) throw e; }
     return this.refresh();
   }
 

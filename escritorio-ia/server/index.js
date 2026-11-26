@@ -8,6 +8,7 @@ import { createState, DEFAULT_ROOMS_PATH } from './state.js';
 import { ClaudeBridge } from './claude.js';
 import { RemoteAccess, originOk, networkAddresses, tailscaleInfo } from './remote.js';
 import qrcode from 'qrcode-generator';
+import { createProducao } from './producao.js';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const ROOT = path.join(__dirname, '..');
@@ -108,6 +109,12 @@ export function createServer(opts = {}) {
   let onShutdown = opts.onShutdown || (() => {});
 
   const remote = bridge ? (opts.remote || new RemoteAccess({ dataDir: bridge.dataDir })) : null;
+  // Produção do canal gamer (fila de posts, aprovação, redes sociais, agenda). Só com o chat ligado.
+  const producao = bridge ? createProducao({
+    bridge, dataDir: bridge.dataDir, dir: opts.producaoDir, now: opts.now, log, rooms: state.config.rooms,
+    pollMs: opts.producaoPollMs, agendaMs: opts.agendaMs, publicar: opts.publicar,
+    broadcast: (m) => broadcast(m), ingest: (ev) => ingest(ev),
+  }) : null;
   let current = { port: 0, host: '127.0.0.1' };
 
   // Quem está pedindo? Local (o próprio computador) ou um aparelho pareado. Sem o chat ligado, tudo é local.
@@ -205,6 +212,14 @@ export function createServer(opts = {}) {
     }
     if (!a.allowed) return send(res, 401, 'aparelho não pareado');
     if (LOCAL_ONLY.has(p) && !a.local) return send(res, 403, 'só no computador');
+    if (p.startsWith('/api/producao') || p === '/api/redes' || p === '/api/agenda') {
+      const readJsonBody = async () => {
+        try { return JSON.parse((await readBody(req)) || '{}') || {}; } catch { send(res, 400, 'invalid json'); return null; }
+      };
+      const r = await producao.handle(req, res, p, a, readJsonBody);
+      if (r === null && !res.headersSent) return send(res, 404, 'not found');
+      return;
+    }
     if (req.method === 'GET') {
       if (p === '/api/claude') return sendJson(res, 200, bridge.status());
       if (p === '/api/nomes') return sendJson(res, 200, bridge.nomes);
@@ -304,6 +319,7 @@ export function createServer(opts = {}) {
     ws.send(JSON.stringify({ type: 'snapshot', agents: state.snapshot(), serverTime: state.now() }));
     if (bridge) {
       ws.send(JSON.stringify({ type: 'chat_snapshot', mensagens: bridge.history, nomes: bridge.nomes, claude: bridge.status() }));
+      try { ws.send(JSON.stringify({ type: 'producao', ...producao.estado() })); } catch {}
     }
   });
 
@@ -331,6 +347,7 @@ export function createServer(opts = {}) {
   }
 
   let timer = null;
+  let producaoIniciada = false;
   function listenRaw(port, baseHost) {
     const host = remote?.enabled && ['127.0.0.1', 'localhost', '::1'].includes(baseHost) ? '0.0.0.0' : baseHost;
     return new Promise((resolve, reject) => {
@@ -352,11 +369,13 @@ export function createServer(opts = {}) {
       timer = setInterval(tick, tickMs);
       timer.unref();
     }
+    if (producao && !producaoIniciada) { producaoIniciada = true; producao.iniciar(); }
     return r;
   }
 
   function close() {
     if (timer) clearInterval(timer);
+    producao?.parar();
     bridge?.shutdown();
     for (const c of wss.clients) c.terminate();
     wss.close();
@@ -366,7 +385,7 @@ export function createServer(opts = {}) {
     });
   }
 
-  return { server, wss, state, bridge, remote, listen, close, tick, ingest, set onShutdown(fn) { onShutdown = fn; } };
+  return { server, wss, state, bridge, remote, producao, listen, close, tick, ingest, set onShutdown(fn) { onShutdown = fn; } };
 }
 
 const isMain = process.argv[1] && path.resolve(process.argv[1]) === fileURLToPath(import.meta.url);
