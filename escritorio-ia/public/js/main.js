@@ -8,6 +8,7 @@ import { startDemo } from './demo.js';
 import { colorFor, stateText, STATE_PT } from './labels.js';
 import { initChat, onChatMessage, nomeDe, chatDisabled } from './chat.js';
 import { initProducao } from './producao.js';
+import { initAparencia, onAparenciaEstado, onAparenciaAplicada, carregarInterfaceInicial } from './aparencia.js';
 
 const $ = (s) => document.querySelector(s);
 const canvas = $('#office');
@@ -220,15 +221,41 @@ function tickConn() {
   setConn('closed', `Desconectado · nova tentativa em ${s}s`);
 }
 
+// ---------- aparência: troca os sprites sem recarregar a página ----------
+
+let trocando = null;
+async function trocarAparencia(m) {
+  const versao = m.versao || Date.now();
+  // pedidos seguidos: espera a troca anterior e só aplica a mais nova
+  trocando = (trocando || Promise.resolve()).then(async () => {
+    const assets = await loadAssets({ versao });
+    if (assets.placeholder || !office) { console.warn('[aparência] sprites novos não carregaram:', assets.reason); return; }
+    const novo = assets.v2 ? new OfficeIso(rooms, assets) : new Office(rooms, assets);
+    // mantém os estados dos agentes e os balões de fala
+    novo.setAgents(office.list);
+    if (office.bubbles && novo.bubbles) for (const [k, v] of office.bubbles) novo.bubbles.set(k, v);
+    office = novo;
+    window.__office = office;
+    document.body.classList.toggle('iso', !!assets.v2);
+    $('#ph-badge').hidden = true;
+    resize();
+    dirty = true;
+  }).catch((e) => console.warn('[aparência] erro ao trocar:', e));
+  await trocando;
+  await onAparenciaAplicada(m);
+}
+
 // ---------- início ----------
 
 async function boot() {
+  const iface = carregarInterfaceInicial();
   try {
     rooms = await loadRooms();
   } catch (e) {
     fatal('Não consegui carregar /shared/rooms.json (' + e.message + '). O servidor está ligado?');
     return;
   }
+  await iface;
   const assets = await loadAssets();
   if (assets.placeholder) {
     const b = $('#ph-badge');
@@ -258,11 +285,14 @@ async function boot() {
     // mensagens de chat vão para o painel do chat e também viram balões de fala no mapa
     connect({ onStatus, onSnapshot, onAgent, onEvent, onOther: (m) => {
       if (m.type === 'producao') { dispatchEvent(new CustomEvent('escritorio:ws', { detail: m })); return; }
+      if (m.type === 'aparencia') { trocarAparencia(m); return; }
+      if (m.type === 'aparencia_estado') { onAparenciaEstado(m); return; }
       onChatMessage(m); office.onChat?.(m);
     } });
   }
 
   initProducao();
+  initAparencia();
 
   setInterval(() => {
     tickConn();

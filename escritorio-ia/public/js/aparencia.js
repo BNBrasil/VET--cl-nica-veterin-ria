@@ -64,16 +64,20 @@ export function aplicarInterface(iface) {
 /** Cores do tema aplicado ao abrir a página (assets/tema.json do gerador; se não houver, pergunta ao servidor). */
 export async function carregarInterfaceInicial() {
   try {
+    const r = await fetch('/api/aparencia', { credentials: 'same-origin' });
+    if (r.ok) {
+      info = await r.json(); escolha = info.escolha || {}; ifaceAplicada = info.interface; aplicarInterface(info.interface);
+      return;
+    }
+  } catch {}
+  // sem servidor do chat (modo demo): usa o tema.json que o gerador grava junto dos sprites
+  try {
     const r = await fetch(assetUrl('tema.json'), { cache: 'no-cache' });
     if (r.ok) {
       const t = await r.json();
       const iface = t.interface || t.tema?.interface;
-      if (iface) { ifaceAplicada = iface; aplicarInterface(iface); return; }
+      if (iface) { ifaceAplicada = iface; aplicarInterface(iface); }
     }
-  } catch {}
-  try {
-    const r = await fetch('/api/aparencia', { credentials: 'same-origin' });
-    if (r.ok) { info = await r.json(); escolha = info.escolha || {}; ifaceAplicada = info.interface; aplicarInterface(info.interface); }
   } catch {}
 }
 
@@ -120,7 +124,8 @@ function cardTema(t, sel) {
     ? `<img src="${esc(assetUrl(t.miniatura.replace(/^assets\//, '')))}" alt="" loading="lazy">`
     : `<span class="ap-cores">${(t.cores.length ? t.cores : ['#333333']).map((c) => `<i style="background:${esc(c)}"></i>`).join('')}</span>`;
   const iface = t.interface || {};
-  return `<button type="button" class="ap-tema ${sel ? 'on' : ''}" data-tema="${esc(t.id)}" aria-pressed="${sel}"
+  const claro = HEX.test(iface.painel || '') && lum(iface.painel) > 0.4;
+  return `<button type="button" class="ap-tema ${sel ? 'on' : ''} ${claro ? 'claro' : ''}" data-tema="${esc(t.id)}" aria-pressed="${sel}"
     style="--t-bg:${esc(iface.fundo || '#0f0d16')};--t-pn:${esc(iface.painel || '#211d30')};--t-ac:${esc(iface.destaque || '#e0a030')}">
     <span class="ap-mini">${mini}</span><b>${esc(t.nome)}</b>${t.descricao ? `<small>${esc(t.descricao)}</small>` : ''}</button>`;
 }
@@ -271,7 +276,7 @@ async function desenharPrevia() {
   for (let i = tag.from; i <= tag.to; i++) {
     const f = sheet.frames[i];
     tmp.width = f.w; tmp.height = f.h;
-    const tc = tmp.getContext('2d');
+    const tc = tmp.getContext('2d', { willReadFrequently: true });
     tc.clearRect(0, 0, f.w, f.h);
     tc.drawImage(sheet.img, f.x, f.y, f.w, f.h, 0, 0, f.w, f.h);
     if (troca.size) {

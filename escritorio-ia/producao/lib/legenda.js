@@ -9,9 +9,16 @@ const FRACAS = new Set(['o', 'a', 'os', 'as', 'um', 'uma', 'uns', 'umas', 'de', 
 /** Separa em palavras, mantendo juntos "R$ 79,96", "US$ 10" e "-60%". Remove os * de destaque mas marca. */
 export function tokenizar(fala) {
   const texto = String(fala || '').replace(/\s+/g, ' ').trim().replace(/(R\$|US\$|U\$|€) (?=\d)/g, '$1\u00a0');
+  // nomes compostos do dicionário de pronúncia ficam juntos ("GTA VI", "Xbox Series X|S")
+  let texto2 = texto;
+  for (const [termo] of carregarPronuncia()) {
+    if (!termo.includes(' ')) continue;
+    const re = new RegExp(`(?<![\\p{L}\\p{N}])${termo.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}(?![\\p{L}\\p{N}])`, 'giu');
+    texto2 = texto2.replace(re, (m) => m.replace(/ /g, '\u00a0'));
+  }
   const tokens = [];
   let emDestaque = false;
-  for (const bruto of texto.split(' ')) {
+  for (const bruto of texto2.split(' ')) {
     if (!bruto) continue;
     let p = bruto;
     const abre = p.startsWith('*');
@@ -54,7 +61,7 @@ export function dividirBlocos(fala, { min = 2, max = 4, maxChars = 22 } = {}) {
     atual.push(tok);
     const restantes = tokens.length - i - 1;
     if (fimDeFrase(tok.texto)) fechar();
-    else if (virgula(tok.texto) && atual.length >= min && restantes >= min) fechar();
+    else if (virgula(tok.texto) && (atual.length >= min || tok.texto.length >= 8) && restantes >= min) fechar();
     else if (!proximo) fechar();
   });
   // bloco de 1 palavra sozinho: junta com o anterior se couber (mesma frase)
@@ -126,7 +133,13 @@ export function cronometrar(blocos, { duracao, segmentos } = {}) {
     frases[frases.length - 1].push(i);
   });
   let out;
-  if (frases.length > 1 && frases.length === segs.length) {
+  const pesoFrase = frases.map((idxs) => idxs.reduce((a, i) => a + pesos[i], 0));
+  const coerente = frases.length > 1 && frases.length === segs.length && frases.every((_, f) => {
+    const esperado = (pesoFrase[f] / total) * tempoFala;
+    const r = (segs[f].fim - segs[f].ini) / esperado;
+    return r > 0.65 && r < 1.5;
+  });
+  if (coerente) {
     out = [];
     frases.forEach((idxs, f) => {
       const g = segs[f];

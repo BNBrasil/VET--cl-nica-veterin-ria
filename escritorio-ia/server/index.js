@@ -429,7 +429,7 @@ const isMain = process.argv[1] && path.resolve(process.argv[1]) === fileURLToPat
 if (isMain) {
   const port = Number(process.env.ESCRITORIO_PORT) || 4317;
   const host = process.env.ESCRITORIO_HOST || '127.0.0.1';
-  const app = createServer({ chat: process.env.ESCRITORIO_CHAT !== '0' });
+  const app = createServer({ chat: process.env.ESCRITORIO_CHAT !== '0', temasDir: process.env.ESCRITORIO_TEMAS_DIR || undefined });
   app.listen(port, host).catch((e) => {
     console.error(`[escritorio] não foi possível abrir ${host}:${port}: ${e.message}`);
     process.exit(1);
