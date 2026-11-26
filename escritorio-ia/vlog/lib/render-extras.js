@@ -3,7 +3,7 @@ import { existsSync, writeFileSync } from 'node:fs';
 import { spawnSync } from 'node:child_process';
 import path from 'node:path';
 import {
-  VLOG, WIN, ffmpeg, rodar, filtroEnquadramento, maiusc, dataBR, tempoCapitulo,
+  VLOG, WIN, ffmpeg, rodar, filtroEnquadramento, dataBR,
 } from './render-comum.js';
 import { assCapa } from './render-ass.js';
 
@@ -87,4 +87,3 @@ export async function acharRosto(arquivo, ini, fim) {
   }
 }
 
-export { maiusc, tempoCapitulo };

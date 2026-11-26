@@ -150,7 +150,10 @@ export function srtDoDia(clipes) {
 
 /** Texto corrido do dia para leitura rápida (clipe, horário, tempo de cada fala). */
 export function textoDoDia(analise) {
-  const mmss = (s) => `${Math.floor(s / 60)}:${(s % 60).toFixed(1).padStart(4, '0')}`;
+  const mmss = (s) => {
+    const d = Math.round(s * 10);
+    return `${Math.floor(d / 600)}:${((d % 600) / 10).toFixed(1).padStart(4, '0')}`;
+  };
   const linhas = [`Transcrição de ${analise.data}`, ''];
   analise.clipes.forEach((c, i) => {
     linhas.push(`== [clipe ${i}] ${path.basename(c.arquivo)}  ${c.inicioDoDia || '--:--:--'}  (${mmss(c.duracao)})`);

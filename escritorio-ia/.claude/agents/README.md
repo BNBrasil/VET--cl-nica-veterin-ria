@@ -26,6 +26,7 @@ as listadas no próprio arquivo (subagentes não herdam skills da sessão princi
 | `pesquisador` | (visitante no lounge) | sonnet | green | Read, Write, Edit, Bash, Grep, Glob, WebSearch, WebFetch | pesquisa-noticias-gamer, nicho-gamer |
 | `locutor` | (visitante no lounge) | sonnet | cyan | Read, Write, Edit, Bash | locucao-piper |
 | `social-media` | (visitante no lounge) | sonnet | pink | Read, Write, Edit, Bash | postagem-redes, criterios-criticos, ganchos-reels |
+| `editor-vlog` | Sala de Edição (divide com o editor-video) | sonnet | purple | Read, Write, Edit, Bash, Glob, Grep | vlog-edicao, cortes-ffmpeg, padrao-export, legendas-srt, ganchos-reels |
 
 `pesquisador`, `locutor` e `social-media` são do canal gamer (`producao/CONTRATO.md`) e ainda não têm
 sala em `shared/rooms.json`: o servidor os mostra como visitantes no lounge até ganharem sala.
@@ -55,6 +56,7 @@ Todas gravam em `entregas/teste/`. Veja a sala acender na tela enquanto roda.
 | pesquisador | `Use o pesquisador: levante as promoções da Steam, os jogos grátis da Epic e as notícias de GTA de hoje e proponha 3 pautas com fontes.` | `fontes-<data>.json` + `pesquisa-<data>.md` com fato x rumor e rascunho de `pauta-<id>.json` |
 | locutor | `Use o locutor: instale a voz e acrescente ao pronuncia.json os nomes de jogos das promoções de hoje; gere um teste com "Red Dead Redemption 2 por setenta e quatro reais".` | `pronuncia.json` válido com termos novos e WAV de teste em `producao/trabalho/` |
 | social-media | `Use o social-media: escreva legenda e hashtags (TikTok e Instagram) para um vídeo "Bread and Fred grátis na Epic até 03/12" e rode postar.js --simular no id de teste.` | 2 legendas com 3–5 hashtags e resultado do simulado; não publica crítico |
+| editor-vlog | `Use o editor-vlog: edite meu vlog (rode node vlog/analisar.js, escolha os momentos de cada data e gere os vídeos com vlog/renderizar.js).` | por data: youtube-16x9.mp4, reels-9x16.mp4, capas e textos em vlog/postar/<data>/ |
 
 ## Fluxo completo de exemplo (ondas paralelas)
 ```

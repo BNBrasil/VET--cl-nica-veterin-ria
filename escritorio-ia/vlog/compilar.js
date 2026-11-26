@@ -38,7 +38,7 @@ export function melhoresDoDia(edl, orcamento) {
 }
 
 /** Monta analise + edl virtuais do compilado. dias: [{ data, analise, edl, dir }]. */
-export function montarCompilado(dias, { de, ate, maxMinutos = 10, maxCurto = 60, extra = {}, canal = {} }) {
+export function montarCompilado(dias, { de, ate, maxMinutos = 10, maxCurto = 60, extra = {} }) {
   const analise = { data: `${de}_${ate}`, clipes: [] };
   const base = [];
   for (const d of dias) {
@@ -95,7 +95,6 @@ export function montarCompilado(dias, { de, ate, maxMinutos = 10, maxCurto = 60,
       ...(extra.reels || {}),
     },
   };
-  void canal;
   return { analise, edl };
 }
 
@@ -116,7 +115,7 @@ export async function compilar({ de, ate, maxMinutos = 10, maxCurto = 60, log = 
   const arqExtra = path.join(pastaTrabalho(), `${nome}.json`);
   const extra = existsSync(arqExtra) ? lerJson(arqExtra, `${nome}.json`) : {};
   const canal = lerCanal();
-  const { analise, edl } = montarCompilado(dias, { de, ate, maxMinutos, maxCurto, extra, canal });
+  const { analise, edl } = montarCompilado(dias, { de, ate, maxMinutos, maxCurto, extra });
   log(`Compilado ${de} → ${ate}: ${datas.length} dia(s) (${datas.join(', ')})`);
   return renderizarPacote({
     analise, edl, pastaAnalise: pastaTrabalho(), pastaRender: path.join(pastaTrabalho(), nome, 'render'),

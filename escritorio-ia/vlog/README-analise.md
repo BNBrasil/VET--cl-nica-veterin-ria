@@ -67,7 +67,13 @@ e um filtro de alucinação (créditos tipo "Legendas pela comunidade Amara.org"
 assistir"/"Inscreva-se" quando o áudio é fraco ou a confiança baixa, frases repetidas, fala rápida demais).
 
 ## Tempos medidos (máquina de teste: 4 vCPU compartilhadas, sem GPU, whisper.cpp v1.9.6 CPU, modelo small)
-VEJA_TEMPOS
+Medidos com a máquina sobrecarregada por outras tarefas (carga 9–11 em 4 núcleos), então são o pior caso:
+- análise (ffprobe + sinais + folha + 16 quadros): clipe 1080p30 de 3 min em 16 s ≈ **5 s por minuto de vídeo**;
+  clipes curtos de 720p ficam em 3–10 s cada (o custo fixo da folha domina);
+- transcrição `small` na CPU, busca padrão (beam 5): ≈ **3 min por minuto de fala** (1:08 de fala em 204 s);
+  com `--rapido` (beam 1) o mesmo trecho ficou 3–7x mais rápido. Só os trechos com voz vão para o Whisper:
+  silêncio e barulho ambiente não custam nada;
+- instalar no Linux (compilar o whisper.cpp 1.9.6 + baixar o small 466 MB + VAD): ~3 min.
 
 No PC do canal (Ryzen 7 5700X 16 threads + GTX 1650 Super com CUDA) a análise deve ficar ~3–4x mais rápida
 (4 clipes em paralelo) e a transcrição na placa de vídeo bem abaixo de 1x o tempo real com o `small`.
