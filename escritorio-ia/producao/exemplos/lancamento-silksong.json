@@ -6,7 +6,7 @@
   "voz": { "modelo": "pt_BR-cadu-medium", "velocidade": 1.08 },
   "cenas": [
     { "tipo": "gancho", "fala": "Depois de anos de espera, Hollow Knight: Silksong finalmente chegou!", "texto": "SILKSONG CHEGOU", "destaque": "SILKSONG" },
-    { "tipo": "imagem", "fala": "Agora você controla a Hornet, numa aventura nova, com mais de duzentos inimigos e um reino inteiro pra explorar.", "texto": "Hornet em um reino novo", "selo": "LANÇAMENTO", "imagem": null },
+    { "tipo": "imagem", "fala": "Agora você controla a Hornet, numa aventura nova, com inimigos e chefes inéditos e um reino inteiro pra explorar.", "texto": "Hornet em um reino novo", "selo": "LANÇAMENTO", "imagem": null },
     { "tipo": "lista", "fala": "Tá disponível no PC, pela Steam, no PS5, no Xbox Series X|S e no Nintendo Switch 2, e também entra no Game Pass.", "texto": "ONDE JOGAR", "itens": [
       { "nome": "PC (Steam)", "por": "Disponível", "desconto": "NOVO" },
       { "nome": "PS5", "por": "Disponível" },

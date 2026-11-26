@@ -60,15 +60,24 @@ function aleatorio(semente) {
 const maiusc = (s) => String(s).toLocaleUpperCase('pt-BR');
 
 /** Quebra `texto` em linhas que caibam em `largura` com o tamanho dado (métrica real). */
+const CURTAS = new Set(['O', 'A', 'OS', 'AS', 'E', 'DE', 'DO', 'DA', 'EM', 'NO', 'NA', 'UM', 'UMA', 'PRA', 'COM', 'POR', 'QUE', 'SE', 'AO']);
 export function quebrarParaLargura(texto, largura, tamanho, m, maxLinhas = 3) {
   const palavras = String(texto).split(/\s+/).filter(Boolean);
   const linhas = [];
-  let atual = '';
-  for (const p of palavras) {
-    const teste = atual ? `${atual} ${p}` : p;
-    if (atual && m.largura(teste, tamanho) > largura) { linhas.push(atual); atual = p; } else atual = teste;
-  }
-  if (atual) linhas.push(atual);
+  let atual = [];
+  const cabe = (arr) => m.largura(arr.join(' '), tamanho) <= largura;
+  palavras.forEach((p, i) => {
+    if (atual.length && !cabe([...atual, p])) {
+      // não termina linha em artigo/preposição: leva junto para a próxima
+      const ultima = atual[atual.length - 1];
+      if (atual.length > 1 && CURTAS.has(ultima.toLocaleUpperCase('pt-BR')) && cabe([ultima, p])) {
+        atual.pop(); linhas.push(atual.join(' ')); atual = [ultima, p];
+      } else { linhas.push(atual.join(' ')); atual = [p]; }
+    } else atual.push(p);
+    // depois de ":" começa linha nova (título "GTA VI: O QUE É OFICIAL")
+    if (/:$/.test(p) && i < palavras.length - 1 && i > 0) { linhas.push(atual.join(' ')); atual = []; }
+  });
+  if (atual.length) linhas.push(atual.join(' '));
   return linhas.length <= maxLinhas ? linhas : null;
 }
 
@@ -83,7 +92,7 @@ export function ajustarTexto(texto, { largura, max, min = 30, maxLinhas = 3, m }
   return { tamanho: min, linhas: quebrarParaLargura(texto, largura, min, m, 99) || [texto] };
 }
 function equilibrar(linhas, largura, t, m) {
-  if (linhas.length !== 2) return linhas;
+  if (linhas.length !== 2 || /:$/.test(linhas[0])) return linhas;
   const palavras = linhas.join(' ').split(' ');
   let melhor = linhas;
   let pior = Math.max(...linhas.map((l) => m.largura(l, t)));
@@ -168,10 +177,21 @@ export function criarAss({ canal, fontes, duracaoTotal }) {
         let t = ini - rnd() * vida;
         const x = 30 + rnd() * (W - 60);
         const grande = i < 5;
-        const r = grande ? 60 + rnd() * 90 : 3 + rnd() * 7;
         const cor = cores[Math.floor(rnd() * cores.length)];
-        const a = grande ? 0xE4 : 0x60 + rnd() * 0x60;
-        const blur = grande ? 40 : 1.5;
+        if (grande) {
+          // "bokeh": círculos desfocados parados que acendem e apagam (parado = o libass reaproveita o bitmap)
+          const r = 70 + rnd() * 90;
+          const y = 300 + rnd() * (H - 600);
+          for (; t < fim; t += vida) {
+            const t0 = Math.max(t, ini);
+            const t1 = Math.min(t + vida, fim);
+            const meio = Math.round(((t1 - t0) * 1000) / 2);
+            ev(2, t0, t1, 'L', `{\\an5\\pos(${x.toFixed(0)},${y.toFixed(0)})\\bord0\\shad0\\blur40\\c${corAss(cor)}\\alpha&HFF&\\t(0,${meio},\\alpha&HD8&)\\t(${meio},${meio * 2},\\alpha&HFF&)\\p1}${circulo(Math.round(r))}`);
+          }
+          continue;
+        }
+        const r = 3 + rnd() * 7;
+        const a = 0x60 + rnd() * 0x60;
         const deriva = (rnd() - 0.5) * 160;
         while (t < fim) {
           const t0 = Math.max(t, ini);
@@ -180,7 +200,7 @@ export function criarAss({ canal, fontes, duracaoTotal }) {
           const y1 = H + 120 - ((t1 - t) / vida) * (H + 240);
           const x0 = x + deriva * ((t0 - t) / vida);
           const x1 = x + deriva * ((t1 - t) / vida);
-          ev(2, t0, t1, 'L', `{\\an5\\move(${x0.toFixed(0)},${y0.toFixed(0)},${x1.toFixed(0)},${y1.toFixed(0)})\\bord0\\shad0\\blur${blur}\\c${corAss(cor)}\\alpha${alfa(a)}\\p1}${circulo(Math.round(r))}`);
+          ev(2, t0, t1, 'L', `{\\an5\\move(${x0.toFixed(0)},${y0.toFixed(0)},${x1.toFixed(0)},${y1.toFixed(0)})\\bord0\\shad0\\blur1.5\\c${corAss(cor)}\\alpha${alfa(a)}\\p1}${circulo(Math.round(r))}`);
           t += vida;
         }
       }
@@ -215,7 +235,7 @@ export function criarAss({ canal, fontes, duracaoTotal }) {
 
     /** cena de gancho: raios girando, selo e título enorme */
     gancho({ ini, fim, texto, selo, chave }) {
-      ev(3, ini, fim, 'L', `{\\an7\\pos(540,800)\\bord0\\shad0\\blur6\\c${corAss(c.destaque)}\\alpha&HE6&\\frz0\\t(0,${Math.round((fim - ini) * 1000)},\\frz40)\\p1}${raios(18, 1500)}`);
+      ev(3, ini, fim, 'L', `{\\an7\\pos(540,800)\\bord0\\shad0\\c${corAss(c.destaque)}\\alpha&HE6&\\frz0\\t(0,${Math.round((fim - ini) * 1000)},\\frz40)\\p1}${raios(18, 1500)}`);
       ev(4, ini, fim, 'L', `{\\an5\\pos(540,820)\\bord0\\shad0\\blur60\\c${corAss(c.alerta)}\\alpha&HB0&\\p1}${circulo(420)}`);
       const largura = LARGURA_UTIL;
       const txt = maiusc(texto);
@@ -277,6 +297,11 @@ export function criarAss({ canal, fontes, duracaoTotal }) {
       const y = 820 - alt / 2;
       ev(40, ini, fim, 'L', `{\\an7\\pos(80,${y})\\bord4\\3c${corAss(c.destaque2)}\\3a&H40&\\shad10\\4c&H000000&\\4a&H60&\\c${corAss(c.card)}\\alpha&H28&\\fscx0\\t(0,220,\\fscx100)\\p1}${retangulo(920, alt, 26)}`);
       ev(41, ini, fim, 'L', `{\\an7\\pos(80,${y})\\bord0\\shad0\\c${corAss(c.destaque2)}\\fscy0\\t(100,300,\\fscy100)\\p1}${retangulo(14, alt, 0)}`);
+      // texto gigante "fantasma" passando ao fundo (dá movimento à cena sem imagem)
+      const fantasma = maiusc(chave || txt.split(' ')[0]);
+      const wF = mT.largura(fantasma, 300);
+      ev(5, ini, fim, 'T', `{\\an4\\move(${W - 40},1180,${W - 40 - Math.max(700, wF * 0.9)},1180)\\fs300\\bord0\\shad0\\c${corAss(c.destaque2)}\\alpha&HEA&}${escAss(fantasma)}`);
+      ev(5, ini, fim, 'T', `{\\an6\\move(40,470,${40 + Math.max(700, wF * 0.9)},470)\\fs300\\bord0\\shad0\\c${corAss(c.destaque)}\\alpha&HF0&}${escAss(fantasma)}`);
       const conteudo = linhas.map((l) => colorirChave(l, chave, c)).join('\\N');
       ev(42, ini + 0.15, fim, 'T', `{\\an5\\pos(550,${y + alt / 2})\\fs${tamanho}\\bord0\\shad3\\4c&H000000&\\c&HFFFFFF&\\q2\\alpha&HFF&\\t(0,200,\\alpha&H00&)\\fscx92\\fscy92\\t(0,240,\\fscx100\\fscy100)}${conteudo}`);
       if (selo) {
@@ -352,13 +377,13 @@ export function criarAss({ canal, fontes, duracaoTotal }) {
       ev(70, ini + 0.2, fim, 'L', `{\\an5\\pos(540,${yA})\\bord0\\shad6\\4c&H000000&\\4a&H60&\\c${corAss(c.alerta)}\\fscx0\\fscy0\\t(0,200,\\fscx100\\fscy100)${pulso}\\p1}${retangulo(wA, 104, 52)}`);
       ev(71, ini + 0.2, fim, 'T', `{\\an5\\pos(540,${yA + 2})\\fs${tamA}\\bord0\\shad0\\c&HFFFFFF&\\fscx0\\fscy0\\t(0,200,\\fscx100\\fscy100)${pulso}}${escAss(arroba)}`);
       // botão "+ SEGUIR" com cursor clicando
-      const yB = yA + 150;
+      const yB = yA + 170;
       const bt = '+ SEGUIR';
-      const wB = mT.largura(bt, 46) + 70;
-      ev(72, ini + 0.45, fim, 'L', `{\\an5\\pos(540,${yB})\\bord4\\3c&HFFFFFF&\\shad0\\c&H000000&\\alpha&H40&\\fscx0\\t(0,180,\\fscx100)\\t(900,960,\\fscx92\\fscy92\\c${corAss(c.destaque2)})\\t(960,1040,\\fscx100\\fscy100)\\p1}${retangulo(wB, 84, 42)}`);
-      ev(73, ini + 0.45, fim, 'T', `{\\an5\\pos(540,${yB + 2})\\fs46\\bord0\\shad0\\c&HFFFFFF&\\alpha&HFF&\\t(120,200,\\alpha&H00&)\\t(900,960,\\c&H000000&)}${bt}`);
+      const wB = mT.largura(bt, 56) + 90;
+      ev(72, ini + 0.45, fim, 'L', `{\\an5\\pos(540,${yB})\\bord4\\3c&HFFFFFF&\\shad0\\c&H000000&\\alpha&H40&\\fscx0\\t(0,180,\\fscx100)\\t(900,960,\\fscx92\\fscy92\\c${corAss(c.destaque2)})\\t(960,1040,\\fscx100\\fscy100)\\p1}${retangulo(wB, 100, 50)}`);
+      ev(73, ini + 0.45, fim, 'T', `{\\an5\\pos(540,${yB + 2})\\fs56\\bord0\\shad0\\c&HFFFFFF&\\alpha&HFF&\\t(120,200,\\alpha&H00&)\\t(900,960,\\c&H000000&)}${bt}`);
       const cursor = 'm 0 0 l 0 60 l 15 46 l 26 72 l 36 67 l 25 42 l 44 42';
-      ev(74, ini + 0.45, fim, 'L', `{\\an7\\move(${540 + 260},${yB + 180},${540 + 60},${yB + 10},0,850)\\bord3\\3c&H000000&\\shad0\\c&HFFFFFF&\\t(860,940,\\fscx85\\fscy85)\\t(940,1020,\\fscx100\\fscy100)\\p1}${cursor}`);
+      ev(74, ini + 0.45, fim, 'L', `{\\an7\\move(${540 + 300},${yB + 200},${540 + wB / 2 - 40},${yB + 22},0,850)\\bord3\\3c&H000000&\\shad0\\c&HFFFFFF&\\t(860,940,\\fscx85\\fscy85)\\t(940,1020,\\fscx100\\fscy100)\\p1}${cursor}`);
       const oficiais = (fts || []).filter((f) => f && f.titulo).slice(0, 2);
       if (oficiais.length) {
         const t = 'Fonte: ' + oficiais.map((f) => f.titulo).join(' / ');

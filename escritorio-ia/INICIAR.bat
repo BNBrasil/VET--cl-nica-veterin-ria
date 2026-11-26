@@ -88,7 +88,7 @@ echo  [5/6] Canal gamer ok
 
 REM --- 6. IA local gratis (Ollama + Qwen3) para perguntas simples, economiza o Claude ---
 set "PATH=%LOCALAPPDATA%\Programs\Ollama;%PATH%"
-if "%ESCRITORIO_MODELO_LOCAL%"=="" set "ESCRITORIO_MODELO_LOCAL=qwen3:4b"
+if "%ESCRITORIO_MODELO_LOCAL%"=="" set "ESCRITORIO_MODELO_LOCAL=qwen3:4b-instruct"
 where ollama >nul 2>nul
 if not errorlevel 1 goto :tem_ollama
 echo  [6/6] Instalando a IA local gratis ^(Ollama^)...

@@ -105,7 +105,7 @@ export function createServer(opts = {}) {
   const log = opts.log === undefined ? console.log : opts.log || (() => {});
   const state = createState({ now: opts.now, roomsPath, rooms: opts.rooms, timers: opts.timers });
   const tickMs = opts.tickMs ?? 1000;
-  const bridge = opts.chat ? (opts.bridge || new ClaudeBridge({ rooms: state.config.rooms, dataDir: opts.dataDir })) : null;
+  const bridge = opts.chat ? (opts.bridge || new ClaudeBridge({ rooms: state.config.rooms, convidados: state.config.convidados || [], dataDir: opts.dataDir })) : null;
   let onShutdown = opts.onShutdown || (() => {});
 
   const remote = bridge ? (opts.remote || new RemoteAccess({ dataDir: bridge.dataDir })) : null;
@@ -128,7 +128,7 @@ export function createServer(opts = {}) {
     return a.allowed && originOk(req);
   }
 
-  const LOCAL_ONLY = new Set(['/api/verificar', '/api/instalar', '/api/login', '/api/login/codigo', '/api/login/cancelar',
+  const LOCAL_ONLY = new Set(['/api/ia-local', '/api/ia-local/baixar', '/api/verificar', '/api/instalar', '/api/login', '/api/login/codigo', '/api/login/cancelar',
     '/api/chave', '/api/desligar', '/api/remoto/ativar', '/api/remoto/codigo', '/api/remoto/revogar']);
 
   async function handleRemoteApi(req, res, p, a) {
@@ -233,6 +233,8 @@ export function createServer(opts = {}) {
       case '/api/chat': return sendJson(res, 200, bridge.send(body.texto));
       case '/api/parar': return sendJson(res, 200, { ok: bridge.stop() });
       case '/api/nova-conversa': bridge.newConversation(); return sendJson(res, 200, { ok: true });
+      case '/api/ia-local': return sendJson(res, 200, bridge.setIaLocal({ usar: body.usar, modelo: body.modelo }));
+      case '/api/ia-local/baixar': return sendJson(res, 200, { ok: bridge.baixarModelo() });
       case '/api/verificar': return sendJson(res, 200, await bridge.refresh());
       case '/api/instalar': return sendJson(res, 200, { ok: bridge.install() });
       case '/api/login': return sendJson(res, 200, bridge.startLogin(body.metodo));

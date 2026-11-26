@@ -8,7 +8,7 @@ const FRACAS = new Set(['o', 'a', 'os', 'as', 'um', 'uma', 'uns', 'umas', 'de', 
 
 /** Separa em palavras, mantendo juntos "R$ 79,96", "US$ 10" e "-60%". Remove os * de destaque mas marca. */
 export function tokenizar(fala) {
-  const texto = String(fala || '').replace(/(R\$|US\$|U\$|€)\s+(?=\d)/g, '$1 ').replace(/\s+/g, ' ').trim();
+  const texto = String(fala || '').replace(/\s+/g, ' ').trim().replace(/(R\$|US\$|U\$|€) (?=\d)/g, '$1\u00a0');
   const tokens = [];
   let emDestaque = false;
   for (const bruto of texto.split(' ')) {
@@ -186,14 +186,14 @@ export function agruparParaSrt(blocos, { maxLinha = 42 } = {}) {
     if (atual) {
       const junto = `${atual.texto} ${b.texto}`;
       const cabe = junto.length <= maxLinha * 2 - 4 && quebrarLinhas(junto, maxLinha).length <= 2 &&
-        fimFala - atual.ini <= 6.5 && !atual.fechada && b.ini - atual.fimFala < 0.5;
+        fimFala - atual.ini <= 6.5 && !atual.fechada && b.ini - atual.fimFala < 0.5 && b.cena === atual.cena;
       if (cabe) {
-        atual.texto = junto; atual.fim = b.fim; atual.fimFala = fimFala; atual.fechada = b.fimFrase && (fimFala - atual.ini) >= 1.2;
+        atual.texto = junto; atual.fim = b.fim; atual.fimFala = fimFala; atual.fechada = b.fimFrase;
         continue;
       }
       cues.push(atual);
     }
-    atual = { texto: b.texto, ini: b.ini, fim: b.fim, fimFala, fechada: b.fimFrase && (fimFala - b.ini) >= 1.2 };
+    atual = { texto: b.texto, ini: b.ini, fim: b.fim, fimFala, fechada: b.fimFrase, cena: b.cena };
   }
   if (atual) cues.push(atual);
   // tempos: mínimo 1 s, máximo 7 s, intervalo de ~2 quadros entre blocos

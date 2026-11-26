@@ -142,7 +142,7 @@ export async function montar(pautaOuArquivo, opts = {}) {
     const blocos = cronometrar(dividirBlocos(c.fala), {
       duracao: c.voz.duracao, segmentos: c.voz.segmentos,
     });
-    c.blocos = blocos.map((b) => ({ ...b, ini: b.ini + c.vozInicio, fim: Math.min(b.fim + c.vozInicio, c.fim), falaFim: b.falaFim + c.vozInicio }));
+    c.blocos = blocos.map((b) => ({ ...b, cena: c.indice, ini: b.ini + c.vozInicio, fim: Math.min(b.fim + c.vozInicio, c.fim), falaFim: b.falaFim + c.vozInicio }));
   }
 
   // 3) fundos
@@ -291,6 +291,7 @@ export async function montar(pautaOuArquivo, opts = {}) {
   }
   tempos.total = +((Date.now() - t0) / 1000).toFixed(1);
   log(`Pronto: ${path.relative(process.cwd(), pastaSaida) || pastaSaida} (${duracaoReal.toFixed(1)} s, em ${tempos.total} s)`);
+  log(`  tempos (s): ${Object.entries(tempos).map(([k, v]) => `${k} ${v}`).join(' · ')}`);
   return { pasta: pastaSaida, post, video, duracao: duracaoReal, tempos, cenas };
 }
 

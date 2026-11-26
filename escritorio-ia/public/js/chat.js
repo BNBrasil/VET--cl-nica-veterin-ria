@@ -15,15 +15,27 @@ export function nomeDe(id) {
   if (!id) return '';
   if (id === 'voce') return 'Você';
   if (id === 'sistema') return 'Escritório';
+  if (id === 'local') return 'Assistente local';
+  const conv = convidado(id);
+  if (conv) return nomes[conv.id] || conv.nomePadrao || conv.cargo;
   if (id.startsWith('visitante:')) return 'Visitante ' + id.slice(10);
   return nomes[id] || rooms?.rooms.find((r) => r.id === id)?.nomePadrao || id;
 }
+/** Agentes sem sala própria (pesquisador, locutor, social media) — aceitam "x" ou "visitante:x". */
+function convidado(id) {
+  const k = String(id || '').replace(/^visitante:/, '');
+  return (rooms?.convidados || []).find((c) => c.id === k) || null;
+}
 function cargoDe(id) {
-  return rooms?.rooms.find((r) => r.id === id)?.cargo || '';
+  if (id === 'local') return 'grátis';
+  return convidado(id)?.cargo || rooms?.rooms.find((r) => r.id === id)?.cargo || '';
 }
 function corDe(id) {
   if (id === 'voce') return '#ece8f6';
   if (id === 'sistema') return '#9d96b8';
+  if (id === 'local') return '#5ad0a0';
+  const conv = convidado(id);
+  if (conv) return conv.accent;
   if (id?.startsWith('visitante:')) return '#d06030';
   return rooms?.rooms.find((r) => r.id === id)?.accent || '#888';
 }
@@ -69,7 +81,7 @@ function msgHTML(m) {
   }
   const cargo = cargoDe(m.agent);
   return `<li class="msg ${m.kind === 'user' ? 'user' : 'text'}" style="--c:${c}">
-    <div class="head"><span class="who">${esc(nomeDe(m.agent))}</span>${cargo ? `<small>${esc(cargo)}</small>` : ''}<time>${hora(m.at)}</time></div>
+    <div class="head"><span class="who">${esc(nomeDe(m.agent))}</span>${cargo ? `<small>${esc(cargo)}</small>` : ''}${m.meta ? `<small class="meta">${esc(m.meta)}</small>` : ''}<time>${hora(m.at)}</time></div>
     <div class="body">${fmt(m.text)}</div></li>`;
 }
 
@@ -150,6 +162,7 @@ function renderSettingsStatus() {
     }
   }
   html += `<button type="button" class="ghost" data-act="verificar">Verificar de novo</button>`;
+  html += iaLocalHTML();
   box.innerHTML = html;
   const sel = $('#cfg-modo');
   if (sel && claude.modos && !sel.dataset.filled) {
@@ -175,6 +188,10 @@ async function act(name) {
     else if (name === 'chave') { await api('chave', { chave: $('#cfg-key').value }); }
     else if (name === 'tirar-chave') await api('chave', { chave: '' });
     else if (name === 'verificar') { claude = await api('verificar', {}); renderStatus(); }
+    else if (name === 'local-ligar') await api('ia-local', { usar: true });
+    else if (name === 'local-desligar') await api('ia-local', { usar: false });
+    else if (name === 'local-baixar') await api('ia-local/baixar', {});
+    else if (name === 'local-modelo') await api('ia-local', { modelo: $('#cfg-local-modelo').value });
   } catch (e) {
     alert('Não deu certo: ' + e.message);
   }
@@ -263,4 +280,24 @@ export function onChatMessage(msg) {
   } else if (msg.type === 'nomes') {
     nomes = msg.nomes || nomes; onNamesChanged(); renderAll();
   }
+}
+
+// ---------- IA local (Ollama) ----------
+function iaLocalHTML() {
+  const l = claude?.iaLocal;
+  if (!l) return '';
+  const ok = (b) => (b ? '<span class="ok">✓</span>' : '<span class="bad">✗</span>');
+  let h = `<h4>IA local grátis (perguntas simples)</h4>
+    <p class="dim">Dicionário, sinônimos, ortografia, tradução e contas são respondidos pelo seu computador, sem gastar o Claude. Use <code>/local</code> ou <code>/claude</code> no começo da mensagem para escolher na mão.</p>`;
+  h += `<p>${ok(l.ligado)} Ollama ${l.ligado ? 'ligado' : 'não encontrado (o INICIAR.bat instala)'}</p>`;
+  if (l.ligado) {
+    h += `<p>${ok(l.modeloPronto)} Modelo ${esc(l.modelo)} ${l.modeloPronto ? 'pronto' : 'não baixado'}</p>`;
+    if (!l.modeloPronto) h += `<button type="button" data-act="local-baixar" ${l.baixando ? 'disabled' : ''}>${l.baixando ? 'Baixando…' : 'Baixar modelo'}</button>`;
+  }
+  h += `<div class="row wrap"><select id="cfg-local-modelo" aria-label="Modelo local">${Object.entries(l.modelos || {}).map(([k, v]) => `<option value="${esc(k)}" ${k === l.modelo ? 'selected' : ''}>${esc(v)}</option>`).join('')}</select>
+    <button type="button" class="ghost" data-act="local-modelo">Usar este</button></div>`;
+  h += l.usar
+    ? '<button type="button" class="ghost" data-act="local-desligar">Desligar IA local (tudo vai para o Claude)</button>'
+    : '<button type="button" data-act="local-ligar">Ligar IA local</button>';
+  return h;
 }

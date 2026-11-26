@@ -1,6 +1,6 @@
 // Fundo das cenas (gradiente animado com grade, ou imagem com Ken Burns), concatenação,
 // render final com a camada ASS e a capa.
-import { writeFileSync } from 'node:fs';
+import { existsSync, writeFileSync } from 'node:fs';
 import path from 'node:path';
 import { exigirFfmpeg, ffmpeg, rodar } from './ferramentas.js';
 import { W, H, FPS } from './ass.js';
@@ -24,24 +24,30 @@ export async function dimensoesImagem(arquivo) {
 
 const CODEC_INTERMEDIARIO = ['-c:v', 'libx264', '-preset', 'veryfast', '-crf', '15', '-pix_fmt', 'yuv420p', '-g', '30'];
 
-/** Fundo gerado: gradiente girando + grade rolando + vinheta. */
+/** Textura da grade + linhas de varredura (gerada uma vez; drawgrid por quadro é lento). */
+async function texturaGrade(pasta) {
+  const arq = path.join(pasta, 'grade.png');
+  if (!existsSync(arq)) {
+    await ffmpeg(['-f', 'lavfi', '-i', `color=c=black@0:s=${W}x${H + 90},format=rgba,` +
+      'drawgrid=w=0:h=6:t=1:c=black@0.12,drawgrid=w=90:h=90:t=2:c=white@0.08', '-frames:v', '1', arq]);
+  }
+  return arq;
+}
+
+/** Fundo gerado: gradiente girando + vinheta + grade rolando. */
 export async function fundoGerado({ saida, quadros, cores, semente = 1, paleta = 'normal' }) {
   const d = (quadros / FPS + 0.5).toFixed(3);
   const [a, b, c3] = paleta === 'alerta'
     ? [escurecer(cores.alerta, 0.55), escurecer(cores.fundo2, 0.35), escurecer(cores.fundo1, 0.1)]
     : [escurecer(cores.fundo1, 0.05), escurecer(cores.fundo2, 0.3), escurecer(cores.fundo3, 0.35)];
-  const grade = 90;
-  const filtro = [
-    `gradients=s=270x480:c0=${a}:c1=${b}:c2=${c3}:nb_colors=3:speed=0.018:rate=${FPS}:d=${d}:seed=${semente}`,
-    `scale=${W}:${H + grade}:flags=bicubic`,
-    `drawgrid=w=${grade}:h=${grade}:t=2:c=white@0.07`,
-    `crop=${W}:${H}:0:'mod(n*1.5,${grade})'`,
-    // linhas de varredura (scanlines) bem leves
-    'drawgrid=w=0:h=6:t=1:c=black@0.10',
-    'vignette=angle=PI/4.2',
-    'format=yuv420p',
-  ].join(',');
-  await ffmpeg(['-f', 'lavfi', '-i', filtro, '-frames:v', String(quadros), '-r', String(FPS), ...CODEC_INTERMEDIARIO, '-an', saida]);
+  const grade = await texturaGrade(path.dirname(saida));
+  const grafo = [
+    `gradients=s=270x480:c0=${a}:c1=${b}:c2=${c3}:nb_colors=3:speed=0.018:rate=${FPS}:d=${d}:seed=${semente},` +
+      `vignette=angle=PI/4.2,format=yuv420p,scale=${W}:${H}:flags=bicubic[g]`,
+    `[g][0:v]overlay=0:'-mod(n*1.5,90)':shortest=1:format=yuv420,format=yuv420p[v]`,
+  ].join(';');
+  await ffmpeg(['-loop', '1', '-framerate', String(FPS), '-i', grade, '-filter_complex', grafo, '-map', '[v]',
+    '-frames:v', String(quadros), '-r', String(FPS), ...CODEC_INTERMEDIARIO, '-an', saida]);
 }
 
 /**
@@ -64,7 +70,7 @@ export async function fundoImagem({ saida, quadros, imagem, cores, topo = 350, a
     `[b]scale=${fw * 2}:${fh * 2}:force_original_aspect_ratio=increase,crop=${fw * 2}:${fh * 2},` +
       `zoompan=z='1+${(zoomFinal - 1).toFixed(3)}*on/${n}':x='(iw-iw/zoom)/2':y='(ih-ih/zoom)/2':d=1:s=${fw}x${fh}:fps=${FPS},` +
       `pad=${fw + borda * 2}:${fh + borda * 2}:${borda}:${borda}:color=${destaque},setsar=1[frente]`,
-    `[fundo][frente]overlay=${x - borda}:${topo - borda}:shortest=1,drawgrid=w=0:h=6:t=1:c=black@0.08,format=yuv420p[v]`,
+    `[fundo][frente]overlay=${x - borda}:${topo - borda}:shortest=1,format=yuv420p[v]`,
   ].join(';');
   await ffmpeg(['-loop', '1', '-framerate', String(FPS), '-i', imagem, '-filter_complex', grafo, '-map', '[v]',
     '-frames:v', String(quadros), '-r', String(FPS), ...CODEC_INTERMEDIARIO, '-an', saida]);

@@ -9,11 +9,13 @@
 //
 // Se o Ollama estiver desligado ou o modelo não estiver baixado, quem chama cai para o Claude.
 
+// Versões "instruct": respondem direto, sem gastar tempo "pensando" (as tags qwen3:4b / qwen3:8b puras
+// hoje apontam para versões que sempre raciocinam antes, o que deixa a resposta lenta e em inglês).
 export const MODELOS = {
-  'qwen3:4b': 'Rápido (cabe inteiro numa placa de 4 GB) — padrão',
-  'qwen3:8b': 'Melhor em português, um pouco mais lento',
+  'qwen3:4b-instruct': 'Rápido: cabe inteiro numa placa de 4 GB (~2,5 GB) — padrão',
+  'qwen3:30b-a3b-instruct-2507-q4_K_M': 'Máxima qualidade: ~19 GB de RAM, um pouco mais lento',
 };
-export const MODELO_PADRAO = 'qwen3:4b';
+export const MODELO_PADRAO = 'qwen3:4b-instruct';
 
 const SISTEMA = [
   'Você é o assistente local de um escritório de IA brasileiro. Responda SEMPRE em português do Brasil,',
@@ -61,7 +63,11 @@ export function triagem(texto, { nomesAgentes = [] } = {}) {
 
 /** Remove blocos <think>…</think> que alguns modelos ainda mandam. */
 export function limparResposta(s) {
-  return String(s || '').replace(/<think>[\s\S]*?<\/think>/gi, '').trim();
+  let t = String(s || '');
+  // algumas versões do Ollama devolvem o raciocínio sem a tag de abertura: fica só o que vem depois do último </think>
+  const fim = t.lastIndexOf('</think>');
+  if (fim >= 0) t = t.slice(fim + '</think>'.length);
+  return t.replace(/<think>[\s\S]*$/i, '').trim();
 }
 
 export class IaLocal {
@@ -114,7 +120,8 @@ export class IaLocal {
       model: this.modelo,
       stream: false,
       think: false,
-      messages: [{ role: 'system', content: sistema }, { role: 'user', content: String(prompt) }],
+      // "/no_think" é o comando do próprio Qwen3 para responder sem raciocínio (além de think:false)
+      messages: [{ role: 'system', content: sistema + ' /no_think' }, { role: 'user', content: String(prompt) + ' /no_think' }],
       options: { num_predict: maxTokens, temperature: temperatura },
       keep_alive: '10m',
     }, this.timeoutMs);

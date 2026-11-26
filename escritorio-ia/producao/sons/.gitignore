@@ -1,0 +1,5 @@
+# Efeitos e trilhas são gerados por código (lib/sons.js) na primeira montagem.
+*.wav
+# Trilhas do usuário ficam só no computador dele.
+minhas/*
+!minhas/LEIA-ME.txt

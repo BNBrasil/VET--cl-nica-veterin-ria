@@ -12,6 +12,7 @@ import { readFileSync, writeFileSync, mkdirSync, existsSync } from 'node:fs';
 import path from 'node:path';
 import os from 'node:os';
 import { fileURLToPath } from 'node:url';
+import { IaLocal, MODELOS, MODELO_PADRAO, triagem } from './ia-local.js';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 export const PROJECT_DIR = path.join(__dirname, '..');
@@ -110,6 +111,7 @@ export class ClaudeBridge extends EventEmitter {
   constructor(opts) {
     super();
     this.rooms = opts.rooms;
+    this.convidados = opts.convidados || []; // agentes sem sala própria (pesquisador, locutor, social media)
     this.projectDir = opts.projectDir || PROJECT_DIR;
     this.dataDir = opts.dataDir || path.join(this.projectDir, 'data');
     this.binOverride = opts.bin || process.env.CLAUDE_BIN || null;
@@ -119,6 +121,12 @@ export class ClaudeBridge extends EventEmitter {
     this.chatFile = path.join(this.dataDir, 'chat.json');
     const cfg = readJson(this.cfgFile, {});
     this.nomes = { ...this.defaultNames(), ...(cfg.nomes || {}) };
+    // IA local (Ollama): responde perguntas simples sem gastar o Claude
+    this.usarLocal = cfg.usarLocal !== false;
+    const modeloLocal = MODELOS[cfg.modeloLocal] ? cfg.modeloLocal : (process.env.ESCRITORIO_MODELO_LOCAL || MODELO_PADRAO);
+    this.ia = opts.iaLocal || new IaLocal({ modelo: modeloLocal });
+    this.localInfo = { ligado: null, modeloPronto: false, verificadoEm: 0 };
+    this.localOcupado = false;
     this.permissionMode = PERMISSION_MODES[cfg.permissionMode] ? cfg.permissionMode : 'acceptEdits';
     this.sessionId = UUID_RE.test(cfg.sessionId || '') ? cfg.sessionId : null;
     this.history = readJson(this.chatFile, []);
@@ -134,7 +142,7 @@ export class ClaudeBridge extends EventEmitter {
 
   defaultNames() {
     const n = {};
-    for (const r of this.rooms) n[r.id] = r.nomePadrao || r.cargo;
+    for (const r of [...this.rooms, ...this.convidados]) n[r.id] = r.nomePadrao || r.cargo;
     return n;
   }
 
@@ -143,6 +151,7 @@ export class ClaudeBridge extends EventEmitter {
     // preserva o que outras partes guardam no mesmo arquivo (agenda, produção...)
     writeFileSync(this.cfgFile, JSON.stringify({
       ...readJson(this.cfgFile, {}), nomes: this.nomes, permissionMode: this.permissionMode, sessionId: this.sessionId,
+      usarLocal: this.usarLocal, modeloLocal: this.ia.modelo,
     }, null, 2));
   }
   saveChatSoon() {
@@ -238,6 +247,7 @@ export class ClaudeBridge extends EventEmitter {
       }
     }
     this.info = info;
+    await this.refreshLocal(true).catch(() => {});
     this.emit('status', this.status());
     return this.status();
   }
@@ -252,6 +262,7 @@ export class ClaudeBridge extends EventEmitter {
       temChaveApi: !!this.apiKey,
       conversa: this.sessionId ? 'continuando' : 'nova',
       login: this.login ? { url: this.login.url, status: this.login.status } : null,
+      iaLocal: { usar: this.usarLocal, modelo: this.ia.modelo, modelos: MODELOS, ocupado: this.localOcupado, baixando: !!this.baixando, ...this.localInfo },
     };
   }
 
@@ -321,7 +332,7 @@ export class ClaudeBridge extends EventEmitter {
   // ---------- nomes e configuração ----------
   setNames(nomes) {
     for (const [id, v] of Object.entries(nomes || {})) {
-      if (!this.rooms.some((r) => r.id === id)) continue;
+      if (![...this.rooms, ...this.convidados].some((r) => r.id === id)) continue;
       const n = cleanText(v, MAX_NAME).replace(/\s+/g, ' ').trim();
       this.nomes[id] = n || this.defaultNames()[id];
     }
@@ -348,8 +359,57 @@ export class ClaudeBridge extends EventEmitter {
   }
 
   teamHeader() {
-    const lista = this.rooms.map((r) => `${this.nomes[r.id]} = ${r.id} (${r.cargo})`).join('; ');
+    const lista = [...this.rooms, ...this.convidados].map((r) => `${this.nomes[r.id]} = ${r.id} (${r.cargo})`).join('; ');
     return `[Contexto do escritório: os agentes têm nomes. ${lista}. Quando eu citar um nome, delegue ao agente correspondente. Responda em português.]`;
+  }
+
+  // ---------- IA local ----------
+  async refreshLocal(force = false) {
+    if (!force && Date.now() - this.localInfo.verificadoEm < 30000) return this.localInfo;
+    const st = await this.ia.status();
+    this.localInfo = { ligado: st.ligado, modeloPronto: st.modeloPronto, instalados: st.modelos, verificadoEm: Date.now() };
+    this.emit('status', this.status());
+    return this.localInfo;
+  }
+  setIaLocal({ usar, modelo } = {}) {
+    if (typeof usar === 'boolean') this.usarLocal = usar;
+    if (modelo && MODELOS[modelo]) { this.ia.modelo = modelo; this.localInfo.verificadoEm = 0; }
+    this.saveConfig();
+    this.refreshLocal(true).catch(() => {});
+    this.emit('status', this.status());
+    return this.status().iaLocal;
+  }
+  baixarModelo() {
+    if (this.baixando) return false;
+    this.baixando = true;
+    this.emit('status', this.status());
+    let ultimo = -1;
+    this.push({ kind: 'system', agent: 'sistema', text: `Baixando a IA local (${this.ia.modelo})... só na primeira vez.` });
+    this.ia.baixar((p) => {
+      if (!p.total) return;
+      const pct = Math.floor((p.completed / p.total) * 4) * 25;
+      if (pct > ultimo && pct < 100) { ultimo = pct; this.push({ kind: 'system', agent: 'sistema', text: `IA local: ${pct}% baixado` }); }
+    }).then(() => this.push({ kind: 'system', agent: 'sistema', text: 'IA local pronta! Perguntas simples agora saem de graça.' }))
+      .catch((e) => this.push({ kind: 'error', agent: 'sistema', text: 'Não consegui baixar a IA local: ' + e.message + ' (o Ollama está instalado e aberto?)' }))
+      .finally(() => { this.baixando = false; this.refreshLocal(true).catch(() => {}); });
+    return true;
+  }
+  async responderLocal(texto, motivo) {
+    this.localOcupado = true;
+    this.emit('status', this.status());
+    try {
+      const info = await this.refreshLocal();
+      if (!info.ligado || !info.modeloPronto) throw new Error(info.ligado ? 'modelo não baixado' : 'Ollama desligado');
+      const r = await this.ia.perguntar(texto);
+      if (!r.texto) throw new Error('resposta vazia');
+      this.push({ kind: 'text', agent: 'local', text: r.texto, meta: `${(r.ms / 1000).toFixed(1)} s`, motivo });
+    } catch (e) {
+      this.push({ kind: 'system', agent: 'sistema', text: `IA local indisponível (${e.message}); mandando para a equipe.` });
+      this.enqueueClaude(texto);
+    } finally {
+      this.localOcupado = false;
+      this.emit('status', this.status());
+    }
   }
 
   send(text) {
@@ -357,12 +417,21 @@ export class ClaudeBridge extends EventEmitter {
     if (!t) return { ok: false, erro: 'Mensagem vazia.' };
     if (this.proc && this.queue.length >= MAX_QUEUE) return { ok: false, erro: 'Fila cheia. Aguarde os agentes terminarem.' };
     this.push({ kind: 'user', agent: 'voce', text: t });
+    const tri = triagem(t, { nomesAgentes: Object.values(this.nomes) });
+    if (tri.destino === 'local' && (this.usarLocal || /^\/local\b/i.test(t)) && tri.texto) {
+      this.responderLocal(tri.texto, tri.motivo);
+      return { ok: true, destino: 'local' };
+    }
+    return this.enqueueClaude(tri.texto || t);
+  }
+
+  enqueueClaude(t) {
     this.queue.push(t);
     if (this.proc) {
       this.push({ kind: 'system', agent: 'sistema', text: 'Os agentes ainda estão trabalhando; sua mensagem entra em seguida.' });
       this.emit('status', this.status());
     } else this.next();
-    return { ok: true };
+    return { ok: true, destino: 'claude' };
   }
 
   async next() {
