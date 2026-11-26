@@ -357,7 +357,7 @@ async function compilar(releases) {
     if (!ok) {
       if (!noPath('git')) throw new Error('não consegui baixar o código do whisper.cpp (sem git)');
       rmSync(src, { recursive: true, force: true });
-      const r = spawnSync('git', ['clone', '-q', '--depth', '1', '--branch', tag, `https://github.com/${REPO}`, src], { stdio: 'inherit' });
+      const r = spawnSync('git', ['-c', 'advice.detachedHead=false', 'clone', '-q', '--depth', '1', '--branch', tag, `https://github.com/${REPO}`, src], { stdio: 'inherit' });
       if (r.status !== 0) throw new Error('git clone do whisper.cpp falhou');
     }
   }
@@ -425,7 +425,7 @@ async function testar(bin, modelo, { gpu }) {
   const wav = path.join(F, 'teste.wav');
   await rodar(ffmpeg, ['-y', '-hide_banner', '-loglevel', 'error', '-f', 'lavfi', '-i', 'sine=frequency=440:duration=2',
     '-ar', '16000', '-ac', '1', wav]);
-  const a = ['-m', modelo, '-f', wav, '-l', 'pt', '-np', '-nt', '-t', String(Math.min(4, os.cpus().length))];
+  const a = ['-m', modelo, '-f', wav, '-l', 'pt', '-np', '-nt', '-nf', '-bs', '1', '-bo', '1', '-t', String(Math.min(4, os.cpus().length))];
   if (!gpu) a.push('-ng');
   const t0 = Date.now();
   const r = await rodar(bin, a, { ignorarErro: true, timeout: 180000 });

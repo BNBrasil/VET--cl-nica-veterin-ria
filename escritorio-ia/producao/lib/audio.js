@@ -1,5 +1,5 @@
 // Mixagem: narração + trilha com ducking (sidechaincompress) + efeitos nos momentos certos,
-// normalizada para -14 LUFS / -1,5 dBTP (padrão TikTok/Reels).
+// normalizada para -14 LUFS, pico -2,2 dBTP (folga para o AAC ficar abaixo de -1,5 dBTP).
 import path from 'node:path';
 import { ffmpeg } from './ferramentas.js';
 import { normalizarAudio } from '../tts.js';
@@ -64,6 +64,6 @@ export async function mixar({ falas, efeitos = [], trilha, duracao, volumeTrilha
   const bruto = path.join(pasta, 'mix-bruto.wav');
   await ffmpeg([...args, '-filter_complex', filtros.join(';'), '-map', '[saida]', '-ar', '48000', '-ac', '2',
     '-c:a', 'pcm_s16le', bruto]);
-  await normalizarAudio(bruto, saida, { alvo: -14, pico: -1.5, extra: ['-ac', '2', '-c:a', 'pcm_s16le'] });
+  await normalizarAudio(bruto, saida, { alvo: -14, pico: -2.2, extra: ['-ac', '2', '-c:a', 'pcm_s16le'] });
   return saida;
 }

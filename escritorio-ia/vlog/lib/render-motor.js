@@ -35,9 +35,9 @@ export function filtroSegmento(seg, { alvo, transicao = 'corte', primeiro = fals
   if (seg.tipo === 'cartela') {
     v = '[0:v]setsar=1';
   } else {
-    const pre = estabilizar ? "scale='min(1920,iw)':-2,deshake=rx=24:ry=24," : '';
+    const pre = estabilizar ? ",scale='min(1920,iw)':-2,deshake=rx=32:ry=32:edge=mirror" : '';
     const { filtro } = filtroEnquadramento(seg.info || seg.clipe, alvo, seg.foco || 'centro', { rostoX, entrada: 'vin', saida: 'vq' });
-    partes.push(`[0:v]${pre}fps=${FPS},setpts=PTS-STARTPTS[vin]`);
+    partes.push(`[0:v]fps=${FPS}${pre},setpts=PTS-STARTPTS[vin]`);
     partes.push(filtro);
     v = '[vq]';
   }

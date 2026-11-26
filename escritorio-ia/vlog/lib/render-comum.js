@@ -534,9 +534,9 @@ export function filtroEnquadramento(clipe, alvo, foco = 'centro', { rostoX = nul
   const pos = { esquerda: 0.18, direita: 0.82, centro: 0.5 };
   let fx = foco === 'rosto' && rostoX !== null ? rostoX : (pos[foco] ?? 0.5);
   // fx é o centro desejado (0..1 da largura); converte para x do recorte com limites
-  const cw = `ih*${W}/${H}`;
-  const x = `max(0,min(iw-${cw},iw*${fx.toFixed(3)}-${cw}/2))`;
-  return { modo: 'recorte', filtro: `[${entrada}]crop=${cw}:ih:${x}:0,scale=${W}:${H}:flags=lanczos,setsar=1[${saida}]` };
+  const cw = `trunc(ih*${W}/${H}/2)*2`;
+  const x = `max(0,min(iw-ow,iw*${fx.toFixed(3)}-ow/2))`;
+  return { modo: 'recorte', filtro: `[${entrada}]crop=w='${cw}':h=ih:x='${x}':y=0,scale=${W}:${H}:flags=lanczos,setsar=1[${saida}]` };
 }
 
 // ---------------------------------------------------------------- ASS

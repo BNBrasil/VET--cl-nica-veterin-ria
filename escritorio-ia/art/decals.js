@@ -107,16 +107,16 @@ export function aprovado() {
   return c;
 }
 
-export function foamPanel(w = 20, h = 20) {
+export function foamPanel(w = 20, h = 20, ac = { mid: 'purple', dark: 'purpleDark' }) {
   const c = new Canvas(w, h);
   box(c, 0, 0, w, h, 'outline');
-  for (let y = 1; y < h - 1; y++) for (let x = 1; x < w - 1; x++) c.px(x, y, ((Math.floor(x / 3) + Math.floor(y / 3)) % 2) ? 'purpleDark' : ((x + y) % 3 === 0 ? 'purple' : 'ink'));
+  for (let y = 1; y < h - 1; y++) for (let x = 1; x < w - 1; x++) c.px(x, y, ((Math.floor(x / 3) + Math.floor(y / 3)) % 2) ? ac.dark : ((x + y) % 3 === 0 ? ac.mid : 'ink'));
   return c;
 }
 
-export function neonSign() {
+export function neonSign(ac = { mid: 'purple', light: 'neon' }) {
   const c = new Canvas(30, 16);
-  const g = 'neon', G = 'purple';
+  const g = ac.light, G = ac.mid;
   // triângulo de "play" + moldura arredondada em neon
   c.frame(1, 1, 28, 14, G); c.frame(2, 2, 26, 12, g);
   for (let y = 0; y < 7; y++) for (let x = 0; x <= Math.floor(y < 4 ? y : 6 - y) * 1.5; x++) c.px(12 + x, 5 + y - 1 + 1, g);
@@ -124,20 +124,23 @@ export function neonSign() {
   return c;
 }
 
-export function windowPane(w = 30, h = 22, sky = 'blueLight') {
+export function windowPane(w = 30, h = 22, sky = 'blueLight', noite = false) {
   const c = new Canvas(w, h);
   box(c, 0, 0, w, h, 'outline'); box(c, 1, 1, w - 2, h - 2, 'snow'); box(c, 3, 3, w - 6, h - 6, sky);
+  if (noite) { // lua e estrelas
+    for (const [x, y] of [[5, 5], [w - 7, 4], [8, h - 7], [w - 6, h - 8]]) c.px(x, y, 'snow');
+    box(c, w - 10, 5, 3, 3, 'lamp'); c.px(w - 10, 5, sky);
+  }
   c.vline(Math.floor(w / 2), 3, h - 4, 'snow'); c.hline(3, w - 4, Math.floor(h / 2), 'snow');
-  c.line(5, h - 6, 9, h - 10, 'snow'); c.line(w / 2 + 3, h - 6, w / 2 + 6, h - 9, 'snow');
-  box(c, 4, 4, 5, 2, 'snow');
+  if (!noite) { c.line(5, h - 6, 9, h - 10, 'snow'); c.line(w / 2 + 3, h - 6, w / 2 + 6, h - 9, 'snow'); box(c, 4, 4, 5, 2, 'snow'); }
   box(c, -1 + 1, h - 2, w, 2, 'light');
   return c;
 }
 
-export function upperCabinets(w = 60) {
+export function upperCabinets(w = 60, ac = { light: 'brownLight', dark: 'brownDark' }) {
   const c = new Canvas(w, 14);
   box(c, 0, 0, w, 14, 'outline');
-  for (let k = 0; k * 15 < w - 1; k++) { const x = 1 + k * 15; box(c, x, 1, 14, 12, 'cream'); c.frame(x + 1, 2, 12, 10, 'brownLight'); c.px(x + (k % 2 ? 2 : 11), 7, 'brownDark'); }
+  for (let k = 0; k * 15 < w - 1; k++) { const x = 1 + k * 15; box(c, x, 1, 14, 12, 'cream'); c.frame(x + 1, 2, 12, 10, ac.light); c.px(x + (k % 2 ? 2 : 11), 7, ac.dark); }
   return c;
 }
 
@@ -160,5 +163,19 @@ export function sign(text, { fill = 'snow', ink = 'ink', frame = 'outline' } = {
   const c = new Canvas(w, 9);
   box(c, 0, 0, w, 9, frame); box(c, 1, 1, w - 2, 7, fill);
   c.text(text, 3, 2, ink);
+  return c;
+}
+
+/** Arandela (luminária de parede) acesa ou apagada. */
+export function sconce(on = true) {
+  const c = new Canvas(7, 9);
+  c.rect(1, 0, 5, 1, 'outline'); c.rect(0, 1, 7, 4, 'outline'); c.rect(1, 1, 5, 3, on ? 'lamp' : 'silver'); c.rect(2, 1, 3, 1, on ? 'snow' : 'light');
+  c.rect(2, 5, 3, 1, 'outline'); c.rect(3, 6, 1, 3, 'gray');
+  return c;
+}
+/** Faixa de neon (1 px de luz com borda de 1 px na cor média). */
+export function neonBar(w, col, edge) {
+  const c = new Canvas(w, 3);
+  c.rect(0, 0, w, 3, edge); c.rect(1, 1, w - 2, 1, col);
   return c;
 }

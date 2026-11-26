@@ -1,0 +1,94 @@
+{
+  "data": "2025-11-25",
+  "clipes": [
+    {
+      "arquivo": "../clipes/VID_20251125_101000.mp4",
+      "inicioDoDia": "10:10:00",
+      "duracao": 18,
+      "largura": 1920,
+      "altura": 1080,
+      "fps": 30,
+      "rotacao": 0,
+      "temAudio": true,
+      "falas": [
+        {
+          "ini": 1,
+          "fim": 4.85,
+          "texto": "Segundo dia! Hoje a gente vai fazer a trilha da cachoeira."
+        },
+        {
+          "ini": 9,
+          "fim": 11.13,
+          "texto": "Já estou cansado e nem começou."
+        }
+      ],
+      "silencios": [],
+      "cenas": [
+        0
+      ],
+      "energia": [],
+      "tremido": 0.1,
+      "folha": "folhas/VID_20251125_101000.jpg",
+      "quadros": []
+    },
+    {
+      "arquivo": "../clipes/PXL_20251125_133000.mp4",
+      "inicioDoDia": "13:30:00",
+      "duracao": 14,
+      "largura": 1080,
+      "altura": 1920,
+      "fps": 30,
+      "rotacao": 0,
+      "temAudio": true,
+      "falas": [
+        {
+          "ini": 1.5,
+          "fim": 4.95,
+          "texto": "Chegamos! Olha essa água, que coisa linda."
+        },
+        {
+          "ini": 8,
+          "fim": 10.11,
+          "texto": "A água está gelada demais."
+        }
+      ],
+      "silencios": [],
+      "cenas": [
+        0
+      ],
+      "energia": [],
+      "tremido": 0.1,
+      "folha": "folhas/PXL_20251125_133000.jpg",
+      "quadros": []
+    },
+    {
+      "arquivo": "../clipes/VID_20251125_170000.mp4",
+      "inicioDoDia": "17:00:00",
+      "duracao": 12,
+      "largura": 1080,
+      "altura": 1080,
+      "fps": 30,
+      "rotacao": 0,
+      "temAudio": true,
+      "falas": [
+        {
+          "ini": 1,
+          "fim": 4.04,
+          "texto": "Para fechar o dia, pão de queijo e doce de leite."
+        }
+      ],
+      "silencios": [],
+      "cenas": [
+        0
+      ],
+      "energia": [],
+      "tremido": 0.1,
+      "folha": "folhas/VID_20251125_170000.jpg",
+      "quadros": []
+    }
+  ],
+  "resumo": {
+    "totalSegundos": 44,
+    "comFala": 14.579999999999998
+  }
+}
