@@ -255,7 +255,7 @@ export async function montar(pautaOuArquivo, opts = {}) {
   const mix = path.join(pastaTrab, 'mix.wav');
   await mixar({
     falas: cenas.map((c) => ({ wav: c.voz.wav, inicio: c.vozInicio })),
-    efeitos, trilha, duracao, volumeTrilha: Number(canal.volumeTrilha ?? 0.5), saida: mix, pasta: pastaTrab,
+    efeitos, trilha, duracao, volumeTrilha: Number(canal.volumeTrilha ?? 0.6), saida: mix, pasta: pastaTrab,
   });
   t = marca('audio', t);
 

@@ -17,7 +17,7 @@ const PADRAO = {
   fonteTitulo: null,
   voz: { modelo: 'pt_BR-faber-medium', velocidade: 1.08 },
   trilha: 'auto',
-  volumeTrilha: 0.5,
+  volumeTrilha: 0.6,
   efeitos: true,
 };
 

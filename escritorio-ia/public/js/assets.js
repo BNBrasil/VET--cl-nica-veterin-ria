@@ -2,6 +2,11 @@
 // Se o manifest não existir ou algo essencial falhar → MODO PLACEHOLDER.
 
 const BASE = 'assets/';
+// Versão dos assets (muda quando a aparência é reaplicada) — vira ?v= nas URLs para furar o cache.
+let versao = '';
+export function setAssetVersion(v) { versao = v ? String(v) : ''; }
+/** URL de um arquivo de public/assets/ com cache-busting da versão atual. */
+export function assetUrl(file) { return BASE + file + (versao ? (file.includes('?') ? '&' : '?') + 'v=' + encodeURIComponent(versao) : ''); }
 
 function loadImage(src) {
   return new Promise((resolve, reject) => {
@@ -36,7 +41,7 @@ export function parseAseprite(json, img) {
 }
 
 async function loadSheet(imageFile, dataFile) {
-  const [json, img] = await Promise.all([loadJSON(BASE + dataFile), loadImage(BASE + imageFile)]);
+  const [json, img] = await Promise.all([loadJSON(assetUrl(dataFile)), loadImage(assetUrl(imageFile))]);
   return parseAseprite(json, img);
 }
 
@@ -47,11 +52,12 @@ async function optional(p, what, warnings) {
 /**
  * Retorna { placeholder, manifest, chars, visitor, fx, rooms: {id: {bg, object, seat, sofa}}, warnings }
  */
-export async function loadAssets() {
+export async function loadAssets(opts = {}) {
+  if (opts.versao !== undefined) setAssetVersion(opts.versao);
   const warnings = [];
   let manifest;
   try {
-    manifest = await loadJSON(BASE + 'manifest.json');
+    manifest = await loadJSON(assetUrl('manifest.json'));
   } catch (e) {
     return { placeholder: true, reason: 'manifest ausente (' + e.message + ')', warnings, rooms: {}, chars: {} };
   }
@@ -79,7 +85,7 @@ export async function loadAssets() {
       const entry = { seat: r.seat || null, sofa: r.sofa || null, bg: null, object: null };
       rooms[id] = entry;
       if (r.background) {
-        jobs.push(optional(loadImage(BASE + r.background), 'fundo ' + id, warnings).then((img) => { entry.bg = img; }));
+        jobs.push(optional(loadImage(assetUrl(r.background)), 'fundo ' + id, warnings).then((img) => { entry.bg = img; }));
       }
       if (r.object && r.object.image && r.object.data) {
         jobs.push(optional(loadSheet(r.object.image, r.object.data), 'objeto ' + id, warnings)
@@ -113,8 +119,8 @@ async function loadAssetsV2(manifest, warnings) {
   let bg = null, fg = null, fx = null, visitor = null;
   const jobs = [];
   const map = manifest.map || {};
-  if (map.background) jobs.push(optional(loadImage(BASE + map.background), 'map_bg', warnings).then((i) => { bg = i; }));
-  if (map.foreground) jobs.push(optional(loadImage(BASE + map.foreground), 'map_fg', warnings).then((i) => { fg = i; }));
+  if (map.background) jobs.push(optional(loadImage(assetUrl(map.background)), 'map_bg', warnings).then((i) => { bg = i; }));
+  if (map.foreground) jobs.push(optional(loadImage(assetUrl(map.foreground)), 'map_fg', warnings).then((i) => { fg = i; }));
   for (const [id, c] of Object.entries(manifest.characters || {})) {
     jobs.push(optional(loadSheet(c.image, c.data), 'personagem ' + id, warnings).then((s) => { if (s) chars[id] = s; }));
   }

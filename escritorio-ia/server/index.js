@@ -9,6 +9,7 @@ import { ClaudeBridge } from './claude.js';
 import { RemoteAccess, originOk, networkAddresses, tailscaleInfo } from './remote.js';
 import qrcode from 'qrcode-generator';
 import { createProducao } from './producao.js';
+import { createAparencia } from './aparencia.js';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const ROOT = path.join(__dirname, '..');
@@ -115,6 +116,13 @@ export function createServer(opts = {}) {
     pollMs: opts.producaoPollMs, agendaMs: opts.agendaMs, publicar: opts.publicar,
     broadcast: (m) => broadcast(m), ingest: (ev) => ingest(ev),
   }) : null;
+  // Aparência (temas e ajustes): funciona com ou sem o chat ligado.
+  const aparencia = opts.aparencia || createAparencia({
+    root: opts.root, temasDir: opts.temasDir, assetsDir: opts.assetsDir, rooms: state.config,
+    dataFile: opts.aparenciaFile || path.join(bridge?.dataDir || opts.dataDir || path.join(ROOT, 'data'), 'aparencia.json'),
+    gerar: opts.gerarArte, timeoutMs: opts.arteTimeoutMs, log,
+    broadcast: (m) => broadcast(m),
+  });
   let current = { port: 0, host: '127.0.0.1' };
 
   // Quem está pedindo? Local (o próprio computador) ou um aparelho pareado. Sem o chat ligado, tudo é local.
@@ -175,7 +183,33 @@ export function createServer(opts = {}) {
     await listenRaw(port, current.baseHost);
   }
 
+  async function handleAparencia(req, res, p) {
+    if (p === '/api/aparencia' && req.method === 'GET') return sendJson(res, 200, await aparencia.info());
+    if (req.method !== 'POST') return send(res, 405, 'method not allowed');
+    if (!/^application\/json/i.test(req.headers['content-type'] || '')) return send(res, 415, 'use application/json');
+    let body = {};
+    try { body = JSON.parse((await readBody(req)) || '{}') || {}; } catch { return send(res, 400, 'invalid json'); }
+    if (p === '/api/aparencia') {
+      const r = aparencia.salvar(body);
+      return sendJson(res, r.ok ? 200 : 400, r);
+    }
+    if (p === '/api/aparencia/aplicar') {
+      if (body && typeof body === 'object' && Object.keys(body).length) {
+        const r = aparencia.salvar(body);
+        if (!r.ok) return sendJson(res, 400, r);
+      }
+      return sendJson(res, 200, aparencia.aplicar());
+    }
+    if (p === '/api/aparencia/restaurar') return sendJson(res, 200, aparencia.restaurar());
+    return send(res, 404, 'not found');
+  }
+
   async function handleApi(req, res, p) {
+    if (p === '/api/aparencia' || p.startsWith('/api/aparencia/')) {
+      if (!originOk(req)) return send(res, 403, 'forbidden');
+      if (!access(req).allowed) return send(res, 401, 'aparelho não pareado');
+      return handleAparencia(req, res, p);
+    }
     if (!bridge) return send(res, 404, 'chat desativado');
     const a = access(req);
     if (!originOk(req)) return send(res, 403, 'forbidden');
@@ -323,6 +357,7 @@ export function createServer(opts = {}) {
       ws.send(JSON.stringify({ type: 'chat_snapshot', mensagens: bridge.history, nomes: bridge.nomes, claude: bridge.status() }));
       try { ws.send(JSON.stringify({ type: 'producao', ...producao.estado() })); } catch {}
     }
+    if (aparencia.status().estado === 'gerando') ws.send(JSON.stringify({ type: 'aparencia_estado', ...aparencia.status() }));
   });
 
   if (bridge) {
@@ -387,7 +422,7 @@ export function createServer(opts = {}) {
     });
   }
 
-  return { server, wss, state, bridge, remote, producao, listen, close, tick, ingest, set onShutdown(fn) { onShutdown = fn; } };
+  return { server, wss, state, bridge, remote, producao, aparencia, listen, close, tick, ingest, set onShutdown(fn) { onShutdown = fn; } };
 }
 
 const isMain = process.argv[1] && path.resolve(process.argv[1]) === fileURLToPath(import.meta.url);

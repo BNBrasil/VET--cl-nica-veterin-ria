@@ -12,7 +12,7 @@ import {
 import { normalizarTexto, pesoFala } from './lib/normalizar.js';
 
 export const MODELO_PADRAO = 'pt_BR-faber-medium';
-const VERSAO = 'v3'; // mude para invalidar o cache quando a cadeia de áudio mudar
+const VERSAO = 'v4'; // mude para invalidar o cache quando a cadeia de áudio mudar
 const PASTA_CACHE = path.join(PASTA_TRABALHO, 'tts-cache');
 
 // Cadeia de "locução": corta grave de ruído, aquece, dá presença, controla sibilância,
@@ -57,7 +57,7 @@ export async function normalizarAudio(entrada, saida, { filtro = '', alvo = -16,
 }
 
 /** Lê os trechos com fala (sem silêncio) de um wav — usado para sincronizar a legenda. */
-export async function segmentosFala(wav, { limiar = -38, minimo = 0.16 } = {}) {
+export async function segmentosFala(wav, { limiar = -36, minimo = 0.1 } = {}) {
   const { stderr } = await ffmpeg(['-loglevel', 'info', '-i', wav, '-af',
     `silencedetect=noise=${limiar}dB:d=${minimo}`, '-f', 'null', '-']);
   const total = await duracaoMidia(wav);

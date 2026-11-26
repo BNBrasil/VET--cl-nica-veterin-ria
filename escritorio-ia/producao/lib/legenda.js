@@ -118,12 +118,34 @@ export function cronometrar(blocos, { duracao, segmentos } = {}) {
     return segs[segs.length - 1].fim;
   };
   const lacunas = segs.slice(1).map((g, i) => ({ ini: segs[i].fim, fim: g.ini }));
-  let acc = 0;
-  const out = blocos.map((b, i) => {
-    const ini = real(acc + 1e-6);
-    acc += (pesos[i] / total) * tempoFala;
-    return { ...b, ini, fim: real(acc) };
+  // grupos de blocos por frase; se o número de trechos de voz bate com o de frases,
+  // cada frase é distribuída dentro do seu próprio trecho (sincronia mais exata)
+  const frases = [];
+  blocos.forEach((b, i) => {
+    if (!frases.length || blocos[i - 1].fimFrase) frases.push([]);
+    frases[frases.length - 1].push(i);
   });
+  let out;
+  if (frases.length > 1 && frases.length === segs.length) {
+    out = [];
+    frases.forEach((idxs, f) => {
+      const g = segs[f];
+      const soma = idxs.reduce((a, i) => a + pesos[i], 0);
+      let t = g.ini;
+      for (const i of idxs) {
+        const d = (pesos[i] / soma) * (g.fim - g.ini);
+        out.push({ ...blocos[i], ini: t, fim: t + d });
+        t += d;
+      }
+    });
+  } else {
+    let acc = 0;
+    out = blocos.map((b, i) => {
+      const ini = real(acc + 1e-6);
+      acc += (pesos[i] / total) * tempoFala;
+      return { ...b, ini, fim: real(acc) };
+    });
+  }
   // encaixa as fronteiras de pontuação nos silêncios próximos
   for (let i = 0; i < out.length - 1; i++) {
     const fronteira = out[i].fim;

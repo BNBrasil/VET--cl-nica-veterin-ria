@@ -47,8 +47,8 @@ export async function mixar({ falas, efeitos = [], trilha, duracao, volumeTrilha
     const fimFade = Math.max(0, duracao - 1.4).toFixed(3);
     filtros.push(`[${idx}:a]aresample=48000,aformat=channel_layouts=stereo,atrim=0:${D},asetpts=PTS-STARTPTS,` +
       `volume=${volumeTrilha.toFixed(3)},afade=t=in:d=0.4,afade=t=out:st=${fimFade}:d=1.4[mus]`);
-    // ducking: a trilha abaixa ~9 dB enquanto a voz fala e volta nas pausas
-    filtros.push('[mus][vozsc]sidechaincompress=threshold=0.015:ratio=7:attack=25:release=420:knee=4:makeup=1[musd]');
+    // ducking: a trilha abaixa ~6 dB (fica ~16 dB abaixo da voz) enquanto a voz fala e volta nas pausas
+    filtros.push('[mus][vozsc]sidechaincompress=threshold=0.1:ratio=3:attack=25:release=400:knee=4:makeup=1[musd]');
     partes.push('[musd]');
     idx++;
   } else {
