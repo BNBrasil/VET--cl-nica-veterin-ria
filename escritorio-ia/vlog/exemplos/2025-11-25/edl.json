@@ -1,0 +1,34 @@
+{
+  "data": "2025-11-25",
+  "titulo": "Trilha até a cachoeira",
+  "longo": {
+    "cortes": [
+      { "clipe": 1, "ini": 1.4, "fim": 6.2, "melhor": true },
+      { "clipe": 0, "ini": 0.6, "fim": 15.4, "capitulo": "Trilha" },
+      { "clipe": 1, "ini": 6.2, "fim": 13.6, "capitulo": "Cachoeira", "melhor": true },
+      { "clipe": 1, "ini": 0.0, "fim": 1.4, "capitulo": "Cachoeira" },
+      { "clipe": 2, "ini": 0.5, "fim": 11.5, "capitulo": "Jantar" }
+    ],
+    "transicao": "fade",
+    "intro": "Dia 2 · 25/11/2025"
+  },
+  "curto": {
+    "cortes": [
+      { "clipe": 1, "ini": 1.4, "fim": 6.2 },
+      { "clipe": 0, "ini": 9.0, "fim": 12.5, "foco": "direita" },
+      { "clipe": 1, "ini": 8.0, "fim": 11.2 },
+      { "clipe": 2, "ini": 0.8, "fim": 5.6, "foco": "centro" }
+    ],
+    "gancho": "Valeu cada passo dessa trilha",
+    "duracaoMax": 45
+  },
+  "youtube": {
+    "titulo": "Trilha até a cachoeira (e a água estava GELADA)",
+    "descricao": "Segundo dia de viagem: trilha até a cachoeira, mergulho na água gelada e jantar mineiro para fechar.",
+    "tags": ["trilha", "cachoeira", "vlog de viagem"]
+  },
+  "reels": {
+    "legenda": "Valeu cada passo 💦 Você encarava essa água gelada?",
+    "hashtags": ["#cachoeira", "#trilha", "#viagem"]
+  }
+}

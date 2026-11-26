@@ -383,7 +383,8 @@ export function calcularCapitulos(segmentos, duracao, { minimo = 10 } = {}) {
     for (let i = 1; i < lista.length; i++) {
       if (fins(i) - lista[i].t < minimo) { lista.splice(i, 1); mudou = true; break; }
     }
-    if (!mudou && lista.length > 1 && lista[1].t - lista[0].t < minimo) { lista.splice(1, 1); mudou = true; }
+    // primeiro capítulo curto demais (ex.: gancho de 5 s): o seguinte passa a começar em 00:00
+    if (!mudou && lista.length > 1 && lista[1].t - lista[0].t < minimo) { lista.splice(0, 1); lista[0].t = 0; mudou = true; }
   }
   // depois de remover, nomes repetidos em sequência viram um só
   lista = lista.filter((c, i) => i === 0 || c.nome !== lista[i - 1].nome);

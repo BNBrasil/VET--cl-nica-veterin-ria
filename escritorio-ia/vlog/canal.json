@@ -1,0 +1,12 @@
+{
+  "nome": "Meu Vlog",
+  "arroba": "@meuvlog",
+  "cores": { "destaque": "#FFD400", "texto": "#FFFFFF", "contorno": "#000000", "fundo": "#111111", "cartela": "#16161C" },
+  "fontes": { "titulo": null, "legenda": null },
+  "hashtags": ["#vlog", "#diadia", "#rotina"],
+  "tags": ["vlog", "vlog do dia", "rotina"],
+  "marcaDagua": true,
+  "estabilizar": true,
+  "limiteTremido": 0.6,
+  "rodape": ""
+}
