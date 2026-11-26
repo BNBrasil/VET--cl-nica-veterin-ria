@@ -189,7 +189,7 @@ async function recortarTrechos(ffmpeg, arquivo, trechos, pastaTmp, prefixo) {
  * itens: [{ chave, arquivo, voz: [{ini,fim}], ebur: [{t,M}], limiar }]
  * Retorna Map(chave -> falas[]) e estatísticas.
  */
-export async function transcreverDia(ffmpeg, itens, { modelo, pastaTmp, threads, gpu = true, aoLog = () => {} } = {}) {
+export async function transcreverDia(ffmpeg, itens, { modelo, pastaTmp, threads, gpu = true, rapido = false, aoLog = () => {} } = {}) {
   const disp = whisperDisponivel(modelo);
   if (!disp.ok) throw new ErroFerramenta(disp.motivo);
   const { cfg, arquivoModelo } = disp;
@@ -214,6 +214,7 @@ export async function transcreverDia(ffmpeg, itens, { modelo, pastaTmp, threads,
     const lote = todos.slice(i, i + LOTE);
     const args = ['-m', arquivoModelo, '-l', 'pt', '-t', nThreads, '-ojf', '-np', '-mc', '0', '-sns'];
     if (usarVad) args.push('--vad', '-vm', cfg.vad, '-vsd', '500', '-vp', '200');
+    if (rapido) args.push('-bs', '1', '-bo', '1'); // busca gulosa: ~2-3x mais rápido na CPU, um pouco menos preciso
     if (!gpu || cfg.variante === 'cpu') args.push('-ng');
     for (const w of lote) args.push('-f', w.wav);
     aoLog(`whisper: ${Math.min(i + LOTE, todos.length)}/${todos.length} trechos`);

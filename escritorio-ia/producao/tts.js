@@ -1,5 +1,6 @@
 #!/usr/bin/env node
-// Narração gratuita e offline com Piper + pós-processamento de locução no ffmpeg.
+// Narração gratuita e offline com Kokoro (padrão, mais natural) ou Piper (reserva) + locução no ffmpeg.
+// Modelos: "kokoro:pm_alex" (padrão), "kokoro:pm_santa", "kokoro:pf_dora", ou uma voz Piper ("pt_BR-faber-medium").
 // Uso como módulo: const { wav, duracao } = await falar('texto', { modelo, velocidade })
 // Uso na linha de comando: node producao/tts.js "texto" [saida.wav] [--modelo pt_BR-cadu-medium] [--velocidade 1.1]
 import { createHash } from 'node:crypto';
@@ -10,8 +11,38 @@ import {
   PASTA_TRABALHO, acharPiper, arquivosVoz, duracaoMidia, exigirFfmpeg, exigirPiper, ffmpeg, rodar,
 } from './lib/ferramentas.js';
 import { normalizarTexto, pesoFala } from './lib/normalizar.js';
+import { PASTA_KOKORO, pythonDoVenv } from './instalar-kokoro.js';
 
-export const MODELO_PADRAO = 'pt_BR-faber-medium';
+/** Kokoro instalado? (venv + modelo + vozes) */
+export function acharKokoro() {
+  const py = pythonDoVenv();
+  const onnx = path.join(PASTA_KOKORO, 'kokoro-v1.0.onnx');
+  const vozes = path.join(PASTA_KOKORO, 'voices-v1.0.bin');
+  return existsSync(py) && existsSync(onnx) && existsSync(vozes) ? { py, onnx, vozes } : null;
+}
+
+/** Decide o motor: Kokoro se pedido e instalado; senão Piper (reserva). Função pura, testável. */
+export function escolherMotor(modelo, { temKokoro, temPiper }) {
+  const m = modelo || MODELO_PADRAO;
+  if (m.startsWith('kokoro:')) {
+    const voz = m.slice(7);
+    if (!VOZES_KOKORO[voz]) throw new Error(`voz Kokoro desconhecida: ${voz} (use ${Object.keys(VOZES_KOKORO).join(', ')})`);
+    if (temKokoro) return { motor: 'kokoro', voz, modelo: m };
+    if (temPiper) return { motor: 'piper', voz: PIPER_RESERVA, modelo: PIPER_RESERVA, aviso: 'Kokoro não instalado (node producao/instalar-kokoro.js); usando Piper.' };
+    return { motor: 'nenhum', modelo: m };
+  }
+  return { motor: temPiper ? 'piper' : 'nenhum', voz: m, modelo: m };
+}
+
+async function sintetizarKokoro(texto, bruto, { voz, velocidade }) {
+  const k = acharKokoro();
+  await rodar(k.py, ['-I', path.join(path.dirname(PASTA_CACHE), '..', 'kokoro_tts.py'), k.onnx, k.vozes, voz,
+    String(+velocidade.toFixed(3)), bruto], { entrada: Buffer.from(texto, 'utf8') });
+}
+
+export const MODELO_PADRAO = 'kokoro:pm_alex';
+export const PIPER_RESERVA = 'pt_BR-faber-medium';
+export const VOZES_KOKORO = { pm_alex: 'Alex (masculina)', pm_santa: 'Santa (masculina)', pf_dora: 'Dora (feminina)' };
 const VERSAO = 'v4'; // mude para invalidar o cache quando a cadeia de áudio mudar
 const PASTA_CACHE = path.join(PASTA_TRABALHO, 'tts-cache');
 
@@ -98,13 +129,15 @@ async function sintetizarFalsa(texto, bruto, { velocidade }) {
  */
 export async function falar(texto, opts = {}) {
   exigirFfmpeg();
-  const modelo = opts.modelo || MODELO_PADRAO;
+  const escolha = escolherMotor(opts.modelo || MODELO_PADRAO, { temKokoro: !!acharKokoro(), temPiper: !!acharPiper() });
+  if (escolha.aviso && !falar._avisou) { falar._avisou = true; console.warn('aviso: ' + escolha.aviso); }
+  const modelo = escolha.modelo;
   const velocidade = Math.min(1.6, Math.max(0.6, Number(opts.velocidade) || 1));
   const pausa = opts.pausa ?? 0.18;
   const normal = normalizarTexto(texto);
   if (!normal.replace(/[.!?\s]/g, '')) throw new Error('fala vazia');
   let falsa = vozFalsaAtiva(opts);
-  if (!falsa && !acharPiper() && opts.permitirFalsa) falsa = true;
+  if (!falsa && escolha.motor === 'nenhum' && opts.permitirFalsa) falsa = true;
 
   const chave = createHash('sha1').update([VERSAO, normal, modelo, velocidade, pausa, falsa].join('|')).digest('hex').slice(0, 16);
   mkdirSync(PASTA_CACHE, { recursive: true });
@@ -115,6 +148,7 @@ export async function falar(texto, opts = {}) {
     const bruto = path.join(PASTA_CACHE, `${chave}.bruto.wav`);
     const tratado = path.join(PASTA_CACHE, `${chave}.tratado.wav`);
     if (falsa) await sintetizarFalsa(normal, bruto, { velocidade });
+    else if (escolha.motor === 'kokoro') await sintetizarKokoro(normal, bruto, { voz: escolha.voz, velocidade });
     else await sintetizarPiper(normal, bruto, { modelo, velocidade, pausa });
     await ffmpeg(['-i', bruto, '-af', falsa ? 'aresample=48000' : CADEIA, '-ac', '1', tratado]);
     await normalizarAudio(tratado, wav, { alvo: -16, pico: -2, extra: ['-ac', '1', '-c:a', 'pcm_s16le'] });
@@ -136,7 +170,7 @@ if (import.meta.url === pathToFileURL(process.argv[1] || '').href) {
   const velocidade = opt('--velocidade');
   const [texto, saida] = args;
   if (!texto) {
-    console.log('uso: node producao/tts.js "texto" [saida.wav] [--modelo pt_BR-faber-medium] [--velocidade 1.0]');
+    console.log('uso: node producao/tts.js "texto" [saida.wav] [--modelo kokoro:pm_alex|kokoro:pm_santa|kokoro:pf_dora|pt_BR-faber-medium] [--velocidade 1.0]');
     process.exit(1);
   }
   falar(texto, { modelo, velocidade, saida: saida && path.resolve(saida) }).then((r) => {

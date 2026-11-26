@@ -155,7 +155,6 @@ export function trechosComVoz(pontos, duracao, { folga = 0.35, uniao = 1.2, mini
   return trechos
     .map(([a, b]) => ({ ini: r2(Math.max(0, a - folga)), fim: r2(Math.min(duracao || b + folga, b + folga)) }))
     .filter((t) => t.fim - t.ini >= minimo)
-    .map((t, i, arr) => t)
     .reduce((acc, t) => {
       const u = acc[acc.length - 1];
       if (u && t.ini <= u.fim) u.fim = Math.max(u.fim, t.fim);
@@ -179,6 +178,8 @@ export function estimarTremido(raw, L, A, { R = 3 } = {}) {
   const dx = [];
   const dy = [];
   const m = R + 2;
+  let amostras = 0;
+  for (let y = m; y < A - m; y += 2) for (let x = m; x < L - m; x += 2) amostras++;
   for (let k = 1; k < n; k++) {
     const a = k * tam - tam;
     const b = k * tam;
@@ -193,11 +194,13 @@ export function estimarTremido(raw, L, A, { R = 3 } = {}) {
           const lb = b + (y + oy) * L + ox;
           for (let x = m; x < L - m; x += 2) sad += Math.abs(raw[la + x] - raw[lb + x]);
         }
-        // leve preferência por deslocamento zero (evita ruído em cenas lisas)
-        sad *= 1 + 0.01 * (Math.abs(ox) + Math.abs(oy));
+        // preferência por deslocamento zero: em imagem lisa (céu, parede) todos empatam e fica 0
+        sad += amostras * 0.4 * (Math.abs(ox) + Math.abs(oy));
         if (sad < melhor) { melhor = sad; bx = ox; by = oy; }
       }
     }
+    // diferença média alta mesmo no melhor encaixe = corte de cena ou movimento grande: não é tremido
+    if (melhor / amostras > 30) { bx = 0; by = 0; }
     dx.push(bx);
     dy.push(by);
   }

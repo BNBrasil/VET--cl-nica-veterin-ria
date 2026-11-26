@@ -14,7 +14,7 @@
   },
   "fonte": null,
   "fonteTitulo": null,
-  "voz": { "modelo": "pt_BR-faber-medium", "velocidade": 1.08 },
+  "voz": { "modelo": "kokoro:pm_alex", "velocidade": 1.05 },
   "trilha": "auto",
   "volumeTrilha": 0.6,
   "efeitos": true

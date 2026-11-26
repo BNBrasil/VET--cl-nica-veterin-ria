@@ -1,0 +1,21 @@
+{
+  "id": "retro",
+  "nome": "Retrô",
+  "descricao": "Paleta reduzida estilo 8/16-bit, piso xadrez e paredes de tijolo.",
+  "paleta": {
+    "restrita": ["#0f0a14", "#2a2440", "#4c4466", "#7a7494", "#b0aac4", "#f2eee6",
+                 "#5a2c1c", "#9a5a2c", "#d0904c", "#f0d08c",
+                 "#7a1c2c", "#c83c3c", "#f07858", "#d88c1c", "#f8d838",
+                 "#1c5a2c", "#3ca040", "#90e060", "#1c3c7a", "#3c70d8", "#78c0f0",
+                 "#5c2c8a", "#a050d8", "#e05ca0", "#f8b0c8"]
+  },
+  "salas": {
+    "*": { "piso": "xadrez", "parede": "tijolo", "iluminacao": "dia" },
+    "editor-video": { "piso": "carpete" },
+    "programador": { "piso": "azulejo" },
+    "lounge": { "piso": "carpete", "destaque": "#3ca040" },
+    "corredor": { "piso": "xadrez", "corPiso": "#b0aac4" }
+  },
+  "mapa": { "formato": "duas-fileiras", "tamanhoSala": "media" },
+  "interface": { "fundo": "#0f0a14", "painel": "#2a2440", "destaque": "#f8d838", "texto": "#f2eee6", "textoSuave": "#b0aac4", "borda": "#4c4466" }
+}

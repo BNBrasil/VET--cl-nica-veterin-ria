@@ -263,7 +263,7 @@ function drawFace(L, look, ox, oy, { eyes = 'open', mouth = 'smile', look: lk = 
     case 'drool': P(mx, my, 'outline'); P(mx + 1, my, 'outline'); P(mx + 1, my + 1, 'cyanLight'); break;
     case 'tongue': P(mx - 1, my - 1, 'outline'); P(mx, my, 'outline'); P(mx + 1, my, 'pinkLight'); P(mx + 2, my - 1, 'outline'); break;
   }
-  if (look.mustache) { P(mx - 1, my - 2, 'light'); P(mx, my - 2, 'silver'); P(mx + 1, my - 2, 'silver'); P(mx + 2, my - 2, 'light'); P(mx - 2, my - 1, 'light'); P(mx + 3, my - 1, 'light'); }
+  if (look.mustache) { const [m1, m2] = hairOf(look); P(mx - 1, my - 2, m1); P(mx, my - 2, m2); P(mx + 1, my - 2, m2); P(mx + 2, my - 2, m1); P(mx - 2, my - 1, m1); P(mx + 3, my - 1, m1); }
   if (look.beard) { for (let x = 4; x <= 17; x++) { const y = x < 7 || x > 15 ? 15 : 16; P(x, y, 'outline'); if (x > 6 && x < 15) P(x, 17, 'ink'); } P(mx, my + 2, 'ink'); P(mx + 1, my + 2, 'ink'); }
 }
 

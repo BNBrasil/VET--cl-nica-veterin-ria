@@ -199,7 +199,7 @@ export async function sondar(arquivo) {
 let encoderCache = null;
 /**
  * Encoder de vídeo: h264_nvenc se a placa existir de verdade (testa 1 quadro), senão libx264.
- * VLOG_ENCODER=libx264 força; VLOG_RAPIDO=1 usa preset ultrafast (testes).
+ * VLOG_ENCODER=libx264 força; VLOG_PRESET=veryfast acelera o libx264; VLOG_RAPIDO=1 usa superfast (testes).
  */
 export async function escolherEncoder() {
   if (encoderCache) return encoderCache;
@@ -217,7 +217,7 @@ export async function escolherEncoder() {
   const args = nome === 'h264_nvenc'
     ? ['-c:v', 'h264_nvenc', '-preset', 'p5', '-tune', 'hq', '-rc', 'vbr', '-cq', '21', '-b:v', '0',
       '-maxrate', '16M', '-bufsize', '24M', '-profile:v', 'high', '-bf', '2', ...comum]
-    : ['-c:v', 'libx264', '-preset', rapido ? 'ultrafast' : 'medium', '-crf', rapido ? '23' : '19',
+    : ['-c:v', 'libx264', '-preset', rapido ? 'superfast' : (process.env.VLOG_PRESET || 'medium'), '-crf', rapido ? '23' : '19',
       '-profile:v', 'high', ...comum];
   encoderCache = { nome, args };
   return encoderCache;

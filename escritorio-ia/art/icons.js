@@ -7,9 +7,9 @@ import { encodePNG, decodePNG } from './png.js';
 
 const OUT = path.join(path.dirname(fileURLToPath(import.meta.url)), '..', 'public', 'assets');
 
-export function makeIcons() {
-  const sheet = decodePNG(readFileSync(path.join(OUT, 'char_orquestrador.png')));
-  const data = JSON.parse(readFileSync(path.join(OUT, 'char_orquestrador.json'), 'utf8'));
+export function makeIcons(dir = OUT) {
+  const sheet = decodePNG(readFileSync(path.join(dir, 'char_orquestrador.png')));
+  const data = JSON.parse(readFileSync(path.join(dir, 'char_orquestrador.json'), 'utf8'));
   const key = Object.keys(data.frames).find((k) => k.startsWith('base_idle')) || Object.keys(data.frames)[0];
   const f = data.frames[key].frame;
   const BG = [0x1a, 0x17, 0x26], RIM = [0xe0, 0xa0, 0x30];
@@ -34,7 +34,7 @@ export function makeIcons() {
         rgba[di + 3] = 255;
       }
     }
-    writeFileSync(path.join(OUT, `icon-${size}.png`), encodePNG(size, size, rgba));
+    writeFileSync(path.join(dir, `icon-${size}.png`), encodePNG(size, size, rgba));
   }
 }
 

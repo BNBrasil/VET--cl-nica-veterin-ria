@@ -84,6 +84,16 @@ if exist "producao\instalar-voz.js" if not exist "producao\voz\.pronto" (
   echo  [5/7] Baixando a voz gratuita ^(Piper, pt-BR^)... so na primeira vez.
   node producao\instalar-voz.js
 )
+REM vozes Kokoro (mais naturais; precisam de Python 3)
+if exist "producao\voz\kokoro\.pronto" goto :tem_kokoro
+where py >nul 2>nul || where python >nul 2>nul || (
+  echo  [5/7] Instalando o Python ^(para as vozes Kokoro^)...
+  call :winget Python.Python.3.12
+  set "PATH=%LOCALAPPDATA%\Programs\Python\Python312;%LOCALAPPDATA%\Programs\Python\Launcher;%PATH%"
+)
+echo  [5/7] Baixando as vozes Kokoro ^(cerca de 350 MB, so na primeira vez^)...
+node producao\instalar-kokoro.js || echo  [5/7] Aviso: Kokoro nao instalado; o canal usa a voz Piper.
+:tem_kokoro
 echo  [5/7] Canal gamer ok
 
 REM --- 6. IA local gratis (Ollama + Qwen3) para perguntas simples, economiza o Claude ---

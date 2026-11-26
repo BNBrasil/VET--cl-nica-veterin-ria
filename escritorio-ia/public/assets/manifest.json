@@ -130,6 +130,21 @@
       "loop": true,
       "frames": 4
     },
+    "pesquisador_work": {
+      "fps": 8,
+      "loop": true,
+      "frames": 4
+    },
+    "locutor_work": {
+      "fps": 8,
+      "loop": true,
+      "frames": 4
+    },
+    "social-media_work": {
+      "fps": 8,
+      "loop": true,
+      "frames": 4
+    },
     "fx_zzz": {
       "fps": 3,
       "loop": true,
@@ -213,6 +228,23 @@
   "visitor": {
     "image": "char_visitante.png",
     "data": "char_visitante.json"
+  },
+  "convidados": {
+    "pesquisador": {
+      "image": "char_pesquisador.png",
+      "data": "char_pesquisador.json",
+      "work": "pesquisador_work"
+    },
+    "locutor": {
+      "image": "char_locutor.png",
+      "data": "char_locutor.json",
+      "work": "locutor_work"
+    },
+    "social-media": {
+      "image": "char_social-media.png",
+      "data": "char_social-media.json",
+      "work": "social-media_work"
+    }
   },
   "fx": {
     "image": "fx.png",
@@ -855,5 +887,9 @@
       ]
     ]
   },
-  "notes": "Coordenadas em pixels do mapa. seat/sofa/visitors = ponto do personagem (anchor do quadro 32x48 = {16,46}); sentado, é o centro da cadeira. object.x/y = canto superior esquerdo do quadro do objeto (já no lugar certo no mapa). map_fg já tem um furo onde cada objeto aparece. fx.anchors = centro do quadro do efeito relativo ao ponto do personagem (espelhe o x quando flip). obj_* e fx_* são loops; base_done/base_error também podem tocar em loop pela duração do estado."
+  "notes": "Coordenadas em pixels do mapa. seat/sofa/visitors = ponto do personagem (anchor do quadro 32x48 = {16,46}); sentado, é o centro da cadeira. object.x/y = canto superior esquerdo do quadro do objeto (já no lugar certo no mapa). map_fg já tem um furo onde cada objeto aparece. fx.anchors = centro do quadro do efeito relativo ao ponto do personagem (espelhe o x quando flip). obj_* e fx_* são loops; base_done/base_error também podem tocar em loop pela duração do estado. convidados = visitantes com sprite próprio (tag de trabalho <id>_work, e também visitante_work).",
+  "tema": {
+    "id": "padrao",
+    "versao": "1f12ug2"
+  }
 }

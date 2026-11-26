@@ -3,23 +3,70 @@
   "id": "exemplo-lancamento-silksong",
   "titulo": "Hollow Knight: Silksong já está disponível",
   "tipo": "lancamento",
-  "voz": { "modelo": "pt_BR-cadu-medium", "velocidade": 1.08 },
+  "voz": {
+    "modelo": "kokoro:pf_dora",
+    "velocidade": 1.05
+  },
   "cenas": [
-    { "tipo": "gancho", "fala": "Depois de anos de espera, Hollow Knight: Silksong finalmente chegou!", "texto": "SILKSONG CHEGOU", "destaque": "SILKSONG" },
-    { "tipo": "imagem", "fala": "Agora você controla a Hornet, numa aventura nova, com inimigos e chefes inéditos e um reino inteiro pra explorar.", "texto": "Hornet em um reino novo", "selo": "LANÇAMENTO", "imagem": null },
-    { "tipo": "lista", "fala": "Tá disponível no PC, pela Steam, no PS5, no Xbox Series X|S e no Nintendo Switch 2, e também entra no Game Pass.", "texto": "ONDE JOGAR", "itens": [
-      { "nome": "PC (Steam)", "por": "Disponível", "desconto": "NOVO" },
-      { "nome": "PS5", "por": "Disponível" },
-      { "nome": "Xbox Series X|S", "por": "Game Pass", "desconto": "GAME PASS" },
-      { "nome": "Nintendo Switch 2", "por": "Disponível" }
-    ] },
-    { "tipo": "fim", "fala": "Já vai jogar? Comenta aí e segue o canal!", "texto": "COMENTA E SEGUE" }
+    {
+      "tipo": "gancho",
+      "fala": "Depois de anos de espera, Hollow Knight: Silksong finalmente chegou!",
+      "texto": "SILKSONG CHEGOU",
+      "destaque": "SILKSONG"
+    },
+    {
+      "tipo": "imagem",
+      "fala": "Agora você controla a Hornet, numa aventura nova, com inimigos e chefes inéditos e um reino inteiro pra explorar.",
+      "texto": "Hornet em um reino novo",
+      "selo": "LANÇAMENTO",
+      "imagem": null
+    },
+    {
+      "tipo": "lista",
+      "fala": "Tá disponível no PC, pela Steam, no PS5, no Xbox Series X|S e no Nintendo Switch 2, e também entra no Game Pass.",
+      "texto": "ONDE JOGAR",
+      "itens": [
+        {
+          "nome": "PC (Steam)",
+          "por": "Disponível",
+          "desconto": "NOVO"
+        },
+        {
+          "nome": "PS5",
+          "por": "Disponível"
+        },
+        {
+          "nome": "Xbox Series X|S",
+          "por": "Game Pass",
+          "desconto": "GAME PASS"
+        },
+        {
+          "nome": "Nintendo Switch 2",
+          "por": "Disponível"
+        }
+      ]
+    },
+    {
+      "tipo": "fim",
+      "fala": "Já vai jogar? Comenta aí e segue o canal!",
+      "texto": "COMENTA E SEGUE"
+    }
   ],
   "fontes": [
-    { "titulo": "Team Cherry (site oficial)", "url": "https://www.teamcherry.com.au", "oficial": true }
+    {
+      "titulo": "Team Cherry (site oficial)",
+      "url": "https://www.teamcherry.com.au",
+      "oficial": true
+    }
   ],
   "post": {
     "legenda": "Hollow Knight: Silksong já está disponível no PC, PS5, Xbox Series X|S e Nintendo Switch 2. Fonte: Team Cherry.",
-    "hashtags": ["#silksong", "#hollowknight", "#lancamento", "#indie", "#gamer"]
+    "hashtags": [
+      "#silksong",
+      "#hollowknight",
+      "#lancamento",
+      "#indie",
+      "#gamer"
+    ]
   }
 }

@@ -380,7 +380,3 @@ ROOM_DRAW.lounge = {
   },
 };
 
-/** Pontos de luz (luminárias) por sala, em coordenadas locais — usados à noite. [i, j, raio] */
-export const LIGHTS = {
-  roteirista: [[92, 30, 40]],
-};

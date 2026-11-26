@@ -1,0 +1,333 @@
+{
+  "id": "padrao",
+  "nome": "Padrão",
+  "descricao": "O escritório original: salas coloridas, luz do dia, cada cargo com sua cor.",
+  "interface": {
+    "fundo": "#1a1726",
+    "painel": "#262236",
+    "destaque": "#e0a030",
+    "texto": "#f4f0e8",
+    "textoSuave": "#9d96b8",
+    "borda": "#3a3450"
+  },
+  "iluminacao": "dia",
+  "mapa": {
+    "formato": "duas-fileiras",
+    "tamanhoSala": "media",
+    "w": 1008,
+    "h": 568
+  },
+  "salas": {
+    "orquestrador": {
+      "destaque": "#e0a030",
+      "destaqueFinal": "#e0a030"
+    },
+    "roteirista": {
+      "destaque": "#d8c040",
+      "destaqueFinal": "#d8c040"
+    },
+    "editor-video": {
+      "destaque": "#9a4ad8",
+      "destaqueFinal": "#9a4ad8"
+    },
+    "animador": {
+      "destaque": "#40b0d0",
+      "destaqueFinal": "#40b0d0"
+    },
+    "programador": {
+      "destaque": "#40c060",
+      "destaqueFinal": "#40c060"
+    },
+    "desenvolvedor": {
+      "destaque": "#4070e0",
+      "destaqueFinal": "#4070e0"
+    },
+    "designer": {
+      "destaque": "#e05090",
+      "destaqueFinal": "#e05090"
+    },
+    "revisor": {
+      "destaque": "#c04040",
+      "destaqueFinal": "#c04040"
+    },
+    "copa": {
+      "destaque": "#a07050",
+      "destaqueFinal": "#a07050"
+    },
+    "lounge": {
+      "destaque": "#70a090",
+      "destaqueFinal": "#70a090"
+    },
+    "corredor": {}
+  },
+  "personagens": {
+    "orquestrador": {
+      "pele": 0,
+      "cabelo": "curto",
+      "corCabelo": "#3e2a20",
+      "roupa": "#1e2a48",
+      "calca": "#3a4a6a",
+      "acessorio": "nenhum",
+      "emPe": false
+    },
+    "roteirista": {
+      "pele": 0,
+      "cabelo": "longo",
+      "corCabelo": "#c06030",
+      "roupa": "#d8c040",
+      "calca": "#6a4630",
+      "acessorio": "lapis",
+      "emPe": false
+    },
+    "editor-video": {
+      "pele": 1,
+      "cabelo": "curto",
+      "corCabelo": "#2c2438",
+      "roupa": "#9a4ad8",
+      "calca": "#2c2438",
+      "acessorio": "fone",
+      "emPe": false
+    },
+    "animador": {
+      "pele": 0,
+      "cabelo": "coque",
+      "corCabelo": "#e8c860",
+      "roupa": "#40b0d0",
+      "calca": "#3a4a6a",
+      "acessorio": "nenhum",
+      "emPe": false
+    },
+    "programador": {
+      "pele": 2,
+      "cabelo": "gorro",
+      "corCabelo": "#2c2438",
+      "roupa": "#40c060",
+      "calca": "#1e2a48",
+      "acessorio": "barba",
+      "emPe": false
+    },
+    "desenvolvedor": {
+      "pele": 1,
+      "cabelo": "bone",
+      "corCabelo": "#6a4630",
+      "roupa": "#4070e0",
+      "calca": "#3a4a6a",
+      "acessorio": "nenhum",
+      "emPe": false
+    },
+    "designer": {
+      "pele": 3,
+      "cabelo": "longo",
+      "corCabelo": "#5a2a90",
+      "roupa": "#e05090",
+      "calca": "#2c2438",
+      "acessorio": "chapeu",
+      "emPe": false
+    },
+    "revisor": {
+      "pele": 0,
+      "cabelo": "careca",
+      "corCabelo": "#c8c8d0",
+      "roupa": "#c04040",
+      "calca": "#4a4058",
+      "acessorio": "oculos",
+      "emPe": false
+    },
+    "visitante": {
+      "pele": 2,
+      "cabelo": "cacheado",
+      "corCabelo": "#2c2438",
+      "roupa": "#70a090",
+      "calca": "#5a6a8a",
+      "acessorio": "nenhum",
+      "emPe": true
+    },
+    "pesquisador": {
+      "pele": 1,
+      "cabelo": "curto",
+      "corCabelo": "#3e2a20",
+      "roupa": "#e0a030",
+      "calca": "#6a4630",
+      "acessorio": "oculos",
+      "emPe": true
+    },
+    "locutor": {
+      "pele": 3,
+      "cabelo": "curto",
+      "corCabelo": "#2c2438",
+      "roupa": "#9a4ad8",
+      "calca": "#2c2438",
+      "acessorio": "barba",
+      "emPe": true
+    },
+    "social-media": {
+      "pele": 0,
+      "cabelo": "bone",
+      "corCabelo": "#e8c860",
+      "roupa": "#e05090",
+      "calca": "#3a4a6a",
+      "acessorio": "nenhum",
+      "emPe": true
+    }
+  },
+  "paleta": {
+    "pele": [
+      "#f0c8a0",
+      "#d09870",
+      "#a06a48",
+      "#7a4a30"
+    ],
+    "cabelo": [
+      "#2c2438",
+      "#3e2a20",
+      "#6a4630",
+      "#c06030",
+      "#e8c860",
+      "#c8c8d0",
+      "#5a2a90",
+      "#406858"
+    ],
+    "cores": 63
+  },
+  "opcoes": {
+    "piso": [
+      "madeira",
+      "carpete",
+      "azulejo",
+      "concreto",
+      "xadrez",
+      "grama"
+    ],
+    "parede": [
+      "lisa",
+      "tijolo",
+      "painel",
+      "papel",
+      "vidro"
+    ],
+    "iluminacao": [
+      "dia",
+      "tarde",
+      "noite"
+    ],
+    "formato": [
+      "duas-fileiras",
+      "uma-fileira",
+      "L",
+      "andares"
+    ],
+    "tamanhoSala": [
+      "pequena",
+      "media",
+      "grande"
+    ],
+    "cabelo": [
+      "curto",
+      "longo",
+      "coque",
+      "careca",
+      "bone",
+      "gorro",
+      "cacheado",
+      "moicano"
+    ],
+    "acessorio": [
+      "nenhum",
+      "oculos",
+      "fone",
+      "bone",
+      "chapeu",
+      "bigode",
+      "barba",
+      "lapis"
+    ]
+  },
+  "avisos": [],
+  "versao": "1f12ug2",
+  "temas": [
+    {
+      "id": "padrao",
+      "nome": "Padrão",
+      "descricao": "O escritório original: salas coloridas, luz do dia, cada cargo com sua cor.",
+      "miniatura": "temas/padrao.png",
+      "interface": {
+        "fundo": "#1a1726",
+        "painel": "#262236",
+        "destaque": "#e0a030",
+        "texto": "#f4f0e8",
+        "textoSuave": "#9d96b8",
+        "borda": "#3a3450"
+      }
+    },
+    {
+      "id": "natureza",
+      "nome": "Natureza",
+      "descricao": "Madeira clara, painéis verdes, plantas pelo corredor e grama no lounge.",
+      "miniatura": "temas/natureza.png",
+      "interface": {
+        "fundo": "#121a12",
+        "painel": "#1e2a1c",
+        "destaque": "#88c060",
+        "texto": "#eef4e4",
+        "textoSuave": "#9cb08c",
+        "borda": "#344830"
+      }
+    },
+    {
+      "id": "neon",
+      "nome": "Neon",
+      "descricao": "Escritório noturno com luzes neon roxas, ciano e rosa sobre piso escuro.",
+      "miniatura": "temas/neon.png",
+      "interface": {
+        "fundo": "#0b0a14",
+        "painel": "#1a1530",
+        "destaque": "#ff40c0",
+        "texto": "#f0e8ff",
+        "textoSuave": "#a090c8",
+        "borda": "#3a2c60"
+      }
+    },
+    {
+      "id": "noturno",
+      "nome": "Noturno",
+      "descricao": "Fim de expediente aconchegante: madeira escura, painéis e luminárias quentes acesas.",
+      "miniatura": "temas/noturno.png",
+      "interface": {
+        "fundo": "#14100e",
+        "painel": "#241c18",
+        "destaque": "#e0a050",
+        "texto": "#f0e4d4",
+        "textoSuave": "#a89484",
+        "borda": "#3c3028"
+      }
+    },
+    {
+      "id": "pastel",
+      "nome": "Pastel",
+      "descricao": "Cores suaves e claras, papel de parede delicado e luz do dia.",
+      "miniatura": "temas/pastel.png",
+      "interface": {
+        "fundo": "#f6f0f6",
+        "painel": "#ffffff",
+        "destaque": "#e88cb4",
+        "texto": "#4a4058",
+        "textoSuave": "#8c84a0",
+        "borda": "#e4d8ec"
+      }
+    },
+    {
+      "id": "retro",
+      "nome": "Retrô",
+      "descricao": "Paleta reduzida estilo 8/16-bit, piso xadrez e paredes de tijolo.",
+      "miniatura": "temas/retro.png",
+      "interface": {
+        "fundo": "#0f0a14",
+        "painel": "#2a2440",
+        "destaque": "#f8d838",
+        "texto": "#f2eee6",
+        "textoSuave": "#b0aac4",
+        "borda": "#4c4466"
+      }
+    }
+  ]
+}

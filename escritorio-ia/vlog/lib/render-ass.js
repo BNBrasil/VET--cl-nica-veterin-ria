@@ -32,7 +32,7 @@ export function quebrasEquilibradas(ws, maxChars) {
     const prox = ws[i + 1];
     if (prox === undefined || q.size >= nLinhas - 1) return;
     const fraca = PALAVRAS_FRACAS.has(w) && w.length <= 3;
-    if (!fraca && (atual >= alvo - 1 || atual + 1 + prox.length > maxChars)) { q.add(i); atual = 0; }
+    if ((!fraca && atual >= alvo - 1) || atual + 1 + prox.length > maxChars) { q.add(i); atual = 0; }
   });
   return q;
 }
@@ -56,14 +56,17 @@ export function assLongo({ segmentos, duracao, titulo, intro, canal, fontes, fal
   const tituloTxt = titulo || intro || '';
   if (tituloTxt && segmentos.length && segmentos[0].tipo !== 'cartela') {
     const fim = Math.min(4.2, Math.max(2, duracao - 0.5));
-    const anim = `{\\fad(350,450)\\move(${W / 2},${H / 2 + 18},${W / 2},${H / 2 - 30},0,600)\\blur0.6}`;
-    ev.push(eventoAss(0.3, fim, 'Titulo', anim + realce(tituloTxt, palavraDestaque(tituloTxt), c.destaque), 2));
-    if (intro && intro !== tituloTxt) ev.push(eventoAss(0.6, fim, 'Sub', `{\\fad(350,450)\\pos(${W / 2},${H / 2 + 70})}${escAss(intro)}`, 2));
+    // título ancorado embaixo (\\an2): se quebrar em 2 linhas cresce para cima e não cobre o subtítulo
+    const anim = `{\\an2\\fad(350,450)\\move(${W / 2},${H / 2 + 48},${W / 2},${H / 2 + 20},0,600)\\blur0.6}`;
+    ev.push(eventoAss(0.3, fim, 'Titulo', anim + realce(tituloTxt, palavraDestaque(tituloTxt), c.destaque, 24), 2));
+    if (intro && intro !== tituloTxt) ev.push(eventoAss(0.6, fim, 'Sub', `{\\an8\\fad(350,450)\\pos(${W / 2},${H / 2 + 36})}${escAss(intro)}`, 2));
     // faixa escura suave atrás do título (legibilidade sobre qualquer imagem)
     ev.push(eventoAss(0.3, fim, 'Cartela', `{\\an7\\pos(0,${H / 2 - 170})\\bord0\\shad0\\1c&H000000&\\1a&H90&\\fad(350,450)\\blur40\\p1}m 0 0 l ${W} 0 ${W} 300 0 300{\\p0}`, 1));
   }
   // nome do capítulo (lower third) quando muda, exceto o primeiro
+  const inicioCartela = new Set(segmentos.filter((x) => x.tipo === 'cartela').map((x) => x.offset.toFixed(2)));
   for (const cap of capitulos.slice(1)) {
+    if (inicioCartela.has(cap.t.toFixed(2))) continue; // a cartela já diz onde estamos
     ev.push(eventoAss(cap.t + 0.3, Math.min(duracao, cap.t + 3.3), 'Cap', `{\\fad(200,300)}${escAss(maiusc(cap.nome))}`, 3));
   }
   // cartelas de data (compilado)

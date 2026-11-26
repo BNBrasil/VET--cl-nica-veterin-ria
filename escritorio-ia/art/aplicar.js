@@ -54,7 +54,7 @@ export function aplicarConfig(cfg) {
     const custom = s.destaque && s.destaque !== nativo[id];
     if (custom || s.neon) {
       const v = custom ? variacoes(s.destaque) : Object.fromEntries(Object.entries(BASE_ACCENT[id]).map(([k, n]) => [k, hexOf(n)]));
-      if (custom && BASE_ACCENT[id].pale && luminance(hexOf(BASE_ACCENT[id].pale)) < 100) v.pale = mix(v.dark, '#1a1420', 0.45); // salas escuras continuam escuras
+      if (custom && luminance(hexOf(BASE_ACCENT[id].pale)) < 100 && !(s.corParede && luminance(s.corParede) > 140)) v.pale = mix(v.dark, '#1a1420', 0.45); // salas escuras continuam escuras
       ACCENT[id] = {
         mid: defineColor(`ac.${id}.mid`, v.mid, 3), dark: defineColor(`ac.${id}.dark`, v.dark, 1),
         light: defineColor(`ac.${id}.light`, v.light, 1), pale: defineColor(`ac.${id}.pale`, v.pale, 1),

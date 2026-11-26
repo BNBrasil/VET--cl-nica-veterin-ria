@@ -81,7 +81,7 @@ async function gerarClipe(c, pasta, voz, rapido) {
   const ff = fonte.arquivo ? `fontfile='${esc(fonte.arquivo)}':` : '';
   const src = {
     testsrc2: `testsrc2=s=${w}x${h}:r=${c.fps}:d=${dur}`,
-    mandelbrot: `mandelbrot=s=${w}x${h}:r=${c.fps}:end_scale=0.02:maxiter=200,trim=duration=${dur}`,
+    mandelbrot: `mandelbrot=s=${Math.round(w / 4)}x${Math.round(h / 4)}:r=${c.fps}:end_scale=0.05:maxiter=120,trim=duration=${dur},scale=${w}:${h}:flags=bicubic`,
     life: `life=s=${Math.round(w / 8)}x${Math.round(h / 8)}:r=${c.fps}:mold=10:ratio=0.2:death_color=#1a3a5a:life_color=#ffcc66,scale=${w}:${h}:flags=neighbor,trim=duration=${dur}`,
   }[c.fonte];
   const tam = Math.round(Math.min(w, h) / 9);
@@ -134,8 +134,8 @@ async function folha(clipe, pastaDia) {
   await ffmpeg(['-loglevel', 'error', '-i', clipe.arquivo, '-vf', `fps=${n}/${clipe.duracao},scale=320:320:force_original_aspect_ratio=decrease,pad=320:320:(ow-iw)/2:(oh-ih)/2,tile=4x4`, '-frames:v', '1', '-q:v', '4', arq]);
 }
 
-export async function gerarExemplos({ saida = null, rapido = false, log = console.log } = {}) {
-  const voz = piper();
+export async function gerarExemplos({ saida = null, rapido = false, semVoz = false, log = console.log } = {}) {
+  const voz = semVoz ? null : piper();
   log(voz ? `Fala sintética: Piper (${path.basename(voz.onnx)})` : 'Piper não encontrado em producao/voz/: as falas viram um tom pulsando');
   const pastaClipes = saida ? path.join(saida, 'clipes') : path.join(AQUI, 'clipes');
   const pastaTrab = saida ? path.join(saida, 'trabalho') : path.join(VLOG, 'trabalho');

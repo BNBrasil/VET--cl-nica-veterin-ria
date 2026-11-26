@@ -4,7 +4,7 @@
 // transcricao.srt + transcricao.txt. Só LÊ a pasta dos brutos; nada lá é alterado.
 //
 //   node vlog/analisar.js [--brutos <pasta>] [--data AAAA-MM-DD] [--modelo small|medium] [--sem-transcricao]
-//                         [--paralelo N] [--refazer] [--cpu]
+//                         [--paralelo N] [--refazer] [--cpu] [--rapido]
 import { createHash } from 'node:crypto';
 import { existsSync, mkdirSync, readdirSync, readFileSync, statSync, writeFileSync, renameSync } from 'node:fs';
 import os from 'node:os';
@@ -19,7 +19,7 @@ import { transcreverDia, whisperDisponivel, srtDoDia, textoDoDia } from './lib/t
 const VERSAO_CACHE = 3;
 
 export function lerArgs(argv) {
-  const o = { brutos: null, data: null, modelo: null, semTranscricao: false, paralelo: null, refazer: false, cpu: false, trabalho: null, silencioso: false };
+  const o = { brutos: null, data: null, modelo: null, semTranscricao: false, paralelo: null, refazer: false, cpu: false, rapido: false, trabalho: null, silencioso: false };
   for (let i = 0; i < argv.length; i++) {
     const a = argv[i];
     const prox = () => {
@@ -34,6 +34,7 @@ export function lerArgs(argv) {
     else if (a === '--paralelo') o.paralelo = Math.max(1, parseInt(prox(), 10) || 1);
     else if (a === '--refazer') o.refazer = true;
     else if (a === '--cpu') o.cpu = true;
+    else if (a === '--rapido') o.rapido = true;
     else if (a === '--trabalho') o.trabalho = prox();
     else if (a === '--silencioso') o.silencioso = true;
     else if (a === '-h' || a === '--help') o.ajuda = true;
@@ -228,7 +229,7 @@ export async function analisar(op) {
         try {
           const r = await transcreverDia(ffmpeg, pendentes.map((c) => ({
             chave: c.chave, arquivo: c.abs, voz: c.cache.sinais.voz, ebur: c.cache.sinais.ebur, limiar: c.cache.sinais.voz?.[0]?.limiar,
-          })), { modelo: disp.modelo, pastaTmp: path.join(trabalho, '.tmp', data), gpu: !op.cpu, aoLog: (m) => log(`    ${m}`) });
+          })), { modelo: disp.modelo, pastaTmp: path.join(trabalho, '.tmp', data), gpu: !op.cpu, rapido: op.rapido, aoLog: (m) => log(`    ${m}`) });
           for (const c of pendentes) {
             c.cache.falas = r.falas.get(c.chave) || [];
             c.cache.transcricao = chaveTranscricao;
@@ -303,7 +304,8 @@ export async function analisar(op) {
   log('\n================ RELATÓRIO ================');
   for (const r of resultados) {
     log(`${r.data}  ${String(r.clipes).padStart(3)} clipe(s)  ${mmss(r.segundos).padStart(8)} de vídeo  ${String(r.falas).padStart(3)} fala(s) (${mmss(r.comFala)} com fala)`);
-    log(`            ${barraW(path.relative(process.cwd(), path.join(r.pasta, 'analise.json')))}`);
+    const rel = path.relative(process.cwd(), path.join(r.pasta, 'analise.json'));
+    log(`            ${barraW(rel.startsWith('..') ? path.join(r.pasta, 'analise.json') : rel)}`);
   }
   const minVideo = tempos.videoSeg / 60;
   log(`Tempo: ${total.toFixed(1)} s no total  (análise ${tempos.analiseSeg.toFixed(1)} s, transcrição ${tempos.transcricaoSeg.toFixed(1)} s)`);
@@ -327,7 +329,7 @@ if (direto) {
     process.exit(2);
   }
   if (op.ajuda) {
-    console.log('uso: node vlog/analisar.js [--brutos <pasta>] [--data AAAA-MM-DD] [--modelo small|medium] [--sem-transcricao] [--paralelo N] [--refazer] [--cpu]');
+    console.log('uso: node vlog/analisar.js [--brutos <pasta>] [--data AAAA-MM-DD] [--modelo small|medium] [--sem-transcricao] [--paralelo N] [--refazer] [--cpu] [--rapido]');
     process.exit(0);
   }
   analisar(op).catch((e) => {

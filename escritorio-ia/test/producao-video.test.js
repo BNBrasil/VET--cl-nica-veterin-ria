@@ -219,3 +219,14 @@ describe('montagem (precisa do ffmpeg)', { skip: !temFfmpeg && 'ffmpeg não inst
     }
   });
 });
+
+import { escolherMotor, MODELO_PADRAO } from '../producao/tts.js';
+test('voz: Kokoro é o padrão; sem Kokoro cai para Piper; voz inválida dá erro', () => {
+  assert.equal(MODELO_PADRAO, 'kokoro:pm_alex');
+  assert.equal(escolherMotor('kokoro:pf_dora', { temKokoro: true, temPiper: true }).motor, 'kokoro');
+  const r = escolherMotor('kokoro:pm_santa', { temKokoro: false, temPiper: true });
+  assert.equal(r.motor, 'piper');
+  assert.match(r.aviso, /instalar-kokoro/);
+  assert.equal(escolherMotor('pt_BR-cadu-medium', { temKokoro: true, temPiper: true }).motor, 'piper');
+  assert.throws(() => escolherMotor('kokoro:xx', { temKokoro: true, temPiper: true }), /desconhecida/);
+});

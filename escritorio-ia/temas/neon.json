@@ -1,0 +1,21 @@
+{
+  "id": "neon",
+  "nome": "Neon",
+  "descricao": "Escritório noturno com luzes neon roxas, ciano e rosa sobre piso escuro.",
+  "salas": {
+    "*": { "piso": "carpete", "corPiso": "#2a2450", "parede": "lisa", "corParede": "#5a4890", "iluminacao": "noite", "neon": true },
+    "orquestrador": { "destaque": "#ff9a3c" },
+    "roteirista": { "destaque": "#ffe040" },
+    "editor-video": { "destaque": "#b040ff" },
+    "animador": { "destaque": "#20e0ff" },
+    "programador": { "destaque": "#40ff90", "piso": "azulejo", "corPiso": "#182a30" },
+    "desenvolvedor": { "destaque": "#4c80ff" },
+    "designer": { "destaque": "#ff40c0" },
+    "revisor": { "destaque": "#ff4870" },
+    "copa": { "destaque": "#ff7a50", "piso": "xadrez", "corPiso": "#2a2244" },
+    "lounge": { "destaque": "#20d8c8" },
+    "corredor": { "piso": "concreto", "corPiso": "#242038" }
+  },
+  "mapa": { "formato": "duas-fileiras", "tamanhoSala": "media" },
+  "interface": { "fundo": "#0b0a14", "painel": "#1a1530", "destaque": "#ff40c0", "texto": "#f0e8ff", "textoSuave": "#a090c8", "borda": "#3a2c60" }
+}

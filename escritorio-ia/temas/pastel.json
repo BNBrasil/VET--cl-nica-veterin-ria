@@ -1,0 +1,22 @@
+{
+  "id": "pastel",
+  "nome": "Pastel",
+  "descricao": "Cores suaves e claras, papel de parede delicado e luz do dia.",
+  "paleta": { "ajuste": { "saturacao": 0.72, "claridade": 0.14 } },
+  "salas": {
+    "*": { "parede": "papel", "iluminacao": "dia" },
+    "orquestrador": { "destaque": "#f0a878" },
+    "roteirista": { "destaque": "#ecd070" },
+    "editor-video": { "destaque": "#b090e8", "piso": "carpete", "corPiso": "#d8c8f0", "corParede": "#ece0fa" },
+    "animador": { "destaque": "#78c8e0" },
+    "programador": { "destaque": "#88d098", "piso": "azulejo", "corPiso": "#c8e8d4", "corParede": "#e4f4e8" },
+    "desenvolvedor": { "destaque": "#8aa8ec" },
+    "designer": { "destaque": "#f08cb8" },
+    "revisor": { "destaque": "#ec8c8c" },
+    "copa": { "destaque": "#d0a888" },
+    "lounge": { "destaque": "#88c8b4" },
+    "corredor": { "piso": "azulejo", "corPiso": "#f4eef8" }
+  },
+  "mapa": { "formato": "duas-fileiras", "tamanhoSala": "media" },
+  "interface": { "fundo": "#f6f0f6", "painel": "#ffffff", "destaque": "#e88cb4", "texto": "#4a4058", "textoSuave": "#8c84a0", "borda": "#e4d8ec" }
+}
