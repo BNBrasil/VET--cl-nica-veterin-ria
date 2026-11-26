@@ -29,81 +29,89 @@ if not errorlevel 1 (
 REM --- 1. Node.js ---
 where node >nul 2>nul
 if not errorlevel 1 goto :tem_node
-echo  [1/6] Node.js nao encontrado. Instalando pelo winget...
+echo  [1/7] Node.js nao encontrado. Instalando pelo winget...
 call :winget OpenJS.NodeJS.LTS || goto :falha_node
 where node >nul 2>nul || goto :falha_node
 :tem_node
-for /f "delims=" %%v in ('node -v') do echo  [1/6] Node.js %%v ok
+for /f "delims=" %%v in ('node -v') do echo  [1/7] Node.js %%v ok
 
 REM --- 2. Git (o Claude Code no Windows usa o Git Bash) ---
 where git >nul 2>nul
 if not errorlevel 1 goto :tem_git
-echo  [2/6] Git nao encontrado. Instalando pelo winget...
+echo  [2/7] Git nao encontrado. Instalando pelo winget...
 call :winget Git.Git
-where git >nul 2>nul || echo  [2/6] Aviso: Git nao instalado. O Claude Code pode pedir o Git Bash.
+where git >nul 2>nul || echo  [2/7] Aviso: Git nao instalado. O Claude Code pode pedir o Git Bash.
 goto :claude
 :tem_git
-echo  [2/6] Git ok
+echo  [2/7] Git ok
 
 REM --- 3. Claude Code ---
 :claude
 where claude >nul 2>nul
 if not errorlevel 1 goto :tem_claude
-echo  [3/6] Claude Code nao encontrado. Instalando (instalador oficial)...
+echo  [3/7] Claude Code nao encontrado. Instalando (instalador oficial)...
 powershell -NoProfile -ExecutionPolicy Bypass -Command "irm https://claude.ai/install.ps1 | iex"
 where claude >nul 2>nul
 if not errorlevel 1 goto :tem_claude
-echo  [3/6] Tentando pelo npm...
+echo  [3/7] Tentando pelo npm...
 call npm install -g @anthropic-ai/claude-code
 where claude >nul 2>nul
 if errorlevel 1 (
-  echo  [3/6] Nao consegui instalar o Claude Code. Voce pode tentar pela pagina: Configurar ^> Instalar.
+  echo  [3/7] Nao consegui instalar o Claude Code. Voce pode tentar pela pagina: Configurar ^> Instalar.
   goto :deps
 )
 :tem_claude
-echo  [3/6] Claude Code ok  ^(o login, se precisar, e feito pela pagina^)
+echo  [3/7] Claude Code ok  ^(o login, se precisar, e feito pela pagina^)
 
 REM --- 4. dependencias do escritorio ---
 :deps
 if exist "node_modules\ws\package.json" goto :tem_deps
-echo  [4/6] Instalando dependencias do escritorio...
+echo  [4/7] Instalando dependencias do escritorio...
 call npm install --no-audit --no-fund || goto :falha_npm
 :tem_deps
-echo  [4/6] Dependencias ok
+echo  [4/7] Dependencias ok
 if not exist data mkdir data
 
 REM --- 5. canal gamer: ffmpeg (edicao de video) e voz gratuita (Piper) ---
 set "PATH=%LOCALAPPDATA%\Microsoft\WinGet\Links;%PATH%"
 where ffmpeg >nul 2>nul
 if not errorlevel 1 goto :tem_ffmpeg
-echo  [5/6] ffmpeg nao encontrado. Instalando pelo winget...
+echo  [5/7] ffmpeg nao encontrado. Instalando pelo winget...
 call :winget Gyan.FFmpeg
-where ffmpeg >nul 2>nul || echo  [5/6] Aviso: sem ffmpeg o canal gamer nao monta videos. Instale em https://www.gyan.dev/ffmpeg/builds/
+where ffmpeg >nul 2>nul || echo  [5/7] Aviso: sem ffmpeg o canal gamer nao monta videos. Instale em https://www.gyan.dev/ffmpeg/builds/
 :tem_ffmpeg
 if exist "producao\instalar-voz.js" if not exist "producao\voz\.pronto" (
-  echo  [5/6] Baixando a voz gratuita ^(Piper, pt-BR^)... so na primeira vez.
+  echo  [5/7] Baixando a voz gratuita ^(Piper, pt-BR^)... so na primeira vez.
   node producao\instalar-voz.js
 )
-echo  [5/6] Canal gamer ok
+echo  [5/7] Canal gamer ok
 
 REM --- 6. IA local gratis (Ollama + Qwen3) para perguntas simples, economiza o Claude ---
 set "PATH=%LOCALAPPDATA%\Programs\Ollama;%PATH%"
 if "%ESCRITORIO_MODELO_LOCAL%"=="" set "ESCRITORIO_MODELO_LOCAL=qwen3:4b-instruct"
 where ollama >nul 2>nul
 if not errorlevel 1 goto :tem_ollama
-echo  [6/6] Instalando a IA local gratis ^(Ollama^)...
+echo  [6/7] Instalando a IA local gratis ^(Ollama^)...
 call :winget Ollama.Ollama
-where ollama >nul 2>nul || ( echo  [6/6] Aviso: Ollama nao instalado. O chat continua usando so o Claude. & goto :fim_ollama )
+where ollama >nul 2>nul || ( echo  [6/7] Aviso: Ollama nao instalado. O chat continua usando so o Claude. & goto :fim_ollama )
 :tem_ollama
 ollama list 2>nul | findstr /i /c:"%ESCRITORIO_MODELO_LOCAL%" >nul
 if not errorlevel 1 goto :ok_ollama
-echo  [6/6] Baixando o modelo %ESCRITORIO_MODELO_LOCAL% ^(cerca de 2,5 GB, so na primeira vez^)...
+echo  [6/7] Baixando o modelo %ESCRITORIO_MODELO_LOCAL% ^(cerca de 2,5 GB, so na primeira vez^)...
 start "" /b /min ollama serve >nul 2>nul
 timeout /t 3 /nobreak >nul
 ollama pull %ESCRITORIO_MODELO_LOCAL%
 :ok_ollama
-echo  [6/6] IA local ok ^(%ESCRITORIO_MODELO_LOCAL%^)
+echo  [6/7] IA local ok ^(%ESCRITORIO_MODELO_LOCAL%^)
 :fim_ollama
+
+REM --- 7. vlog: transcricao local gratis (whisper.cpp) ---
+if exist "vlog\instalar-ferramentas.js" if not exist "vlog\ferramentas\.pronto" (
+  echo  [7/7] Baixando a transcricao gratis do vlog ^(whisper.cpp^)... so na primeira vez.
+  node vlog\instalar-ferramentas.js
+)
+if not exist "vlog\brutos" mkdir "vlog\brutos"
+echo  [7/7] Vlog ok ^(jogue os videos em vlog\brutos^)
 
 REM --- liga o servidor ---
 if /i "%~1"=="--visivel" (
