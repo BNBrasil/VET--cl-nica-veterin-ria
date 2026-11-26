@@ -1,0 +1,21 @@
+{
+  "nome": "PLANTÃO GAMER",
+  "arroba": "@plantaogamer",
+  "chamadaFim": "SEGUE PRA NÃO PERDER NADA",
+  "cores": {
+    "fundo1": "#0B1026",
+    "fundo2": "#3B0A8C",
+    "fundo3": "#0A5C7A",
+    "destaque": "#FFD60A",
+    "destaque2": "#00F5D4",
+    "alerta": "#FF2E63",
+    "texto": "#FFFFFF",
+    "card": "#141A3A"
+  },
+  "fonte": null,
+  "fonteTitulo": null,
+  "voz": { "modelo": "pt_BR-faber-medium", "velocidade": 1.08 },
+  "trilha": "auto",
+  "volumeTrilha": 0.5,
+  "efeitos": true
+}
