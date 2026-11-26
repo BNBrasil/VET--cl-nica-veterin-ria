@@ -12,7 +12,7 @@ import { fileURLToPath } from 'node:url';
 import * as fila from './fila.js';
 import * as instagram from './redes/instagram.js';
 import * as tiktok from './redes/tiktok.js';
-import { credenciais, salvarCredenciais, dirSaida, REDES, NOME_REDE, semSegredos } from './redes/comum.js';
+import { credenciais, salvarCredenciais, redeConfigurada, dirSaida, REDES, NOME_REDE, semSegredos } from './redes/comum.js';
 
 export const MODULOS = { instagram, tiktok };
 const PUBLICANDO_VELHO_MS = 30 * 60 * 1000;
@@ -62,6 +62,13 @@ export async function publicar(id, opts = {}) {
   // só as redes que ainda não saíram
   const faltam = pedidas.filter((r) => !['publicado', 'rascunho'].includes(post.redes?.[r]?.estado));
   if (!faltam.length) { log(`${id}: já publicado em ${pedidas.map((r) => NOME_REDE[r]).join(' e ')}.`); return post; }
+
+  if (!opts.simular && !opts.modulos) {
+    const semToken = faltam.filter((r) => !redeConfigurada(r, opts));
+    if (semToken.length === faltam.length) {
+      throw new Recusado(`Nenhuma das redes pedidas está configurada (${semToken.map((r) => NOME_REDE[r]).join(', ')}). Configure em ⚙ Configurar → Redes sociais ou use --simular.`, 'SEM_TOKEN');
+    }
+  }
 
   post.estado = 'publicando';
   post.publicandoEm = now();

@@ -54,6 +54,21 @@ Passo a passo e segurança: [`docs/CELULAR.md`](docs/CELULAR.md).
 
 ![Chat com os agentes](docs/chat.png)
 
+## Canal gamer: postagem no TikTok e no Instagram
+
+Os vídeos prontos (`producao/saida/<id>/`) aparecem na aba **Produção** (no computador, abaixo de Equipe/Eventos;
+no celular, a 4ª aba do rodapé) com capa, player, legenda, estado e links publicados.
+
+- **Postagem mista:** vídeo **não crítico** sai sozinho; **crítico** (rumor, sem fonte oficial, preço sem a loja,
+  promoção acabando, assunto sensível, imagem sem crédito, primeira postagem numa rede, menção/acusação) espera você
+  clicar **Aprovar e postar** — no computador ou no celular pareado. Os agentes não conseguem se aprovar: a CLI
+  `node producao/fila.js aprovar` recusa post crítico e `postar.js` confere tudo de novo antes de enviar.
+- **Redes sociais:** ⚙ Configurar → Redes sociais (tokens ficam só no computador). Passo a passo: [`docs/REDES.md`](docs/REDES.md).
+  Sem tokens, aprovar e postar roda em **modo simulação** (avisado na própria aba).
+- **Agenda:** ⚙ Configurar → Agenda — horários (ex.: 09:00 e 18:00) em que o escritório pede sozinho o boletim gamer.
+- Linha de comando: `node producao/fila.js listar | ver <id> | revisar <id> [--critico] [--motivo "..."] | aprovar <id> | rejeitar <id> --motivo "..."`
+  e `node producao/postar.js <id> [--redes tiktok,instagram] [--simular]`.
+
 ## Para desenvolvedores
 
 ```bash

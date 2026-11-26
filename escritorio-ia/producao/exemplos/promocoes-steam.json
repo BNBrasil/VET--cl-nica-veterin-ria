@@ -1,0 +1,25 @@
+{
+  "_exemplo": "Pauta de exemplo com preços ilustrativos. Antes de postar, confira os preços na página da loja.",
+  "id": "exemplo-promocoes-steam",
+  "titulo": "Promoções da Steam: até 75% de desconto",
+  "tipo": "promocao",
+  "voz": { "modelo": "pt_BR-faber-medium", "velocidade": 1.1 },
+  "cenas": [
+    { "tipo": "gancho", "fala": "A Steam tá com jogo bom pela metade do preço, ou até menos!", "texto": "ATÉ -75% NA STEAM", "destaque": "-75%" },
+    { "tipo": "lista", "fala": "Cyberpunk 2077 sai de R$ 199,90 por R$ 79,96. Elden Ring cai para R$ 137,94. Hollow Knight, só R$ 23,49. E Red Dead Redemption 2 por R$ 74,75, com -75%!", "texto": "PROMOÇÕES DA SEMANA", "itens": [
+      { "nome": "Cyberpunk 2077", "de": "R$ 199,90", "por": "R$ 79,96", "desconto": "-60%" },
+      { "nome": "Elden Ring", "de": "R$ 229,90", "por": "R$ 137,94", "desconto": "-40%" },
+      { "nome": "Hollow Knight", "de": "R$ 46,99", "por": "R$ 23,49", "desconto": "-50%" },
+      { "nome": "Red Dead Redemption 2", "de": "R$ 299,00", "por": "R$ 74,75", "desconto": "-75%" }
+    ] },
+    { "tipo": "imagem", "fala": "As ofertas valem até domingo. Corre que o preço volta ao normal!", "texto": "Vale até domingo", "selo": "CORRE", "imagem": null },
+    { "tipo": "fim", "fala": "Segue o canal pra receber as melhores promoções toda semana!", "texto": "SIGA PRA MAIS PROMOS" }
+  ],
+  "fontes": [
+    { "titulo": "Steam (loja oficial)", "url": "https://store.steampowered.com/specials", "oficial": true }
+  ],
+  "post": {
+    "legenda": "Promoções da semana na Steam: Cyberpunk 2077, Elden Ring, Hollow Knight e Red Dead Redemption 2 com até 75% de desconto. Confira na loja antes de comprar!",
+    "hashtags": ["#steam", "#promocao", "#jogosbaratos", "#pcgamer", "#gamer"]
+  }
+}

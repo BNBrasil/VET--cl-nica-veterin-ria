@@ -1,0 +1,21 @@
+{
+  "_exemplo": "Pauta de exemplo. Antes de postar, confira os fatos na fonte oficial.",
+  "id": "exemplo-gta6-confirmado",
+  "titulo": "GTA 6: tudo que a Rockstar já confirmou",
+  "tipo": "noticia",
+  "voz": { "modelo": "pt_BR-faber-medium", "velocidade": 1.08 },
+  "cenas": [
+    { "tipo": "gancho", "fala": "Tudo que a Rockstar já confirmou sobre GTA VI, em menos de um minuto!", "texto": "GTA VI: O QUE É OFICIAL", "destaque": "GTA VI" },
+    { "tipo": "imagem", "fala": "O jogo se passa no estado de Leonida, a versão da Rockstar para a Flórida, com a volta de *Vice City*.", "texto": "De volta a Vice City", "selo": "OFICIAL", "imagem": null },
+    { "tipo": "imagem", "fala": "São dois protagonistas: *Lucia* e Jason, uma dupla de criminosos no estilo Bonnie e Clyde.", "texto": "Lucia e Jason", "imagem": null },
+    { "tipo": "imagem", "fala": "Ele sai para PS5 e Xbox Series X|S. Versão de PC, por enquanto, ainda não foi anunciada.", "texto": "PS5 e Xbox Series X|S", "imagem": null },
+    { "tipo": "fim", "fala": "Segue o canal pra não perder nenhuma novidade de GTA!", "texto": "SIGA PRA MAIS GTA" }
+  ],
+  "fontes": [
+    { "titulo": "Rockstar Newswire", "url": "https://www.rockstargames.com/newswire", "oficial": true }
+  ],
+  "post": {
+    "legenda": "Tudo que a Rockstar já confirmou sobre GTA 6: Leonida, Vice City, Lucia e Jason, PS5 e Xbox Series X|S. Fonte: Rockstar Newswire.",
+    "hashtags": ["#gta6", "#gtavi", "#rockstargames", "#gamer", "#noticiasgamer"]
+  }
+}
