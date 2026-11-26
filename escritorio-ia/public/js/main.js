@@ -7,6 +7,7 @@ import { OfficeIso } from './office-iso.js';
 import { startDemo } from './demo.js';
 import { colorFor, stateText, STATE_PT } from './labels.js';
 import { initChat, onChatMessage, nomeDe, chatDisabled } from './chat.js';
+import { initProducao } from './producao.js';
 
 const $ = (s) => document.querySelector(s);
 const canvas = $('#office');
@@ -255,8 +256,13 @@ async function boot() {
   } else {
     initChat({ rooms, onNamesChanged: () => (dirty = true) });
     // mensagens de chat vão para o painel do chat e também viram balões de fala no mapa
-    connect({ onStatus, onSnapshot, onAgent, onEvent, onOther: (m) => { onChatMessage(m); office.onChat?.(m); } });
+    connect({ onStatus, onSnapshot, onAgent, onEvent, onOther: (m) => {
+      if (m.type === 'producao') { dispatchEvent(new CustomEvent('escritorio:ws', { detail: m })); return; }
+      onChatMessage(m); office.onChat?.(m);
+    } });
   }
+
+  initProducao();
 
   setInterval(() => {
     tickConn();

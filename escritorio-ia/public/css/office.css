@@ -332,3 +332,66 @@ body.off .layout { opacity: 0.35; pointer-events: none; }
 .pair-box p, .pair-box form { width: 100%; overflow-wrap: anywhere; }
 .pair-box button { flex: none; }
 .pair-box { grid-template-columns: minmax(0, 1fr); }
+
+/* ---------- produção (fila do canal gamer) ---------- */
+.producao { grid-column: 1 / -1; }
+.prod-count { background: var(--bad); color: #fff; font-size: 11px; padding: 0 6px; margin-left: 6px; border: 2px solid #000; letter-spacing: 0; vertical-align: 1px; }
+.prod-aviso { margin: 0 0 8px; padding: 8px 10px; font-size: 12px; background: #2a2140; border-left: 4px solid #a070e0; }
+.prod-aviso a { color: #8fc8ff; }
+.prod-list { display: grid; gap: 10px; grid-template-columns: repeat(auto-fill, minmax(min(100%, 420px), 1fr)); max-height: 720px; overflow-y: auto; }
+.pub {
+  --pc: var(--line);
+  display: grid; grid-template-columns: 132px minmax(0, 1fr); gap: 10px; align-items: start;
+  background: var(--bg2); border: 2px solid #000; border-left: 6px solid var(--pc); padding: 8px; box-shadow: 2px 2px 0 #000;
+}
+.pub-amarelo { --pc: var(--warn); } .pub-verde { --pc: var(--ok); } .pub-vermelho { --pc: var(--bad); }
+.pub-azul { --pc: #40b0d0; } .pub-roxo { --pc: #a070e0; } .pub-cinza { --pc: #5a5470; }
+.pub-media { width: 132px; aspect-ratio: 9 / 16; background: #0b0a10; border: 2px solid #000; overflow: hidden; }
+.pub-media video, .pub-media img { width: 100%; height: 100%; object-fit: cover; display: block; background: #000; }
+.pub-vazio { display: grid; place-items: center; height: 100%; color: var(--ink-dim); font-size: 11px; }
+.pub-info { min-width: 0; display: grid; gap: 6px; align-content: start; font-size: 12px; }
+.pub-info h3 { margin: 0; font-size: 14px; line-height: 1.25; overflow-wrap: anywhere; }
+.pub-info p { margin: 0; }
+.pub-top { display: flex; gap: 6px; align-items: center; flex-wrap: wrap; }
+.pub-estado { font-size: 11px; text-transform: uppercase; letter-spacing: 1px; padding: 1px 6px; background: var(--pc); color: #120f1a; border: 2px solid #000; font-weight: bold; }
+.pub-amarelo .pub-estado { animation: pulse 1s steps(2) infinite; }
+.pub-crit { font-size: 10px; text-transform: uppercase; padding: 1px 5px; border: 2px solid var(--warn); color: var(--warn); }
+.pub-motivos { margin: 0; padding: 6px 8px 6px 22px; background: #2e2610; border: 1px dashed var(--warn); color: #f6e7a8; }
+.pub-motivos li { margin: 1px 0; }
+.pub-leg summary { cursor: pointer; color: var(--ink-dim); }
+.pub-leg p { white-space: pre-wrap; overflow-wrap: anywhere; background: #0b0a10; padding: 6px 8px; margin-top: 4px; }
+.pub-tags { color: #8fc8ff; }
+.pub-redes { list-style: none; margin: 0; padding: 0; display: grid; gap: 2px; }
+.pub-redes li { padding: 3px 6px; background: var(--panel); border-left: 3px solid var(--line); overflow-wrap: anywhere; }
+.pub-redes li.r-publicado { border-color: var(--ok); } .pub-redes li.r-erro { border-color: var(--bad); }
+.pub-redes li.r-simulado { border-color: #a070e0; } .pub-redes li.r-rascunho { border-color: #40b0d0; }
+.pub-redes a, .pub-info a { color: #8fc8ff; }
+.pub .row { display: flex; gap: 6px; flex-wrap: wrap; }
+.pub .row button { padding: 5px 10px; }
+.pub .row button small { font-size: 10px; opacity: 0.8; }
+.pub-wait { display: flex; align-items: center; gap: 4px; color: #8fd8f0; }
+.pub-wait i { width: 6px; height: 6px; background: #40b0d0; animation: pulse 0.6s steps(2) infinite; }
+.pub-wait i:nth-child(2) { animation-delay: 0.2s; } .pub-wait i:nth-child(3) { animation-delay: 0.4s; }
+.settings .passos { margin: 0; padding-left: 18px; display: grid; gap: 2px; }
+.settings label.dim { display: grid; gap: 2px; }
+.settings label.check { display: flex; gap: 8px; align-items: center; font-size: 12px; }
+.settings label.check input { width: auto; }
+.settings details > summary b { color: var(--ink); }
+.horarios { display: flex; gap: 8px; flex-wrap: wrap; }
+.hora { display: inline-flex; gap: 4px; align-items: center; }
+.settings .hora input { width: 120px; }
+@media (max-width: 760px) {
+  .tabs { grid-template-columns: repeat(4, 1fr); }
+  .tabs button b.prod-count { position: absolute; top: 4px; right: 18%; margin: 0; font-size: 10px; padding: 0 5px; border-width: 1px; }
+  body[data-tab="equipe"] #producao { display: none; }
+  body[data-tab="producao"] .chat, body[data-tab="producao"] .stage { display: none; }
+  body[data-tab="producao"] .panel > .card:not(#producao) { display: none; }
+  .prod-list { max-height: none; overflow: visible; }
+  .pub { grid-template-columns: 112px minmax(0, 1fr); }
+  .pub-media { width: 112px; }
+}
+@media (max-width: 380px) {
+  .pub { grid-template-columns: minmax(0, 1fr); }
+  .pub-media { width: 100%; max-width: 220px; justify-self: center; }
+}
+@media (prefers-reduced-motion: reduce) { .pub-amarelo .pub-estado, .pub-wait i { animation: none !important; } }

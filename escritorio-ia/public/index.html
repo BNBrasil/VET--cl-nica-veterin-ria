@@ -43,6 +43,11 @@
         <h2>Últimos eventos</h2>
         <ol id="log" class="log"><li class="empty">Nenhum evento ainda.</li></ol>
       </section>
+      <section class="card producao" id="producao" aria-label="Produção do canal">
+        <h2>Produção <b class="prod-count" hidden title="aguardando sua aprovação"></b></h2>
+        <p id="prod-aviso" class="prod-aviso" hidden></p>
+        <div id="prod-list" class="prod-list"><p class="dim">Carregando…</p></div>
+      </section>
     </aside>
     </div>
 
@@ -73,6 +78,8 @@
       <div class="row"><button id="cfg-salvar-nomes" type="button">Salvar nomes</button>
         <button id="cfg-restaurar-nomes" class="ghost" type="button">Nomes padrão</button>
         <span id="cfg-nomes-ok" class="ok" hidden>✓ salvo</span></div></section>
+    <section id="cfg-sec-redes" data-local-only><h3>Redes sociais</h3><div id="cfg-redes"><p class="dim">Carregando…</p></div></section>
+    <section id="cfg-sec-agenda" data-local-only><h3>Agenda</h3><div id="cfg-agenda"><p class="dim">Carregando…</p></div></section>
     <section id="cfg-sec-celular" data-local-only><h3>Celular</h3><div id="cfg-celular"><p class="dim">Carregando…</p></div></section>
     <section id="cfg-sec-aparelho" hidden><h3>Este aparelho</h3>
       <p class="dim">Conectado ao escritório do seu computador. Login, chave de API e desligar ficam só no computador.</p>
@@ -86,6 +93,7 @@
     <button type="button" data-tab="chat" class="on"><span aria-hidden="true">💬</span>Chat<b id="tab-badge" hidden></b></button>
     <button type="button" data-tab="mapa"><span aria-hidden="true">🏢</span>Escritório</button>
     <button type="button" data-tab="equipe"><span aria-hidden="true">👥</span>Equipe</button>
+    <button type="button" data-tab="producao"><span aria-hidden="true">🎬</span>Produção<b class="prod-count" hidden></b></button>
   </nav>
 
   <div id="pair" class="pair" hidden>

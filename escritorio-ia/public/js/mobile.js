@@ -74,6 +74,7 @@ async function checkAccess() {
     if (r.status === 404) return; // servidor sem chat
     access = await r.json();
   } catch { return; }
+  dispatchEvent(new CustomEvent('escritorio:acesso', { detail: access }));
   document.body.classList.toggle('remote', !access.local);
   for (const el of document.querySelectorAll('[data-local-only]')) el.hidden = !access.local;
   $('#cfg-sec-aparelho').hidden = access.local;
