@@ -168,7 +168,9 @@ export function resolverConfig({ tema = null, aparencia = null, rooms = lerRooms
     restrita: tpal.restrita?.length ? tpal.restrita.filter(isHex).map(norm) : null,
   };
 
+  const origem = { destaqueUsuario: Object.keys(us).filter((id) => isHex(us[id]?.destaque)) };
   return {
+    origem,
     tema: { id: temaObj.id, nome: temaObj.nome || temaObj.id, descricao: temaObj.descricao || '', interface: temaObj.interface || {} },
     iluminacao: ilum, mapa, salas, personagens, paleta, avisos,
     rooms,

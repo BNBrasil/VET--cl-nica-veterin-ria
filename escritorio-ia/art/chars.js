@@ -10,17 +10,20 @@ import { Layer } from './iso.js';
 export const CW = 32, CH = 48, ANCHOR = { x: 16, y: 46 };
 
 // ---------------------------------------------------------------- aparência por cargo
-const SKINS = {
-  light: ['skin', 'skinMid'], mid: ['skinMid', 'skinDark'], dark: ['skinDark', 'skinDeep'], deep: ['skinDeep', 'woodDark'],
-};
-const HAIRS = {
+/** Tons de pele por índice: [cor, sombra] (nomes de slot). O tema pode trocar (art/aplicar.js). */
+export const PELES = [['skin', 'skinMid'], ['skinMid', 'skinDark'], ['skinDark', 'skinDeep'], ['skinDeep', 'woodDark']];
+const SKIN_IDX = { light: 0, mid: 1, dark: 2, deep: 3 };
+const skinOf = (look) => PELES[typeof look.skin === 'number' ? look.skin : SKIN_IDX[look.skin]] || PELES[0];
+export const HAIRS = {
   black: ['ink', 'outline', 'shadow'], darkBrown: ['woodDark', 'outline', 'wood'], brown: ['wood', 'woodDark', 'woodLight'],
   ginger: ['ginger', 'brownDark', 'orange'], blonde: ['blonde', 'tan', 'lamp'], gray: ['light', 'silver', 'snow'],
   plum: ['purpleDark', 'ink', 'purple'], teal: ['tealDark', 'ink', 'teal'],
 };
+const hairOf = (look) => (Array.isArray(look.hair) ? look.hair : HAIRS[look.hair]);
 
+// acc = acessório principal (como no desenho original); accs = lista completa (cabelo "boné/gorro" + acessório)
 export const LOOKS = {
-  orquestrador: { skin: 'light', hair: 'darkBrown', style: 'neat', top: ['navy', 'ink'], kind: 'blazer', shirt: 'white', tie: 'orange', pants: 'slate', shoes: 'woodDark' },
+  orquestrador: { skin: 'light', hair: 'darkBrown', style: 'neat', top: ['navy', 'ink'], kind: 'blazer', shirt: 'white', tie: 'orange', tieDark: 'orangeDark', pants: 'slate', shoes: 'woodDark' },
   roteirista: { skin: 'light', hair: 'ginger', style: 'long', top: ['yellow', 'yellowDark'], kind: 'cardigan', shirt: 'cream', pants: 'wood', shoes: 'woodDark', acc: 'pencil' },
   'editor-video': { skin: 'mid', hair: 'black', style: 'messy', top: ['purple', 'purpleDark'], kind: 'hoodie', shirt: 'neon', pants: 'ink', shoes: 'snow', acc: 'headphones' },
   animador: { skin: 'light', hair: 'blonde', style: 'bun', top: ['cyan', 'cyanDark'], kind: 'apron', shirt: 'white', pants: 'slate', shoes: 'red' },
@@ -29,7 +32,14 @@ export const LOOKS = {
   designer: { skin: 'deep', hair: 'plum', style: 'bob', top: ['pink', 'pinkDark'], kind: 'tee', shirt: 'pinkLight', pants: 'ink', shoes: 'lamp', acc: 'beret', earring: true },
   revisor: { skin: 'light', hair: 'gray', style: 'bald', top: ['red', 'redDark'], kind: 'vest', shirt: 'white', tie: 'redDark', pants: 'shadow', shoes: 'woodDark', acc: 'glasses', mustache: true },
   visitante: { skin: 'dark', hair: 'black', style: 'curly', top: ['teal', 'tealDark'], kind: 'jacket', shirt: 'cream', pants: 'steel', shoes: 'woodDark', acc: 'badge' },
+  // convidados (shared/rooms.json → convidados): visitam o lounge com visual próprio
+  pesquisador: { skin: 'mid', hair: 'darkBrown', style: 'messy', top: ['orange', 'orangeDark'], kind: 'cardigan', shirt: 'white', pants: 'wood', shoes: 'woodDark', acc: 'glasses' },
+  locutor: { skin: 'deep', hair: 'black', style: 'short', top: ['purple', 'purpleDark'], kind: 'vest', shirt: 'white', tie: 'purpleDark', pants: 'ink', shoes: 'snow', beard: true },
+  'social-media': { skin: 'light', hair: 'blonde', style: 'long', top: ['pink', 'pinkDark'], kind: 'jacket', shirt: 'white', pants: 'slate', shoes: 'snow', acc: 'cap', earring: true },
 };
+/** Ids com animação de trabalho em pé (visitantes do lounge). */
+export const STANDING = ['visitante', 'pesquisador', 'locutor', 'social-media'];
+const accsOf = (look) => look.accs || (look.acc ? [look.acc] : []);
 
 // ---------------------------------------------------------------- utilitários
 function thick(L, x0, y0, x1, y1, w, col) {
@@ -77,6 +87,7 @@ function hairAt(style, x, y, back) {
     if (style === 'long') { if (skull || above) return 1; if (y >= 12 && y < 22 && x >= 1 && x <= 18) return y > 19 || (x + y) % 7 === 0 ? 2 : 1; return 0; }
     if (style === 'bob') { if (skull || above) return 1; if (y >= 12 && y < 19 && x >= 0 && x <= 19) return 1; return 0; }
     if (style === 'curly') { if (skull || above || (y >= -2 && y < 15 && Math.hypot(x - 9.5, y - 7) < 11.5)) return 1; return 0; }
+    if (style === 'mohawk') { if ((skull || above) && x >= 8 && x <= 11 && y < 14) return 1; if (y >= -4 && y < 0 && x >= 8 && x <= 11) return 1; if (skull && y >= 6 && y < 14) return 2; return 0; }
     if (skull) return y < 15 ? 1 : 0;
     return above ? 1 : 0;
   }
@@ -152,6 +163,13 @@ function hairAt(style, x, y, back) {
       if (y === 6 && x % 3 !== 0) return 1;
       if (x <= 4 && y <= 12) return 1;
       return 0;
+    case 'mohawk': // moicano: crista no meio, laterais raspadas
+      if (y >= -4 && y < 1 && x >= 8 && x <= 12 && Math.abs(x - 10) <= 1 + (y + 4) / 2) return 1;
+      if (above && x >= 7 && x <= 13) return 1;
+      if (!skull) return 0;
+      if (y <= 3 && x >= 7 && x <= 13) return 1;
+      if (x <= 3 && y >= 5 && y <= 11) return 2;
+      return 0;
     case 'bald': // careca em cima, cabelo nos lados
       if (!skull) return 0;
       if (x <= 4 && y >= 5 && y <= 12) return 1;
@@ -165,8 +183,8 @@ function hairAt(style, x, y, back) {
  * Desenha a cabeça em (ox, oy). face: { eyes, mouth, look } ; back = vista de costas.
  */
 function drawHead(L, look, ox, oy, face, back = false) {
-  const [sk, skS] = SKINS[look.skin];
-  const [h, hS, hL] = HAIRS[look.hair];
+  const [sk, skS] = skinOf(look);
+  const [h, hS, hL] = hairOf(look);
   // crânio
   for (let y = 0; y < SKULL.length; y++) for (let x = 0; x < 20; x++) if (inSkull(x, y)) {
     let c = sk;
@@ -191,13 +209,13 @@ function drawHead(L, look, ox, oy, face, back = false) {
     }
     L.px(ox + x, oy + y, c);
   }
-  if (look.style === 'bald' && !back) { L.px(ox + 12, oy + 2, 'snow'); L.px(ox + 13, oy + 2, 'snow'); L.px(ox + 11, oy + 3, 'snow'); }
+  if (look.style === 'bald' && !back && !accsOf(look).some((a) => a === 'cap' || a === 'beanie' || a === 'beret')) { L.px(ox + 12, oy + 2, 'snow'); L.px(ox + 13, oy + 2, 'snow'); L.px(ox + 11, oy + 3, 'snow'); }
   if (!back) drawFace(L, look, ox, oy, face);
   drawHeadAcc(L, look, ox, oy, back);
 }
 
 function drawFace(L, look, ox, oy, { eyes = 'open', mouth = 'smile', look: lk = 0, blush = true }) {
-  const [sk, skS] = SKINS[look.skin];
+  const [sk, skS] = skinOf(look);
   const E = [[8, 9], [14, 9]]; // canto superior esquerdo de cada olho (2x3)
   const P = (x, y, c) => L.px(ox + x, oy + y, c);
   for (const [ex0, ey] of E) {
@@ -250,8 +268,11 @@ function drawFace(L, look, ox, oy, { eyes = 'open', mouth = 'smile', look: lk = 
 }
 
 function drawHeadAcc(L, look, ox, oy, back) {
+  for (const acc of accsOf(look)) drawOneAcc(L, acc, ox, oy, back);
+}
+function drawOneAcc(L, acc, ox, oy, back) {
   const P = (x, y, c) => L.px(ox + x, oy + y, c);
-  switch (look.acc) {
+  switch (acc) {
     case 'headphones':
       // arco por cima e concha na orelha (esquerda) + concha direita aparecendo
       for (let x = 2; x <= 18; x++) { const y = x < 5 || x > 15 ? 1 : x < 8 || x > 12 ? -1 : -2; P(x, y, 'ink'); P(x, y - 1, 'shadow'); }
@@ -321,8 +342,8 @@ function drawTorso(L, look, ty, { back = false, h = 12 } = {}) {
     case 'blazer':
       // camisa em V, gravata, lapelas
       for (let y = 0; y < 6; y++) for (let x = 15 - Math.max(0, 3 - y); x <= 17 + Math.max(0, 3 - y); x++) if (y < 4 || x === 16) P(x, ty + y, look.shirt);
-      for (let y = 1; y < 8; y++) P(16, ty + y, y < 2 ? look.tie : y < 7 ? look.tie : 'orangeDark');
-      P(15, ty + 1, 'orangeDark');
+      for (let y = 1; y < 8; y++) P(16, ty + y, y < 2 ? look.tie : y < 7 ? look.tie : look.tieDark || look.tie);
+      P(15, ty + 1, look.tieDark || look.tie);
       for (let y = 1; y < 7; y++) { P(14 - (y > 4 ? 0 : 0), ty + y, C); P(18, ty + y, C); }
       P(19, ty + 6, 'lamp');
       break;
@@ -350,8 +371,8 @@ function drawTorso(L, look, ty, { back = false, h = 12 } = {}) {
       rows(L, [[ty + 7, 12, 14], [ty + 7, 18, 21]], C);
       break;
     case 'tee':
-      rows(L, [[ty, 14, 18]], look.skin ? SKINS[look.skin][0] : 'skin');
-      P(14, ty + 1, SKINS[look.skin][0]); P(18, ty + 1, SKINS[look.skin][0]); P(15, ty + 1, SKINS[look.skin][0]); P(16, ty + 1, SKINS[look.skin][0]); P(17, ty + 1, SKINS[look.skin][0]);
+      rows(L, [[ty, 14, 18]], skinOf(look)[0]);
+      P(14, ty + 1, skinOf(look)[0]); P(18, ty + 1, skinOf(look)[0]); P(15, ty + 1, skinOf(look)[0]); P(16, ty + 1, skinOf(look)[0]); P(17, ty + 1, skinOf(look)[0]);
       // estampa: coração/estrela
       P(16, ty + 5, 'snow'); P(15, ty + 4, 'snow'); P(17, ty + 4, 'snow'); P(16, ty + 4, 'pinkLight');
       break;
@@ -362,12 +383,12 @@ function drawTorso(L, look, ty, { back = false, h = 12 } = {}) {
       rows(L, [[ty, 11, 13], [ty, 19, 21]], look.shirt);
       break;
   }
-  if (look.acc === 'badge') { for (let y = 0; y < 5; y++) { P(14 + Math.floor(y / 2), ty + y, 'orange'); P(18 - Math.floor(y / 2), ty + y, 'orange'); } rows(L, [[ty + 5, 15, 17], [ty + 6, 15, 17], [ty + 7, 15, 17]], 'snow'); P(16, ty + 6, 'teal'); }
+  if (accsOf(look).includes('badge')) { for (let y = 0; y < 5; y++) { P(14 + Math.floor(y / 2), ty + y, 'orange'); P(18 - Math.floor(y / 2), ty + y, 'orange'); } rows(L, [[ty + 5, 15, 17], [ty + 6, 15, 17], [ty + 7, 15, 17]], 'snow'); P(16, ty + 6, 'teal'); }
 }
 
 /** Braço: ombro → cotovelo → mão. sleeve = cor da manga. hand: 'open'|'fist'|'up'. */
 function drawArm(L, look, sh, el, hd, { sleeve, handOnly = false } = {}) {
-  const [sk, skS] = SKINS[look.skin];
+  const [sk, skS] = skinOf(look);
   const sl = sleeve || look.top[0];
   if (!handOnly) { thick(L, sh[0], sh[1], el[0], el[1], 3, sl); thick(L, el[0], el[1], hd[0], hd[1], 3, sl); }
   // punho
@@ -658,15 +679,46 @@ function workAnim(id, look) {
         post: (L) => { for (let y = 0; y < 7; y++) for (let x = 0; x < 6; x++) L.px(17 + x, 27 + y + (f % 2), y === 0 ? 'woodDark' : x === 0 || x === 5 || y === 6 ? 'wood' : (y % 2 ? 'snow' : 'cyanLight')); },
       })));
     }
+    case 'pesquisador': { // em pé, lendo um livro aberto e virando a página
+      return [0, 1, 2, 3].map((f) => F(STAND({
+        hy: 1, by: f === 2 ? 1 : 0, face: { eyes: 'down', mouth: f === 3 ? 'o' : 'flat', look: 1 },
+        arms: { near: [[10, 27], [12, 32], [15, 33]], far: [[22, 27], [24, 31], [23, 33]] },
+        post: (L) => {
+          const y = 30 + (f === 2 ? 1 : 0);
+          for (let x = 0; x < 11; x++) for (let yy = 0; yy < 6; yy++) L.px(13 + x, y + yy, yy === 5 || x === 0 || x === 10 ? 'woodDark' : x === 5 ? 'light' : 'snow');
+          for (let x = 2; x < 9; x += 1) if (x !== 5) for (const yy of [1, 3]) L.px(13 + x, y + yy, 'silver');
+          if (f === 1) for (let yy = 0; yy < 5; yy++) L.px(19 + Math.min(yy, 2), y - 1 + yy, 'snow');
+        },
+      })));
+    }
+    case 'locutor': { // em pé com o microfone, falando e gesticulando
+      return [0, 1, 2, 3].map((f) => F(STAND({
+        by: f % 2, face: { eyes: f === 2 ? 'closed' : 'open', mouth: f % 2 ? 'big' : 'open', look: 1 },
+        arms: { near: [[10, 27], [13, 28], [18, 23]], far: f < 2 ? [[22, 27], [26, 24], [27, 19 + f]] : [[22, 27], [24, 31], [23, 34]] },
+        post: (L) => { // microfone
+          L.px(19, 19 + (f % 2), 'gray'); L.px(20, 19 + (f % 2), 'silver'); L.px(19, 20 + (f % 2), 'silver'); L.px(20, 20 + (f % 2), 'light');
+          L.px(19, 21 + (f % 2), 'ink'); L.px(19, 22 + (f % 2), 'ink');
+        },
+      })));
+    }
+    case 'social-media': { // em pé tirando selfie com o celular (flash num quadro)
+      const scr = [['pink', 'pinkLight'], ['cyan', 'cyanLight'], ['snow', 'snow'], ['orange', 'orangeLight']];
+      return [0, 1, 2, 3].map((f) => F(STAND({
+        hx: f === 1 ? 1 : 0, by: f === 3 ? 1 : 0, face: { eyes: f === 2 ? 'closed' : 'happy', mouth: f === 2 ? 'big' : 'smile', look: 1 },
+        arms: { near: [[10, 27], [12, 32], [16, 33]], far: [[22, 27], [26, 22], [26, 17]] },
+        post: (L) => { prop.phone(L, 24, 13, scr[f]); if (f === 2) { L.px(29, 12, 'lamp'); L.px(30, 11, 'snow'); L.px(29, 14, 'lamp'); } },
+      })));
+    }
   }
   throw new Error(`sem animação de trabalho para ${id}`);
 }
 
 export const WORK_FPS = 8;
 
-/** Todas as animações de um personagem: [{ tag, fps, frames: Canvas[] }]. */
-export function characterAnims(id) {
-  const look = LOOKS[id];
+/** Todas as animações de um personagem: [{ tag, fps, frames: Canvas[] }]. look = aparência (padrão: LOOKS[id]). */
+export function characterAnims(id, look = LOOKS[id]) {
   if (!look) throw new Error(`sem visual para ${id}`);
-  return [{ tag: `${id}_work`, fps: WORK_FPS, frames: workAnim(id, look) }, ...baseAnims(look)];
+  const work = { tag: `${id}_work`, fps: WORK_FPS, frames: workAnim(id, look) };
+  const extra = STANDING.includes(id) && id !== 'visitante' ? [{ tag: 'visitante_work', fps: WORK_FPS, frames: work.frames }] : [];
+  return [work, ...baseAnims(look), ...extra];
 }

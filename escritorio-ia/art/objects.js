@@ -1,9 +1,11 @@
 // Objetos animados por sala (tags obj_off, obj_work, obj_sleep), desenhados em coordenadas do mapa
 // com o mesmo motor isométrico e depois recortados no menor retângulo comum a todos os quadros.
 import { Canvas } from './draw.js';
-import { Layer, wallDecal } from './iso.js';
+import { Layer, RecIso, wallDecal } from './iso.js';
 import * as Fu from './furniture.js';
 import { SEATS, DESK } from './rooms.js';
+import { ACCENT } from './palette.js';
+import { zone, BASE_RI, BASE_RJ } from './map.js';
 
 export const OBJ_TAGS = [
   { tag: 'obj_off', frames: 2, fps: 2 },
@@ -111,15 +113,15 @@ export const OBJECTS = {
   'editor-video': (I0, J0) => {
     const d = deskOf('editor-video', I0, J0);
     return (L, iso, tag, f) => {
-      const a = tag === 'obj_work' ? SCR.scene(f) : tag === 'obj_sleep' ? SCR.saver(f, 'purpleDark', 'neon') : SCR.off(f);
-      const b = tag === 'obj_work' ? SCR.timeline(f) : tag === 'obj_sleep' ? SCR.saver(f + 2, 'purpleDark', 'neon') : SCR.off(f);
+      const a = tag === 'obj_work' ? SCR.scene(f) : tag === 'obj_sleep' ? SCR.saver(f, ACCENT['editor-video'].dark, ACCENT['editor-video'].light) : SCR.off(f);
+      const b = tag === 'obj_work' ? SCR.timeline(f) : tag === 'obj_sleep' ? SCR.saver(f + 2, ACCENT['editor-video'].dark, ACCENT['editor-video'].light) : SCR.off(f);
       monitor(d.i + 1, d.j, 9, 9, a)(L, iso);
       monitor(d.i + 10, d.j, 9, 9, b)(L, iso);
     };
   },
   animador: (I0, J0) => {
     const d = deskOf('animador', I0, J0);
-    return (L, iso, tag, f) => monitor(d.i + 2, d.j, 11, 10, tag === 'obj_work' ? SCR.ball(f) : tag === 'obj_sleep' ? SCR.saver(f, 'cyanDark', 'snow') : SCR.off(f))(L, iso);
+    return (L, iso, tag, f) => monitor(d.i + 2, d.j, 11, 10, tag === 'obj_work' ? SCR.ball(f) : tag === 'obj_sleep' ? SCR.saver(f, ACCENT.animador.dark, 'snow') : SCR.off(f))(L, iso);
   },
   copa: (I0, J0) => (L, iso, tag, f) => { // cafeteira no balcão
     const i = I0 + 72, j = J0 + 2, z = 16;
@@ -145,7 +147,7 @@ export const OBJECTS = {
   },
   desenvolvedor: (I0, J0) => {
     const d = deskOf('desenvolvedor', I0, J0);
-    return (L, iso, tag, f) => monitor(d.i + 2, d.j, 11, 10, tag === 'obj_work' ? SCR.app(f) : tag === 'obj_sleep' ? SCR.saver(f, 'blueDark', 'blueLight') : SCR.off(f))(L, iso);
+    return (L, iso, tag, f) => monitor(d.i + 2, d.j, 11, 10, tag === 'obj_work' ? SCR.app(f) : tag === 'obj_sleep' ? SCR.saver(f, ACCENT.desenvolvedor.dark, ACCENT.desenvolvedor.light) : SCR.off(f))(L, iso);
   },
   designer: (I0, J0) => (L, iso, tag, f) => { // pôster que muda de cor
     const c = new Canvas(18, 24);
@@ -153,8 +155,8 @@ export const OBJECTS = {
     const fgc = ['lamp', 'blue', 'pink', 'lamp', 'snow', 'orange'];
     const k = tag === 'obj_work' ? f : 0;
     c.rect(0, 0, 18, 24, 'outline'); c.rect(1, 1, 16, 22, 'snow');
-    const B = tag === 'obj_sleep' ? 'navy' : tag === 'obj_off' ? 'pinkPale' : bgs[k];
-    const Fg = tag === 'obj_sleep' ? (f % 2 ? 'lamp' : 'yellowDark') : tag === 'obj_off' ? 'pinkLight' : fgc[k];
+    const B = tag === 'obj_sleep' ? 'navy' : tag === 'obj_off' ? ACCENT.designer.pale : bgs[k];
+    const Fg = tag === 'obj_sleep' ? (f % 2 ? 'lamp' : 'yellowDark') : tag === 'obj_off' ? ACCENT.designer.light : fgc[k];
     c.rect(2, 2, 14, 16, B);
     for (let y = -4; y <= 4; y++) for (let x = -4; x <= 4; x++) if (x * x + y * y <= 17) c.px(9 + x, 9 + y, Fg);
     if (tag === 'obj_sleep') { c.rect(9, 6, 4, 6, 'navy'); c.px(4, 4, 'snow'); c.px(13, 15, 'snow'); }
@@ -163,7 +165,7 @@ export const OBJECTS = {
   },
   revisor: (I0, J0) => {
     const d = deskOf('revisor', I0, J0);
-    return (L, iso, tag, f) => monitor(d.i + 2, d.j, 11, 10, tag === 'obj_work' ? SCR.check(f) : tag === 'obj_sleep' ? SCR.saver(f, 'redDark', 'redLight') : SCR.off(f))(L, iso);
+    return (L, iso, tag, f) => monitor(d.i + 2, d.j, 11, 10, tag === 'obj_work' ? SCR.check(f) : tag === 'obj_sleep' ? SCR.saver(f, ACCENT.revisor.dark, ACCENT.revisor.light) : SCR.off(f))(L, iso);
   },
   lounge: (I0, J0) => (L, iso, tag, f) => { // TV na parede com rack embaixo
     const c = new Canvas(34, 21);
@@ -178,7 +180,7 @@ export const OBJECTS = {
       } else if (tag === 'obj_sleep') {
         col = 'navy';
         const px = [4, 12, 20, 26][f], py = [3, 8, 5, 11][f];
-        if (Math.abs(x - px) < 3 && Math.abs(y - py) < 2) col = 'teal';
+        if (Math.abs(x - px) < 3 && Math.abs(y - py) < 2) col = ACCENT.lounge.mid;
         if ((x * 7 + y * 3) % 23 === 0) col = 'slate';
       } else if (x + y === 6 || x + y === 7) col = 'shadow';
       c.px(2 + x, 2 + y, col);
@@ -190,10 +192,20 @@ export const OBJECTS = {
 
 /**
  * Renderiza as tags de um objeto. Retorna { anims:[{tag,fps,frames}], x, y, w, h, mask }.
- * mapW/mapH = tamanho do mapa; o recorte é a união dos pixels de todos os quadros.
+ * r = { I0, J0, iso, dI, dJ } (contexto da sala); mapW/mapH = tamanho do mapa; o recorte é a união dos
+ * pixels de todos os quadros. Em salas de outro tamanho o objeto é ancorado como os móveis.
  */
-export function renderObject(id, I0, J0, iso, mapW, mapH) {
-  const draw = OBJECTS[id](I0, J0);
+export function renderObject(id, r, mapW, mapH) {
+  const { iso } = r;
+  let sI = 0, sJ = 0;
+  if (r.dI || r.dJ) {
+    const rec = new RecIso();
+    const nl = { px() { return this; }, rect() { return this; }, stamp() {}, get() { return -1; } };
+    OBJECTS[id](0, 0)(nl, rec, 'obj_off', 0);
+    sI = zone((rec.i0 + rec.i1) / 2, BASE_RI, r.dI); sJ = zone((rec.j0 + rec.j1) / 2, BASE_RJ, r.dJ);
+  }
+  const draw = OBJECTS[id](r.I0 + sI, r.J0 + sJ);
+  r.objShift = { i: sI, j: sJ };
   const full = [];
   for (const t of OBJ_TAGS) {
     for (let f = 0; f < t.frames; f++) {

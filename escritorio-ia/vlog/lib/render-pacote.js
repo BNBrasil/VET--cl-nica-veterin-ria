@@ -130,16 +130,20 @@ export async function renderizarPacote({ analise, edl, pastaAnalise, pastaRender
       const { segmentos } = calcularTimeline([{ clipe: pref.clipe, ini: Math.max(0, pref.t - 1), fim: pref.t + 1 }], analise);
       if (segmentos[0]) { await prepararSeg(segmentos[0]); return { arquivo: segmentos[0].arquivo, info: segmentos[0].info, t: pref.t, foco: pref.foco }; }
     }
-    const s = (segs || []).find((x) => x.tipo === 'clipe');
+    // prefere um trecho "melhor" na mesma orientação da capa; senão o primeiro na orientação; senão o primeiro
+    const clipes = (segs || []).filter((x) => x.tipo === 'clipe');
+    const vert = campo === 'reels';
+    const orient = (x) => { const { w, h } = dimensoesEfetivas(x.info); return vert ? h > w : w > h; };
+    const s = clipes.find((x) => x.melhor && orient(x)) || clipes.find(orient) || clipes[0];
     if (!s) return null;
     return { arquivo: s.arquivo, info: s.info, t: s.ini + Math.min(s.dur / 2, 3), foco: s.foco };
   };
-  const capaYT = await fonteCapa(segLongo || segCurto, 'youtube');
+  const capaYT = await fonteCapa([...(segLongo || []), ...(segCurto || [])], 'youtube');
   if (capaYT) {
     await gerarCapa({ fonte: capaYT, alvo: { w: 1280, h: 720 }, texto, canal, fontes, pasta: pastaRender, saida: path.join(pastaSaida, 'capa-youtube.jpg') });
     rel.arquivos.push({ arquivo: path.join(pastaSaida, 'capa-youtube.jpg') });
   }
-  const capaR = await fonteCapa(segCurto || segLongo, 'reels');
+  const capaR = await fonteCapa([...(segCurto || []), ...(segLongo || [])], 'reels');
   if (capaR) {
     await gerarCapa({ fonte: capaR, alvo: CURTO, texto: edl.capa?.textoReels || edl.curto?.gancho || texto, canal, fontes, pasta: pastaRender, saida: path.join(pastaSaida, 'capa-reels.jpg') });
     rel.arquivos.push({ arquivo: path.join(pastaSaida, 'capa-reels.jpg') });

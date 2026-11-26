@@ -14,9 +14,27 @@ export function palavraDestaque(texto) {
   return melhor;
 }
 
-function realce(texto, idx, cor) {
-  return maiusc(texto).split(/\s+/).filter(Boolean)
-    .map((w, i) => (i === idx ? `{\\c${corAss(cor)}}${escAss(w)}{\\r}` : escAss(w))).join(' ');
+function realce(texto, idx, cor, maxChars = 0) {
+  const ws = maiusc(texto).split(/\s+/).filter(Boolean);
+  const quebras = maxChars ? quebrasEquilibradas(ws, maxChars) : new Set();
+  return ws.map((w, i) => (i === idx ? `{\\c${corAss(cor)}}${escAss(w)}{\\r}` : escAss(w)) + (i < ws.length - 1 ? (quebras.has(i) ? '\\N' : ' ') : '')).join('');
+}
+
+/** Índices das palavras depois das quais quebra a linha: menor número de linhas, linhas parecidas. */
+export function quebrasEquilibradas(ws, maxChars) {
+  const total = ws.join(' ').length;
+  const nLinhas = Math.max(1, Math.ceil(total / maxChars));
+  const alvo = total / nLinhas;
+  const q = new Set();
+  let atual = 0;
+  ws.forEach((w, i) => {
+    atual += (atual ? 1 : 0) + w.length;
+    const prox = ws[i + 1];
+    if (prox === undefined || q.size >= nLinhas - 1) return;
+    const fraca = PALAVRAS_FRACAS.has(w) && w.length <= 3;
+    if (!fraca && (atual >= alvo - 1 || atual + 1 + prox.length > maxChars)) { q.add(i); atual = 0; }
+  });
+  return q;
 }
 
 /**
@@ -30,7 +48,7 @@ export function assLongo({ segmentos, duracao, titulo, intro, canal, fontes, fal
     estiloAss('Sub', fontes.titulo, 50, { cor: c.destaque, borda: 4, sombra: 2, alin: 5 }),
     estiloAss('Leg', fontes.titulo, 54, { cor: '#FFFFFF', borda: 3.5, sombra: 1.5, alin: 2, mv: 70, ml: 200, mr: 200 }),
     estiloAss('Marca', fontes.titulo, 32, { cor: '#FFFFFF', borda: 2, sombra: 0, alin: 9, mv: 40, mr: 50 }),
-    estiloAss('Cap', fontes.titulo, 44, { cor: '#111111', caixa: true, fundo: c.destaque, alfaFundo: 0, borda: 14, sombra: 0, alin: 1, ml: 80, mv: 90 }),
+    estiloAss('Cap', fontes.titulo, 44, { cor: '#111111', caixa: true, fundo: c.destaque, alfaFundo: 0, borda: 14, sombra: 0, alin: 7, ml: 70, mv: 60 }),
     estiloAss('Cartela', fontes.titulo, 140, { cor: c.texto, borda: 0, sombra: 0, alin: 5 }),
     estiloAss('CartelaSub', fontes.titulo, 56, { cor: c.destaque, borda: 0, sombra: 0, alin: 5 }),
   ];
@@ -109,7 +127,14 @@ export function assCapa({ alvo, texto, canal, fontes }) {
   const { w: W, h: H } = alvo;
   const c = canal.cores;
   const vertical = H > W;
-  const tam = vertical ? 150 : 118;
+  // tamanho que cabe: a linha mais longa ocupa a largura útil (largura média do caractere ≈ 0,7 em)
+  const maxChars = vertical ? 12 : 11;
+  const ws = maiusc(texto).split(/\s+/).filter(Boolean);
+  const qb = quebrasEquilibradas(ws, maxChars);
+  let linha = 0, maior = 0;
+  ws.forEach((w, i) => { linha += (linha ? 1 : 0) + w.length; if (qb.has(i) || i === ws.length - 1) { maior = Math.max(maior, linha); linha = 0; } });
+  const util = vertical ? W - 160 : W * 0.6;
+  const tam = Math.round(Math.min(vertical ? 140 : 124, util / (Math.max(4, maior) * 0.72)));
   const est = [
     estiloAss('Capa', fontes.legenda, tam, { cor: c.texto, contorno: '#000000', borda: vertical ? 10 : 8, sombra: 6, alin: vertical ? 5 : 4, ml: vertical ? 80 : 70, mr: vertical ? 80 : Math.round(W * 0.38) }),
     estiloAss('Canal', fontes.titulo, vertical ? 52 : 36, { cor: '#111111', caixa: true, fundo: c.destaque, alfaFundo: 0, borda: 12, sombra: 0, alin: vertical ? 2 : 1, ml: 70, mv: vertical ? 420 : 50 }),
@@ -121,7 +146,7 @@ export function assCapa({ alvo, texto, canal, fontes }) {
     : `{\\an7\\pos(-80,-80)\\1c&H000000&\\1a&H50&\\blur70\\p1}m 0 0 l ${Math.round(W * 0.66)} 0 ${Math.round(W * 0.56)} ${H + 160} 0 ${H + 160}{\\p0}`;
   ev.push(eventoAss(0, 10, 'Sombra', grad, 0));
   const pos = vertical ? `{\\pos(${W / 2},${Math.round(H * 0.45)})}` : `{\\pos(70,${H / 2 - 10})}`;
-  ev.push(eventoAss(0, 10, 'Capa', pos + realce(texto, palavraDestaque(texto), c.destaque), 1));
+  ev.push(eventoAss(0, 10, 'Capa', pos + realce(texto, palavraDestaque(texto), c.destaque, maxChars), 1));
   if (canal.nome) ev.push(eventoAss(0, 10, 'Canal', escAss(maiusc(canal.nome)), 2));
   return cabecalhoAss(W, H, est) + ev.join('\n') + '\n';
 }

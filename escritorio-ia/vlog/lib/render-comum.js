@@ -474,6 +474,8 @@ export function gerarSrt(blocos) {
   return blocos.map((b, i) => `${i + 1}\n${tempoSrt(b.ini)} --> ${tempoSrt(b.fim)}\n${(b.linhas || [b.texto]).join('\n')}\n`).join('\n');
 }
 
+const CONECTIVOS = new Set(['e', 'o', 'a', 'os', 'as', 'de', 'do', 'da', 'em', 'no', 'na', 'que', 'com', 'pra', 'para', 'um', 'uma', 'mas', 'se', 'por', 'ao', 'eu', 'meu', 'minha']);
+
 /** Blocos de 2–4 palavras para a legenda dinâmica do curto (quebra em pontuação e pausas). */
 export function blocosDinamicos(falas, { min = 2, max = 4, maxChars = 22 } = {}) {
   const blocos = [];
@@ -485,7 +487,10 @@ export function blocosDinamicos(falas, { min = 2, max = 4, maxChars = 22 } = {})
       atual.push(p);
       const chars = atual.map((x) => x.w).join(' ').length;
       const pausa = prox && prox.t0 - p.t1 > 0.25;
-      if (atual.length >= max || (atual.length >= min && (/[.,!?;:]$/.test(p.w) || pausa || chars >= maxChars))) fechar();
+      if (atual.length >= max || (atual.length >= min && (/[.,!?;:]$/.test(p.w) || pausa || chars >= maxChars))) {
+        // não termina o bloco em palavra de ligação ("e", "de", "que"…): ela abre o próximo
+        if (prox && atual.length > min && CONECTIVOS.has(p.w.toLowerCase())) { atual.pop(); fechar(); atual = [p]; } else fechar();
+      }
     });
     // bloco final com 1 palavra junta no anterior se couber
     if (atual.length === 1 && blocos.length && blocos[blocos.length - 1].palavras.length < max && blocos[blocos.length - 1].fim > atual[0].t0 - 0.3) {
