@@ -184,6 +184,7 @@ export function estimarTremido(raw, L, A, { R = 3 } = {}) {
     const a = k * tam - tam;
     const b = k * tam;
     let melhor = Infinity;
+    let semDesloc = 0;
     let bx = 0;
     let by = 0;
     for (let oy = -R; oy <= R; oy++) {
@@ -195,12 +196,15 @@ export function estimarTremido(raw, L, A, { R = 3 } = {}) {
           for (let x = m; x < L - m; x += 2) sad += Math.abs(raw[la + x] - raw[lb + x]);
         }
         // preferência por deslocamento zero: em imagem lisa (céu, parede) todos empatam e fica 0
+        if (ox === 0 && oy === 0) semDesloc = sad;
         sad += amostras * 0.4 * (Math.abs(ox) + Math.abs(oy));
         if (sad < melhor) { melhor = sad; bx = ox; by = oy; }
       }
     }
-    // diferença média alta mesmo no melhor encaixe = corte de cena ou movimento grande: não é tremido
-    if (melhor / amostras > 30) { bx = 0; by = 0; }
+    // diferença média alta mesmo no melhor encaixe = corte de cena ou movimento grande: não é tremido.
+    // Deslocar o quadro inteiro tem que melhorar MUITO o encaixe; se não melhora, o que mexeu foi algo
+    // dentro da cena (pessoa andando, carro), não a câmera.
+    if (melhor / amostras > 30 || melhor > 0.75 * semDesloc) { bx = 0; by = 0; }
     dx.push(bx);
     dy.push(by);
   }

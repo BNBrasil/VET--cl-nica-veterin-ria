@@ -35,7 +35,8 @@ export function filtroSegmento(seg, { alvo, transicao = 'corte', primeiro = fals
   if (seg.tipo === 'cartela') {
     v = '[0:v]setsar=1';
   } else {
-    const pre = estabilizar ? ",scale='min(1920,iw)':-2,deshake=rx=32:ry=32:edge=mirror" : '';
+    // estabilização leve: deshake em até 1280 px de largura (bem mais rápido; trecho tremido já é pouco nítido)
+    const pre = estabilizar ? ",scale='min(1280,iw)':-2,deshake=rx=16:ry=16:edge=mirror:search=less" : '';
     const { filtro } = filtroEnquadramento(seg.info || seg.clipe, alvo, seg.foco || 'centro', { rostoX, entrada: 'vin', saida: 'vq' });
     partes.push(`[0:v]fps=${FPS}${pre},setpts=PTS-STARTPTS[vin]`);
     partes.push(filtro);

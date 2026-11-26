@@ -119,16 +119,19 @@ export function createAparencia(o = {}) {
   }
   const tema = (id) => temas().find((t) => t.id === id) || null;
 
+  // a paleta pode vir como lista de cores ou como { nomeDoSlot: "#hex" } (formato do gerador de arte)
+  const lista = (v) => (Array.isArray(v) ? v : isObj(v) ? Object.values(v) : []).filter((c) => typeof c === 'string');
+
   function resumoTema(t) {
     const geral = t.salas?.['*'] || {};
     const cores = [t.interface?.fundo, t.interface?.painel, t.interface?.destaque, geral.corPiso, geral.corParede,
-      ...((t.paleta?.base || []).slice(0, 6))].filter((c) => HEX.test(c || ''));
+      ...lista(t.paleta?.base).slice(0, 6)].filter((c) => HEX.test(c || ''));
     const mini = existsSync(path.join(assetsDir, 'temas', `${t.id}.png`)) ? `assets/temas/${t.id}.png` : null;
     return {
       id: t.id, nome: t.nome || t.id, descricao: t.descricao || '', miniatura: mini,
       cores: [...new Set(cores.map((c) => c.toLowerCase()))].slice(0, 6),
       interface: isObj(t.interface) ? t.interface : {}, mapa: isObj(t.mapa) ? t.mapa : {},
-      peles: Array.isArray(t.paleta?.pele) ? t.paleta.pele.filter((c) => HEX.test(c)) : [],
+      peles: lista(t.paleta?.pele).filter((c) => HEX.test(c || '')),
       salas: isObj(t.salas) ? t.salas : {},
     };
   }

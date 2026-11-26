@@ -24,12 +24,13 @@ const FONTE = {
   ' ': ['00000', '00000', '00000', '00000', '00000', '00000', '00000'],
 };
 
-/** 75.4 -> "1:15"; 3725 -> "1:02:05". */
-export function rotuloTempo(seg) {
-  const s = Math.max(0, Math.floor(seg));
+/** 75.4 -> "1:15"; 3725 -> "1:02:05"; com décimos (clipes curtos): 3.5 -> "0:03.5". */
+export function rotuloTempo(seg, decimos = false) {
+  const t = Math.max(0, seg);
+  const s = Math.floor(t);
   const h = Math.floor(s / 3600);
   const m = Math.floor((s % 3600) / 60);
-  const ss = String(s % 60).padStart(2, '0');
+  const ss = String(s % 60).padStart(2, '0') + (decimos ? `.${Math.floor((t - s) * 10 + 1e-6)}` : '');
   return h ? `${h}:${String(m).padStart(2, '0')}:${ss}` : `${m}:${ss}`;
 }
 
@@ -72,7 +73,7 @@ export function tamanhoQuadro(orientacao) {
 }
 
 /**
- * Gera folhas/<stem>.jpg (4x4) e quadros/<stem>_NNNN.jpg (NNNN = décimos de segundo... na verdade o índice 00–15).
+ * Gera folhas/<stem>.jpg (grade 4x4) e quadros/<stem>_00.jpg … _15.jpg (os mesmos quadros, maiores e sem etiqueta).
  * Retorna { folha, quadros: [{t, img}] } com caminhos relativos à pasta do dia.
  */
 export async function gerarFolha(ffmpeg, arquivo, info, pastaDia, stem, { colunas = 4, linhas = 4, ladoQuadro = 480 } = {}) {
@@ -87,7 +88,7 @@ export async function gerarFolha(ffmpeg, arquivo, info, pastaDia, stem, { coluna
     tempos.forEach((t) => args.push('-ss', t.toFixed(2), '-i', arquivo));
     tempos.forEach((t, i) => {
       const arq = path.join(tmp, `e${i}.ppm`);
-      writeFileSync(arq, etiquetaPpm(rotuloTempo(t)));
+      writeFileSync(arq, etiquetaPpm(rotuloTempo(t, info.duracao < 120)));
       args.push('-i', arq);
     });
     // quadro grande (para olhar de perto) e pequeno (para a grade), mantendo a proporção com barras pretas

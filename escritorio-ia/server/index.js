@@ -6,6 +6,7 @@ import { fileURLToPath } from 'node:url';
 import { WebSocketServer, WebSocket } from 'ws';
 import { createState, DEFAULT_ROOMS_PATH } from './state.js';
 import { ClaudeBridge } from './claude.js';
+import { Atualizador } from './atualizacao.js';
 import { RemoteAccess, originOk, networkAddresses, tailscaleInfo } from './remote.js';
 import qrcode from 'qrcode-generator';
 import { createProducao } from './producao.js';
@@ -110,6 +111,8 @@ export function createServer(opts = {}) {
   let onShutdown = opts.onShutdown || (() => {});
 
   const remote = bridge ? (opts.remote || new RemoteAccess({ dataDir: bridge.dataDir })) : null;
+  const atualizador = bridge ? (opts.atualizador || new Atualizador({ dir: ROOT })) : null;
+  let onRestart = opts.onRestart || (() => {});
   // Produção do canal gamer (fila de posts, aprovação, redes sociais, agenda). Só com o chat ligado.
   const producao = bridge ? createProducao({
     bridge, dataDir: bridge.dataDir, dir: opts.producaoDir, now: opts.now, log, rooms: state.config.rooms,
@@ -257,6 +260,7 @@ export function createServer(opts = {}) {
     if (req.method === 'GET') {
       if (p === '/api/claude') return sendJson(res, 200, bridge.status());
       if (p === '/api/nomes') return sendJson(res, 200, bridge.nomes);
+      if (p === '/api/atualizacao') return sendJson(res, 200, atualizador.estado.verificadoEm ? atualizador.estado : await atualizador.verificar());
       return send(res, 404, 'not found');
     }
     if (req.method !== 'POST') return send(res, 405, 'method not allowed');
@@ -267,6 +271,13 @@ export function createServer(opts = {}) {
       case '/api/chat': return sendJson(res, 200, bridge.send(body.texto));
       case '/api/parar': return sendJson(res, 200, { ok: bridge.stop() });
       case '/api/nova-conversa': bridge.newConversation(); return sendJson(res, 200, { ok: true });
+      case '/api/atualizacao/verificar': return sendJson(res, 200, await atualizador.verificar());
+      case '/api/atualizacao/aplicar': {
+        const r = atualizador.aplicar({ log: (t) => bridge.push({ kind: 'system', agent: 'sistema', text: '⬆ ' + t }) });
+        sendJson(res, 202, { ok: true });
+        await r;
+        return;
+      }
       case '/api/ia-local': return sendJson(res, 200, bridge.setIaLocal({ usar: body.usar, modelo: body.modelo }));
       case '/api/ia-local/baixar': return sendJson(res, 200, { ok: bridge.baixarModelo() });
       case '/api/verificar': return sendJson(res, 200, await bridge.refresh());
@@ -366,6 +377,9 @@ export function createServer(opts = {}) {
     bridge.on('nomes', (n) => broadcast({ type: 'nomes', nomes: n }));
     bridge.on('reset', () => broadcast({ type: 'chat_snapshot', mensagens: bridge.history, nomes: bridge.nomes, claude: bridge.status() }));
     bridge.refresh().catch(() => {});
+    atualizador.on('estado', (estado) => broadcast({ type: 'atualizacao', estado }));
+    atualizador.on('reiniciar', () => setTimeout(() => onRestart(), 500));
+    if (opts.verificarAtualizacoes) atualizador.iniciarVerificacaoPeriodica();
   }
 
   function broadcast(msg) {
@@ -414,6 +428,7 @@ export function createServer(opts = {}) {
     if (timer) clearInterval(timer);
     producao?.parar();
     bridge?.shutdown();
+    atualizador?.parar();
     for (const c of wss.clients) c.terminate();
     wss.close();
     return new Promise((resolve) => {
@@ -422,20 +437,36 @@ export function createServer(opts = {}) {
     });
   }
 
-  return { server, wss, state, bridge, remote, producao, aparencia, listen, close, tick, ingest, set onShutdown(fn) { onShutdown = fn; } };
+  return { server, wss, state, bridge, remote, producao, aparencia, listen, close, tick, ingest, set onShutdown(fn) { onShutdown = fn; }, set onRestart(fn) { onRestart = fn; }, atualizador };
 }
 
 const isMain = process.argv[1] && path.resolve(process.argv[1]) === fileURLToPath(import.meta.url);
 if (isMain) {
   const port = Number(process.env.ESCRITORIO_PORT) || 4317;
   const host = process.env.ESCRITORIO_HOST || '127.0.0.1';
-  const app = createServer({ chat: process.env.ESCRITORIO_CHAT !== '0', temasDir: process.env.ESCRITORIO_TEMAS_DIR || undefined });
+  const app = createServer({
+    chat: process.env.ESCRITORIO_CHAT !== '0', temasDir: process.env.ESCRITORIO_TEMAS_DIR || undefined,
+    verificarAtualizacoes: process.env.ESCRITORIO_ATUALIZAR !== '0',
+  });
   app.listen(port, host).catch((e) => {
     console.error(`[escritorio] não foi possível abrir ${host}:${port}: ${e.message}`);
     process.exit(1);
   });
   const stop = () => app.close().then(() => process.exit(0));
   app.onShutdown = () => { console.log('[escritorio] desligado pela página.'); stop(); };
+  // Depois de uma atualização: fecha a porta, abre um servidor novo (com o código novo) e sai.
+  app.onRestart = async () => {
+    console.log('[escritorio] reiniciando com a versão nova…');
+    await app.close();
+    const { spawn } = await import('node:child_process');
+    const { openSync, mkdirSync } = await import('node:fs');
+    mkdirSync(path.join(ROOT, 'data'), { recursive: true });
+    const out = openSync(path.join(ROOT, 'data', 'servidor.log'), 'a');
+    spawn(process.execPath, [fileURLToPath(import.meta.url)], {
+      cwd: ROOT, env: process.env, detached: true, windowsHide: true, stdio: ['ignore', out, out],
+    }).unref();
+    process.exit(0);
+  };
   process.on('SIGINT', stop);
   process.on('SIGTERM', stop);
 }

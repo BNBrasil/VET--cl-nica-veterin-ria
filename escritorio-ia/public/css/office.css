@@ -458,3 +458,11 @@ body.off .layout { opacity: 0.35; pointer-events: none; }
   .ap-temas { grid-template-columns: repeat(2, minmax(0, 1fr)); }
 }
 @media (prefers-reduced-motion: reduce) { .ap-gerando i { animation: none !important; } }
+
+/* ---------- aviso de atualização ---------- */
+.atualizacao { margin: 8px 16px 0; padding: 8px 12px; background: var(--panel); border: 2px solid #000; border-left: 6px solid var(--ok); box-shadow: 3px 3px 0 #000; font-size: 13px; }
+.atualizacao .atu-linha { display: flex; flex-wrap: wrap; gap: 6px 12px; align-items: center; }
+.atualizacao .atu-botoes { display: flex; gap: 6px; margin-left: auto; flex-wrap: wrap; }
+.atualizacao .atu-lista { margin: 6px 0 0; padding-left: 18px; color: var(--ink-dim); }
+.atualizacao p { margin: 4px 0 0; }
+@media (max-width: 760px) { .atualizacao { margin: 6px 8px 0; } .atualizacao .atu-botoes { margin-left: 0; } }

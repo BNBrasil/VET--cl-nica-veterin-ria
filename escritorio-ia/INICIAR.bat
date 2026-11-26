@@ -9,7 +9,14 @@ REM ============================================================
 setlocal EnableExtensions
 chcp 65001 >nul
 title Escritorio de IA
-cd /d "%~dp0"
+REM Roda sempre a partir de uma copia em %TEMP%: assim uma atualizacao pode trocar este arquivo sem atrapalhar.
+if /i not "%~1"=="--copia" (
+  copy /y "%~f0" "%TEMP%\escritorio-ia-iniciar.bat" >nul
+  "%TEMP%\escritorio-ia-iniciar.bat" --copia "%~dp0." %*
+)
+cd /d "%~2"
+shift
+shift
 if "%ESCRITORIO_PORT%"=="" set "ESCRITORIO_PORT=4317"
 set "URL=http://127.0.0.1:%ESCRITORIO_PORT%/"
 set "PATH=%USERPROFILE%\.local\bin;%APPDATA%\npm;%ProgramFiles%\nodejs;%ProgramFiles%\Git\cmd;%PATH%"
@@ -122,6 +129,32 @@ if exist "vlog\instalar-ferramentas.js" if not exist "vlog\ferramentas\.pronto" 
 )
 if not exist "vlog\brutos" mkdir "vlog\brutos"
 echo  [7/7] Vlog ok ^(jogue os videos em vlog\brutos^)
+
+REM --- atualizacoes (GitHub: BNBrasil/escritorio-ia) ---
+set "REPO=https://github.com/BNBrasil/escritorio-ia.git"
+where git >nul 2>nul || goto :fim_atualizacao
+if not exist ".git" (
+  echo  Conferindo acesso ao GitHub ^(na primeira vez abre o navegador para voce entrar^)...
+  git ls-remote "%REPO%" HEAD >nul 2>nul && echo  GitHub ok: as atualizacoes aparecem na pagina do escritorio.
+  goto :fim_atualizacao
+)
+echo  Procurando atualizacoes...
+git fetch --quiet origin main 2>nul || ( echo  Nao consegui falar com o GitHub agora. & goto :fim_atualizacao )
+set "NOVAS=0"
+for /f %%n in ('git rev-list --count HEAD..origin/main 2^>nul') do set "NOVAS=%%n"
+if "%NOVAS%"=="0" ( echo  Voce ja esta na versao mais nova. & goto :fim_atualizacao )
+echo.
+echo  *** Tem atualizacao: %NOVAS% novidade^(s^) ***
+git log --format="    - %%s" -n 10 HEAD..origin/main
+echo.
+choice /c SN /t 15 /d N /m "  Baixar a atualizacao agora? (S = sim, N = depois; em 15 s segue sem atualizar)"
+if errorlevel 2 goto :fim_atualizacao
+if exist "data\aparencia.json" git checkout -- public/assets >nul 2>nul
+git pull --rebase --autostash --quiet origin main || ( echo  A atualizacao falhou; seguindo com a versao atual. & git rebase --abort >nul 2>nul & goto :fim_atualizacao )
+call npm install --no-audit --no-fund >nul
+if exist "data\aparencia.json" node art\generate.js >nul
+echo  Atualizado!
+:fim_atualizacao
 
 REM --- liga o servidor ---
 if /i "%~1"=="--visivel" (

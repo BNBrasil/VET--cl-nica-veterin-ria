@@ -1,5 +1,6 @@
 // Ponto de entrada: carrega salas e assets, liga rede (ou demo), escala o canvas e atualiza a UI.
 
+import { initAtualizacao } from './atualizacao.js';
 import { loadRooms, connect } from './net.js';
 import { loadAssets } from './assets.js';
 import { Office } from './office.js';
@@ -284,7 +285,7 @@ async function boot() {
     initChat({ rooms, onNamesChanged: () => (dirty = true) });
     // mensagens de chat vão para o painel do chat e também viram balões de fala no mapa
     connect({ onStatus, onSnapshot, onAgent, onEvent, onOther: (m) => {
-      if (m.type === 'producao') { dispatchEvent(new CustomEvent('escritorio:ws', { detail: m })); return; }
+      if (m.type === 'producao' || m.type === 'atualizacao') { dispatchEvent(new CustomEvent('escritorio:ws', { detail: m })); return; }
       if (m.type === 'aparencia') { trocarAparencia(m); return; }
       if (m.type === 'aparencia_estado') { onAparenciaEstado(m); return; }
       onChatMessage(m); office.onChat?.(m);
@@ -292,6 +293,7 @@ async function boot() {
   }
 
   initProducao();
+  initAtualizacao();
   initAparencia();
 
   setInterval(() => {
