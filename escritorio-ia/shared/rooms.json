@@ -96,5 +96,28 @@
     "doneMs": 2000,
     "errorMs": 2000,
     "loungeAfterMs": 120000
-  }
+  },
+  "convidados": [
+    {
+      "id": "pesquisador",
+      "nomePadrao": "Nico",
+      "cargo": "Pesquisador",
+      "accent": "#e07a30",
+      "onde": "lounge"
+    },
+    {
+      "id": "locutor",
+      "nomePadrao": "Léo",
+      "cargo": "Locutor",
+      "accent": "#7a5ae0",
+      "onde": "lounge"
+    },
+    {
+      "id": "social-media",
+      "nomePadrao": "Sofia",
+      "cargo": "Social media",
+      "accent": "#e0508a",
+      "onde": "lounge"
+    }
+  ]
 }
