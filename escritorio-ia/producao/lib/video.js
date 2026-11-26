@@ -25,7 +25,7 @@ export async function dimensoesImagem(arquivo) {
 const CODEC_INTERMEDIARIO = ['-c:v', 'libx264', '-preset', 'veryfast', '-crf', '15', '-pix_fmt', 'yuv420p', '-g', '30'];
 
 /** Textura da grade + linhas de varredura (gerada uma vez; drawgrid por quadro é lento). */
-async function texturaGrade(pasta) {
+export async function texturaGrade(pasta) {
   const arq = path.join(pasta, 'grade.png');
   if (!existsSync(arq)) {
     await ffmpeg(['-f', 'lavfi', '-i', `color=c=black@0:s=${W}x${H + 90},format=rgba,` +

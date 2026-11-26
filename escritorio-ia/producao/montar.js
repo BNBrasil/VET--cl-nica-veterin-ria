@@ -10,7 +10,7 @@ import { carregarCanal, escolherFontes } from './lib/canal.js';
 import { falar, MODELO_PADRAO } from './tts.js';
 import { dividirBlocos, cronometrar, agruparParaSrt, gerarSrt, tokenizar, palavraChave } from './lib/legenda.js';
 import { criarAss, FPS, Y_LEGENDA } from './lib/ass.js';
-import { fundoGerado, fundoImagem, concatenar, renderFinal, renderCapa } from './lib/video.js';
+import { fundoGerado, fundoImagem, concatenar, renderFinal, renderCapa, texturaGrade } from './lib/video.js';
 import { garantirSons, escolherTrilha } from './lib/sons.js';
 import { mixar } from './lib/audio.js';
 
@@ -147,24 +147,30 @@ export async function montar(pautaOuArquivo, opts = {}) {
 
   // 3) fundos
   log('[2/5] fundos das cenas');
-  const clipes = [];
+  const clipes = cenas.map((c) => path.join(pastaTrab, `fundo-${c.indice + 1}.mp4`));
   for (const c of cenas) {
-    const saida = path.join(pastaTrab, `fundo-${c.indice + 1}.mp4`);
-    let img = null;
     if (c.tipo === 'imagem' && c.imagem) {
-      try { img = await obterImagem(c.imagem, pastaTrab, c.indice, base); } catch (e) {
+      try { c.arquivoImagem = await obterImagem(c.imagem, pastaTrab, c.indice, base); } catch (e) {
         log(`  aviso: ${e.message} — usando fundo gerado`);
       }
     }
-    if (img) {
-      c.caixaImagem = await fundoImagem({ saida, quadros: c.quadros, imagem: img, cores: canal.cores });
-      c.temImagem = true;
-    } else {
-      await fundoGerado({ saida, quadros: c.quadros, cores: canal.cores, semente: c.indice + 3,
-        paleta: c.tipo === 'gancho' ? 'alerta' : 'normal' });
-    }
-    clipes.push(saida);
   }
+  // gera os fundos em paralelo (o gradiente e o libx264 não usam todos os núcleos sozinhos)
+  const fila = [...cenas];
+  const trabalhador = async () => {
+    for (let c = fila.shift(); c; c = fila.shift()) {
+      const saida = clipes[c.indice];
+      if (c.arquivoImagem) {
+        c.caixaImagem = await fundoImagem({ saida, quadros: c.quadros, imagem: c.arquivoImagem, cores: canal.cores });
+        c.temImagem = true;
+      } else {
+        await fundoGerado({ saida, quadros: c.quadros, cores: canal.cores, semente: c.indice + 3,
+          paleta: c.tipo === 'gancho' ? 'alerta' : 'normal' });
+      }
+    }
+  };
+  await texturaGrade(pastaTrab);
+  await Promise.all(Array.from({ length: Math.min(3, cenas.length) }, trabalhador));
   const fundo = path.join(pastaTrab, 'fundo.mp4');
   await concatenar(clipes, fundo, pastaTrab);
   t = marca('fundos', t);
@@ -196,7 +202,7 @@ export async function montar(pautaOuArquivo, opts = {}) {
     } else if (c.tipo === 'imagem') {
       if (c.temImagem) {
         const cx = c.caixaImagem;
-        const fimFaixa = ass.faixa({ ini: c.inicio, fim: c.fim, texto: c.texto || '', y: cx.y + cx.h + 40, selo: c.selo });
+        const fimFaixa = ass.faixa({ ini: c.inicio, fim: c.fim, texto: c.texto || '', y: cx.y + cx.h + 62, selo: c.selo });
         if (c.credito) ass.credito({ ini: c.inicio, fim: c.fim, texto: c.credito, x: cx.x + 14, y: cx.y + cx.h - 14 });
         yLegenda = Math.max(Y_LEGENDA, fimFaixa + 130);
       } else if (c.texto) {
