@@ -61,7 +61,7 @@ const maiusc = (s) => String(s).toLocaleUpperCase('pt-BR');
 
 /** Quebra `texto` em linhas que caibam em `largura` com o tamanho dado (métrica real). */
 const CURTAS = new Set(['O', 'A', 'OS', 'AS', 'E', 'DE', 'DO', 'DA', 'EM', 'NO', 'NA', 'UM', 'UMA', 'PRA', 'COM', 'POR', 'QUE', 'SE', 'AO']);
-export function quebrarParaLargura(texto, largura, tamanho, m, maxLinhas = 3) {
+export function quebrarParaLargura(texto, largura, tamanho, m, maxLinhas = 3, doisPontos = false) {
   const palavras = String(texto).split(/\s+/).filter(Boolean);
   const linhas = [];
   let atual = [];
@@ -75,7 +75,7 @@ export function quebrarParaLargura(texto, largura, tamanho, m, maxLinhas = 3) {
       } else { linhas.push(atual.join(' ')); atual = [p]; }
     } else atual.push(p);
     // depois de ":" começa linha nova (título "GTA VI: O QUE É OFICIAL")
-    if (/:$/.test(p) && i < palavras.length - 1 && i > 0) { linhas.push(atual.join(' ')); atual = []; }
+    if (doisPontos && /:$/.test(p) && i < palavras.length - 1 && i > 0) { linhas.push(atual.join(' ')); atual = []; }
   });
   if (atual.length) linhas.push(atual.join(' '));
   return linhas.length <= maxLinhas ? linhas : null;
@@ -84,9 +84,11 @@ export function quebrarParaLargura(texto, largura, tamanho, m, maxLinhas = 3) {
 /** Maior tamanho (até `max`) em que o texto cabe em `maxLinhas` linhas, com linhas equilibradas. */
 export function ajustarTexto(texto, { largura, max, min = 30, maxLinhas = 3, m }) {
   for (let t = max; t >= min; t -= 2) {
-    const linhas = quebrarParaLargura(texto, largura, t, m, maxLinhas);
-    if (linhas && linhas.every((l) => m.largura(l, t) <= largura)) {
-      return { tamanho: t, linhas: equilibrar(linhas, largura, t, m) };
+    for (const doisPontos of [true, false]) {
+      const linhas = quebrarParaLargura(texto, largura, t, m, maxLinhas, doisPontos);
+      if (linhas && linhas.every((l) => m.largura(l, t) <= largura)) {
+        return { tamanho: t, linhas: equilibrar(linhas, largura, t, m) };
+      }
     }
   }
   return { tamanho: min, linhas: quebrarParaLargura(texto, largura, min, m, 99) || [texto] };
