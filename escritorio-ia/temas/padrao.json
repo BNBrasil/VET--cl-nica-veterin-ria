@@ -1,8 +1,0 @@
-{
-  "id": "padrao",
-  "nome": "Padrão",
-  "descricao": "O escritório original: salas coloridas, luz do dia, cada cargo com sua cor.",
-  "salas": { "*": { "iluminacao": "dia" } },
-  "mapa": { "formato": "duas-fileiras", "tamanhoSala": "media" },
-  "interface": { "fundo": "#1a1726", "painel": "#262236", "destaque": "#e0a030", "texto": "#f4f0e8", "textoSuave": "#9d96b8", "borda": "#3a3450" }
-}
