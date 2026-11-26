@@ -15,6 +15,9 @@ export class Iso {
   x(wi, wj) { return Math.round(this.X0 + wi - wj); }
   y(wi, wj, z = 0) { return Math.round(this.Y0 + (wi + wj) / 2 - z); }
   pt(wi, wj, z = 0) { return { x: this.x(wi, wj), y: this.y(wi, wj, z) }; }
+  /** Posição de tela sem arredondar (para desenhos feitos direto em pixels). */
+  fx(wi, wj) { return this.X0 + wi - wj; }
+  fy(wi, wj, z = 0) { return this.Y0 + (wi + wj) / 2 - z; }
 
   /** Face de cima (plano z) cobrindo wi∈[i0,i1), wj∈[j0,j1). col(u=wi-i0, v=wj-j0). */
   top(c, i0, j0, i1, j1, z, col) {
@@ -90,6 +93,58 @@ export class Iso {
 }
 
 /**
+ * Iso "transposto": troca i ↔ j (espelha a geometria na horizontal) mantendo as texturas legíveis
+ * (u continua crescendo para a direita na tela). Uma sala desenhada com a parede decorada em j=0 vira
+ * uma sala com a parede decorada em i=0 — usado na ala esquerda do formato L.
+ */
+export class TransIso {
+  constructor(base) { this.base = base; }
+  x(wi, wj) { return this.base.x(wj, wi); }
+  y(wi, wj, z = 0) { return this.base.y(wj, wi, z); }
+  pt(wi, wj, z = 0) { return this.base.pt(wj, wi, z); }
+  fx(wi, wj) { return this.base.fx(wj, wi); }
+  fy(wi, wj, z = 0) { return this.base.fy(wj, wi, z); }
+  top(c, i0, j0, i1, j1, z, col) {
+    this.base.top(c, j0, i0, j1, i1, z, typeof col === 'function' ? (u, v, wi, wj) => col(v, u, wj, wi) : col);
+    return this;
+  }
+  faceJ(c, J, i0, i1, z0, z1, col) { this.base.faceI(c, J, i0, i1, z0, z1, col); return this; }
+  faceI(c, I, j0, j1, z0, z1, col) { this.base.faceJ(c, I, j0, j1, z0, z1, col); return this; }
+  box(c, i0, j0, z0, di, dj, dz, cols) {
+    if (cols.left) this.faceJ(c, j0 + dj, i0, i0 + di, z0, z0 + dz, cols.left);
+    if (cols.right) this.faceI(c, i0 + di, j0, j0 + dj, z0, z0 + dz, cols.right);
+    if (cols.top) this.top(c, i0, j0, i0 + di, j0 + dj, z0 + dz, cols.top);
+    return this;
+  }
+  disc(c, ci, cj, ri, rj, z, col) {
+    return this.top(c, ci - ri, cj - rj, ci + ri, cj + rj, z, (u, v, wi, wj) => {
+      const a = (wi - ci) / ri, b = (wj - cj) / rj;
+      return a * a + b * b <= 1 ? pick(col, u, v, wi, wj) : null;
+    });
+  }
+  cylinder(c, ci, cj, r, z0, z1, cols) { this.base.cylinder(c, cj, ci, r, z0, z1, cols); return this; }
+}
+
+/** Iso que só registra a extensão (em unidades de mundo) do que seria desenhado — para ancorar móveis. */
+export class RecIso {
+  constructor() { this.X0 = 0; this.Y0 = 0; this.i0 = Infinity; this.i1 = -Infinity; this.j0 = Infinity; this.j1 = -Infinity; }
+  _r(a0, a1, b0, b1) { if (a0 < this.i0) this.i0 = a0; if (a1 > this.i1) this.i1 = a1; if (b0 < this.j0) this.j0 = b0; if (b1 > this.j1) this.j1 = b1; }
+  x(wi, wj) { return Math.round(wi - wj); }
+  y(wi, wj, z = 0) { return Math.round((wi + wj) / 2 - z); }
+  pt(wi, wj, z = 0) { this._r(wi, wi, wj, wj); return { x: this.x(wi, wj), y: this.y(wi, wj, z) }; }
+  fx(wi, wj) { this._r(wi, wi, wj, wj); return wi - wj; }
+  fy(wi, wj, z = 0) { return (wi + wj) / 2 - z; }
+  top(c, i0, j0, i1, j1) { this._r(i0, i1, j0, j1); return this; }
+  faceJ(c, J, i0, i1) { this._r(i0, i1, J, J); return this; }
+  faceI(c, I, j0, j1) { this._r(I, I, j0, j1); return this; }
+  box(c, i0, j0, z0, di, dj) { this._r(i0, i0 + di, j0, j0 + dj); return this; }
+  disc(c, ci, cj, ri, rj) { this._r(ci - ri, ci + ri, cj - rj, cj + rj); return this; }
+  cylinder(c, ci, cj, r) { this._r(ci - r, ci + r, cj - r, cj + r); return this; }
+}
+/** Camada que não guarda nada (par do RecIso). */
+export const NULL_LAYER = { px() { return this; }, rect() { return this; }, stamp() {}, get() { return -1; }, w: 0, h: 0, _out: null };
+
+/**
  * Camada temporária do tamanho do alvo: desenha-se nela, depois `stamp()` aplica contorno
  * externo (1 px, 4-vizinhança) e copia para o alvo. Mantém o bbox para ser rápido.
  */
@@ -130,6 +185,7 @@ export class Layer extends Canvas {
 export function wallDecal(iso, c, src, { face, wall, at, z }) {
   // face 'J': parede no plano wj=wall; `at` = wi da borda esquerda do decalque; z = altura do topo do decalque.
   // face 'I': parede no plano wi=wall; `at` = wj da borda esquerda na tela (o maior wj); z = altura do topo.
+  if (iso instanceof RecIso) { if (face === 'J') iso.faceJ(c, wall, at, at + src.w); else iso.faceI(c, wall, at - src.w, at); return; }
   if (face === 'J') {
     iso.faceJ(c, wall, at, at + src.w, z - src.h, z, (u, v) => { const k = src.get(u, v); return k >= 0 ? k : null; });
   } else {

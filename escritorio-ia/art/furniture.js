@@ -77,7 +77,7 @@ export function bookshelfJ(L, iso, i, j, di, dj, h, { wood, woodDark, woodLight,
 export function plant(L, iso, ci, cj, { pot = 'brown', potDark = 'brownDark', size = 2, leaf = 'green', leafDark = 'greenDark', leafLight = 'greenLight' } = {}) {
   const pr = 3 + size, ph = 6 + size * 2;
   iso.cylinder(L, ci, cj, pr, 0, ph, { side: pot, sideDark: potDark, top: 'woodDark' });
-  const cx = iso.X0 + ci - cj, cy = iso.Y0 + (ci + cj) / 2 - ph;
+  const cx = iso.fx(ci, cj), cy = iso.fy(ci, cj, ph);
   const blobs = size === 1
     ? [[0, -5, 4], [-3, -3, 3], [3, -3, 3]]
     : size === 2
@@ -193,7 +193,7 @@ export function fridge(L, iso, i, j) {
 }
 
 export function beanbag(L, iso, ci, cj, { c, cD, cL }) {
-  const cx = iso.X0 + ci - cj, cy = iso.Y0 + (ci + cj) / 2;
+  const cx = iso.fx(ci, cj), cy = iso.fy(ci, cj);
   for (let y = -10; y <= 2; y++) for (let x = -10; x <= 10; x++) {
     const nx = x / 10.5, ny = (y + 3) / (y < -3 ? 8 : 5.5);
     if (nx * nx + ny * ny > 1) continue;

@@ -1,16 +1,13 @@
 // Kit de desenho: canvas de pixels em memória, sempre preso à paleta fechada.
-import { PALETTE, COLORS, hexToRgba } from './palette.js';
+import { SLOTS } from './palette.js';
 import { encodePNG } from './png.js';
-
-const INDEX = new Map(COLORS.map((hex, i) => [hex, i]));
-const RGBA = COLORS.map(hexToRgba);
 
 /** Converte nome da paleta ('skin') ou hex ('#f0c8a0') em índice; null/'.' = transparente. Lança se a cor não for da paleta. */
 export function colorIndex(c) {
   if (c === null || c === undefined || c === '.' || c === -1) return -1;
-  if (typeof c === 'number') { if (c >= 0 && c < COLORS.length) return c; throw new Error(`índice de cor inválido: ${c}`); }
-  const hex = PALETTE[c] ?? String(c).toLowerCase();
-  const i = INDEX.get(hex);
+  if (typeof c === 'number') { if (c >= 0 && c < SLOTS.names.length) return c; throw new Error(`índice de cor inválido: ${c}`); }
+  let i = SLOTS.index.get(c);
+  if (i === undefined) i = SLOTS.byHex.get(String(c).toLowerCase());
   if (i === undefined) throw new Error(`cor fora da paleta: ${c}`);
   return i;
 }
@@ -22,7 +19,7 @@ export class Canvas {
   }
   clone() { const c = new Canvas(this.w, this.h); c.px_.set(this.px_); return c; }
   get(x, y) { return x < 0 || y < 0 || x >= this.w || y >= this.h ? -1 : this.px_[y * this.w + x]; }
-  getName(x, y) { const i = this.get(x, y); return i < 0 ? null : Object.keys(PALETTE)[i]; }
+  getName(x, y) { const i = this.get(x, y); return i < 0 ? null : SLOTS.names[i]; }
   px(x, y, c) {
     x |= 0; y |= 0;
     if (x < 0 || y < 0 || x >= this.w || y >= this.h) return this;
@@ -101,6 +98,7 @@ export class Canvas {
   /** Lista de índices de paleta usados. */
   usedColors() { return [...new Set(this.px_)].filter((i) => i >= 0); }
   toRGBA(scale = 1) {
+    const RGBA = SLOTS.rgba;
     const W = this.w * scale, H = this.h * scale, out = new Uint8Array(W * H * 4);
     for (let y = 0; y < H; y++) for (let x = 0; x < W; x++) {
       const i = this.px_[((y / scale) | 0) * this.w + ((x / scale) | 0)];

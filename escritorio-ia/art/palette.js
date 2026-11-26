@@ -1,9 +1,10 @@
 // Paleta fechada do Escritório de IA Animado — v2 (pixel art isométrica, cores vivas, contorno escuro).
-// Toda a arte é gerada por código a partir destas cores — nada fora daqui entra nos PNGs.
-// Inclui as cores de destaque de shared/rooms.json (validado em art/generate.js e art/validate.js).
-// Cada destaque tem três tons: escuro (sombra/face lateral), médio (o destaque) e claro (luz/parede).
+// Toda a arte é desenhada com NOMES de cor ("slots"). Cada tema decide o hex de cada slot (art/tema.js) e
+// pode criar slots próprios (destaque por sala, piso, parede, cabelo e roupa por personagem). No fim, a
+// paleta real (cores únicas) é limitada a 64 cores: se passar, as cores menos importantes são fundidas com
+// a vizinha mais próxima (finalizarPaleta). O tema `padrao` usa exatamente BASE (63 cores, a arte original).
 
-export const PALETTE = {
+export const BASE = {
   // neutros (frios, levemente arroxeados)
   outline:   '#1a1420',
   ink:       '#2c2438',
@@ -77,10 +78,8 @@ export const PALETTE = {
   tealPale:    '#d8ece4',
 };
 
-export const COLORS = Object.values(PALETTE);
-
-/** Cor de destaque e sombra por id de sala (o valor do destaque vem de rooms.json). */
-export const ACCENT = {
+/** Família de destaque nativa de cada sala (nomes da BASE). O valor do destaque vem de rooms.json. */
+export const BASE_ACCENT = {
   orquestrador: { mid: 'orange', dark: 'orangeDark', light: 'orangeLight', pale: 'orangePale' },
   roteirista: { mid: 'yellow', dark: 'yellowDark', light: 'lamp', pale: 'yellowPale' },
   'editor-video': { mid: 'purple', dark: 'purpleDark', light: 'neon', pale: 'purplePale' },
@@ -93,13 +92,92 @@ export const ACCENT = {
   lounge: { mid: 'teal', dark: 'tealDark', light: 'tealLight', pale: 'tealPale' },
 };
 
+export const MAX_COLORS = 64;
+
+// ---------------------------------------------------------------- estado (uma geração por vez)
+/** nome → hex do tema aplicado (objeto vivo). */
+export const PALETTE = {};
+/** Cores únicas da paleta aplicada (array vivo). */
+export const COLORS = [];
+/** Família de destaque por sala → nomes de slot (objeto vivo; ver tema). */
+export const ACCENT = {};
+/** Slots: índice estável por nome (o Canvas guarda índices). */
+export const SLOTS = { names: [], hex: [], rgba: [], prio: [], index: new Map(), byHex: new Map() };
+
 export function hexToRgba(hex) {
   const h = hex.replace('#', '');
   return [parseInt(h.slice(0, 2), 16), parseInt(h.slice(2, 4), 16), parseInt(h.slice(4, 6), 16), 255];
 }
 
-/** Nome da cor na paleta a partir do hex (ou undefined). */
-export function nameOf(hex) {
-  const lc = hex.toLowerCase();
-  return Object.keys(PALETTE).find((k) => PALETTE[k] === lc);
+function rebuild() {
+  SLOTS.rgba = SLOTS.hex.map(hexToRgba);
+  SLOTS.byHex = new Map();
+  SLOTS.hex.forEach((h, i) => { if (!SLOTS.byHex.has(h)) SLOTS.byHex.set(h, i); });
+  for (const k of Object.keys(PALETTE)) delete PALETTE[k];
+  SLOTS.names.forEach((n, i) => { PALETTE[n] = SLOTS.hex[i]; });
+  COLORS.length = 0;
+  for (const h of SLOTS.hex) if (!COLORS.includes(h)) COLORS.push(h);
 }
+
+/** Volta para a paleta BASE (tema padrão) — 63 slots nos índices de sempre. */
+export function resetPalette() {
+  SLOTS.names = []; SLOTS.hex = []; SLOTS.prio = []; SLOTS.index = new Map();
+  for (const [n, h] of Object.entries(BASE)) { SLOTS.index.set(n, SLOTS.names.length); SLOTS.names.push(n); SLOTS.hex.push(h); SLOTS.prio.push(2); }
+  for (const k of Object.keys(ACCENT)) delete ACCENT[k];
+  Object.assign(ACCENT, JSON.parse(JSON.stringify(BASE_ACCENT)));
+  rebuild();
+}
+
+/**
+ * Define (ou redefine) um slot. prio: 0 = pode ser fundido à vontade, 1 = normal, 2 = base, 3 = protegido
+ * (escolha explícita do usuário / destaque das salas: nunca muda para caber em 64 cores, se der).
+ */
+export function defineColor(name, hex, prio = 1) {
+  const h = hex.toLowerCase();
+  if (!/^#[0-9a-f]{6}$/.test(h)) throw new Error(`cor inválida para ${name}: ${hex}`);
+  let i = SLOTS.index.get(name);
+  if (i === undefined) { i = SLOTS.names.length; SLOTS.index.set(name, i); SLOTS.names.push(name); SLOTS.hex.push(h); SLOTS.prio.push(prio); }
+  else { SLOTS.hex[i] = h; SLOTS.prio[i] = Math.max(SLOTS.prio[i], prio); }
+  rebuild();
+  return name;
+}
+/** Muda vários slots de uma vez (sem reconstruir a cada um). fn(name, hex) → novo hex ou undefined. */
+export function mapColors(fn) {
+  SLOTS.names.forEach((n, i) => { const r = fn(n, SLOTS.hex[i], i); if (r) SLOTS.hex[i] = r.toLowerCase(); });
+  rebuild();
+}
+export function hexOf(name) { const i = SLOTS.index.get(name); return i === undefined ? undefined : SLOTS.hex[i]; }
+
+/** Nome do slot a partir do hex (primeiro com esse hex) ou undefined. */
+export function nameOf(hex) { const i = SLOTS.byHex.get(hex.toLowerCase()); return i === undefined ? undefined : SLOTS.names[i]; }
+
+/**
+ * Garante ≤ MAX_COLORS cores únicas fundindo pares próximos. Em cada passo junta o par (a, b) de menor
+ * distância ponderada; a cor de menor prioridade passa a usar o hex da outra. Retorna a lista de fusões.
+ */
+export function finalizarPaleta(dist, { max = MAX_COLORS, usados = null } = {}) {
+  const merges = [];
+  for (;;) {
+    // cores únicas e a maior prioridade de cada uma
+    const uniq = new Map();
+    SLOTS.hex.forEach((h, i) => {
+      if (usados && !usados.has(i)) return;
+      uniq.set(h, Math.max(uniq.get(h) ?? -1, SLOTS.prio[i]));
+    });
+    if (uniq.size <= max) break;
+    const list = [...uniq.entries()];
+    let best = null;
+    for (let a = 0; a < list.length; a++) for (let b = a + 1; b < list.length; b++) {
+      const [ha, pa] = list[a], [hb, pb] = list[b];
+      const w = Math.min(pa, pb) >= 3 ? 8 : 1 + Math.min(pa, pb) * 0.5;
+      const d = dist(ha, hb) * w;
+      if (!best || d < best.d) best = { d, keep: pa >= pb ? ha : hb, drop: pa >= pb ? hb : ha };
+    }
+    merges.push([best.drop, best.keep]);
+    SLOTS.hex = SLOTS.hex.map((h) => (h === best.drop ? best.keep : h));
+  }
+  rebuild();
+  return merges;
+}
+
+resetPalette();
