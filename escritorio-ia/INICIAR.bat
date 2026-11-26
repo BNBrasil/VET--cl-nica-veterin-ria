@@ -29,48 +29,62 @@ if not errorlevel 1 (
 REM --- 1. Node.js ---
 where node >nul 2>nul
 if not errorlevel 1 goto :tem_node
-echo  [1/4] Node.js nao encontrado. Instalando pelo winget...
+echo  [1/5] Node.js nao encontrado. Instalando pelo winget...
 call :winget OpenJS.NodeJS.LTS || goto :falha_node
 where node >nul 2>nul || goto :falha_node
 :tem_node
-for /f "delims=" %%v in ('node -v') do echo  [1/4] Node.js %%v ok
+for /f "delims=" %%v in ('node -v') do echo  [1/5] Node.js %%v ok
 
 REM --- 2. Git (o Claude Code no Windows usa o Git Bash) ---
 where git >nul 2>nul
 if not errorlevel 1 goto :tem_git
-echo  [2/4] Git nao encontrado. Instalando pelo winget...
+echo  [2/5] Git nao encontrado. Instalando pelo winget...
 call :winget Git.Git
-where git >nul 2>nul || echo  [2/4] Aviso: Git nao instalado. O Claude Code pode pedir o Git Bash.
+where git >nul 2>nul || echo  [2/5] Aviso: Git nao instalado. O Claude Code pode pedir o Git Bash.
 goto :claude
 :tem_git
-echo  [2/4] Git ok
+echo  [2/5] Git ok
 
 REM --- 3. Claude Code ---
 :claude
 where claude >nul 2>nul
 if not errorlevel 1 goto :tem_claude
-echo  [3/4] Claude Code nao encontrado. Instalando (instalador oficial)...
+echo  [3/5] Claude Code nao encontrado. Instalando (instalador oficial)...
 powershell -NoProfile -ExecutionPolicy Bypass -Command "irm https://claude.ai/install.ps1 | iex"
 where claude >nul 2>nul
 if not errorlevel 1 goto :tem_claude
-echo  [3/4] Tentando pelo npm...
+echo  [3/5] Tentando pelo npm...
 call npm install -g @anthropic-ai/claude-code
 where claude >nul 2>nul
 if errorlevel 1 (
-  echo  [3/4] Nao consegui instalar o Claude Code. Voce pode tentar pela pagina: Configurar ^> Instalar.
+  echo  [3/5] Nao consegui instalar o Claude Code. Voce pode tentar pela pagina: Configurar ^> Instalar.
   goto :deps
 )
 :tem_claude
-echo  [3/4] Claude Code ok  ^(o login, se precisar, e feito pela pagina^)
+echo  [3/5] Claude Code ok  ^(o login, se precisar, e feito pela pagina^)
 
 REM --- 4. dependencias do escritorio ---
 :deps
 if exist "node_modules\ws\package.json" goto :tem_deps
-echo  [4/4] Instalando dependencias do escritorio...
+echo  [4/5] Instalando dependencias do escritorio...
 call npm install --no-audit --no-fund || goto :falha_npm
 :tem_deps
-echo  [4/4] Dependencias ok
+echo  [4/5] Dependencias ok
 if not exist data mkdir data
+
+REM --- 5. canal gamer: ffmpeg (edicao de video) e voz gratuita (Piper) ---
+set "PATH=%LOCALAPPDATA%\Microsoft\WinGet\Links;%PATH%"
+where ffmpeg >nul 2>nul
+if not errorlevel 1 goto :tem_ffmpeg
+echo  [5/5] ffmpeg nao encontrado. Instalando pelo winget...
+call :winget Gyan.FFmpeg
+where ffmpeg >nul 2>nul || echo  [5/5] Aviso: sem ffmpeg o canal gamer nao monta videos. Instale em https://www.gyan.dev/ffmpeg/builds/
+:tem_ffmpeg
+if exist "producao\instalar-voz.js" if not exist "producao\voz\.pronto" (
+  echo  [5/5] Baixando a voz gratuita ^(Piper, pt-BR^)... so na primeira vez.
+  node producao\instalar-voz.js
+)
+echo  [5/5] Canal gamer ok
 
 REM --- liga o servidor ---
 if /i "%~1"=="--visivel" (
